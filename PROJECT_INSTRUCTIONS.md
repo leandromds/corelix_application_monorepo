@@ -1,4 +1,4 @@
-# Instruções do Projeto — Secretária Digital
+# Instruções do Projeto — Corelix
 # Leia este arquivo inteiro antes de responder qualquer mensagem.
 
 ---
@@ -30,7 +30,7 @@ Você atua em três dimensões simultâneas:
 
 ## Sobre o produto
 
-SaaS B2B chamado **Secretária Digital** — uma secretária inteligente com IA para profissionais autônomos de saúde e bem-estar (psicólogos, terapeutas, massagistas, personal trainers, manicures, etc).
+SaaS B2B chamado **Corelix** — uma secretária digital inteligente com IA para profissionais autônomos de saúde e bem-estar (psicólogos, terapeutas, massagistas, personal trainers, manicures, etc).
 
 **Problema que resolve:** esses profissionais acumulam a função técnica com toda a carga administrativa — agendamentos, lembretes, cobranças e comunicação com clientes. O produto automatiza essa carga com IA de forma transversal.
 
@@ -72,6 +72,20 @@ SaaS B2B chamado **Secretária Digital** — uma secretária inteligente com IA 
 - **WhatsApp:** cada profissional usa seu próprio número via Embedded Signup. O número da plataforma é exclusivo para o bot institucional da Secretária Digital
 - **Refresh token:** armazenado como HttpOnly cookie (secure, samesite=strict) — nunca no body da resposta. Protege contra XSS. Exige CORS com allow_credentials=True e origens explícitas.
 - **RLS:** `set_tenant_context()` chamado explicitamente via TenantSession (FastAPI Depends) — nunca via middleware automático. Evita aplicar RLS em rotas sem tenant (login, refresh).
+- **Models:** sem `relationship()` — navegação via queries explícitas nos repositories. Evita carregamento implícito de dados entre tenants.
+- **Transações:** nunca `session.commit()` no service layer — RLS usa `SET LOCAL` válido só na transação atual. Commit encerra a transação e perde o contexto do tenant.
+- **SET LOCAL:** não usa bind params (`$1`) — PostgreSQL não suporta parâmetros em `SET`. UUID interpolado diretamente via f-string (seguro: UUID é tipo validado pelo Python).
+- **Anti-enumeração:** endpoint de login retorna a mesma mensagem de erro para email inexistente e senha incorreta — previne descoberta de usuários cadastrados.
+- **bcrypt:** fixado em `<4` no pyproject.toml — passlib 1.7.4 é incompatível com bcrypt 4.x+.
+- **Testes de cookie:** base_url do http_client fixture usa `https://testserver` — httpx não envia cookies `Secure` para `http://`.
+- **Token frontend:** variável de módulo em `api.ts` — nunca `localStorage`, nunca `sessionStorage`, nunca React state. Interceptors precisam ler o valor no momento da execução, não no momento do registro.
+- **Cookie Secure em dev:** `auth/router.py` usa `secure=settings.is_production` — `False` em desenvolvimento (HTTP do Vite proxy funciona), `True` em produção (HTTPS obrigatório).
+- **isLoading no AuthContext:** começa `true`, vira `false` apenas quando o restore de sessão termina (sucesso ou falha). Sem isso, há flash de redirect para /login durante o reload mesmo com cookie válido.
+- **Gitflow:**
+  - `main` → produção, nunca recebe push direto
+  - `develop` → branch base do dia a dia
+  - `feature/*` → criada a partir de develop, mergeada via PR
+  - Nunca digitar `git push origin main` — sempre `origin feature/...`
 - **Idioma do código:** inglês. Idioma da documentação: português
 - **Commits:** conventional commits (`feat:`, `fix:`, `chore:`, `docs:`)
 
@@ -134,6 +148,32 @@ api/tests/
 
 ---
 
+## Gitflow
+
+```
+main      → produção — só recebe merge de develop via PR
+develop   → desenvolvimento — branch base do dia a dia
+feature/* → features individuais, criadas a partir de develop
+```
+
+**Fluxo para cada feature:**
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/nome-da-feature
+
+# desenvolve, commita...
+git push origin feature/nome-da-feature
+# abre PR no GitHub: feature/* → develop
+
+# quando develop estiver estável:
+# abre PR no GitHub: develop → main
+```
+
+**Regra:** nunca `git push origin main`. Sempre `origin feature/...`.
+
+---
+
 ## Como se comportar
 
 **Ao explicar conceitos de banco de dados ou backend:**
@@ -165,24 +205,14 @@ Direto, técnico, sem enrolação. Parceiro de trabalho sênior — não assiste
 ```
 ✅ Levantamento de requisitos
 ✅ Decisões arquiteturais (multi-tenancy, auth, estrutura, TDD)
-✅ Schema do banco de dados
-   ✅ professionals
-   ✅ refresh_tokens
-   ✅ clients
-   ✅ availability_slots
-   ✅ blocked_periods
-   ✅ sessions
-      ✅ recurrences
-   ✅ whatsapp_conversations + whatsapp_messages
-   ✅ audit_logs
+✅ Schema do banco de dados (10 tabelas, migration aplicada, RLS em 6 tabelas)
 ✅ Setup do monorepo e ambiente
    ✅ docker-compose.yml (PostgreSQL 16 Alpine + healthcheck)
    ✅ .env.example (todas as variáveis documentadas)
    ✅ apps/api — pyproject.toml (Poetry), main.py, alembic/
-   ✅ core/ — config.py, database.py, security.py, exceptions.py
-   ✅ Skeletons: auth, professionals, clients, agenda, reports, whatsapp
+   ✅ core/ — config.py, database.py, security.py, exceptions.py, deps.py
+   ✅ Skeletons: clients, agenda, reports, whatsapp
    ✅ ai/service.py e ai/prompts.py
-   ✅ tests/conftest.py + tests/core/test_security.py (17 testes TDD)
    ✅ apps/web — React 18 + Vite 5 + TypeScript scaffold
 ✅ Modelos SQLAlchemy + Migration inicial + RLS policies
    ✅ core/mixins.py (TimestampMixin, CreatedAtMixin)
@@ -190,11 +220,30 @@ Direto, técnico, sem enrolação. Parceiro de trabalho sênior — não assiste
    ✅ alembic/versions/56f1e41b5d4c_initial_schema.py (aplicada)
    ✅ RLS ativo em 6 tabelas (policies adicionadas manualmente)
 ✅ core/deps.py — DbSession, TenantSession, CurrentProfessionalId
-   ✅ tests/core/test_deps.py (6 testes — Green)
-   ✅ tests/{professionals,auth,clients}/test_model.py (Red — aguardam DB)
-⬜ Autenticação (backend + frontend)   ← próximo passo
-⬜ Módulo professionals
-⬜ Módulo clients
+✅ Autenticação — backend (99 testes passando)
+   ✅ professionals/schemas.py — RegisterRequest, UpdateProfileRequest, ProfessionalResponse
+   ✅ auth/schemas.py — LoginRequest, AccessTokenResponse
+   ✅ professionals/repository.py — create, find_by_email, find_by_id, update
+   ✅ auth/repository.py — create, find_by_hash, revoke, revoke_all, delete_expired
+   ✅ professionals/service.py — register (ConflictError), get_by_id, update_profile
+   ✅ auth/service.py — login (anti-enumeração), refresh_access_token, logout, logout_all
+   ✅ auth/router.py — /register (201), /login (cookie), /refresh, /logout (204), /logout-all
+   ✅ professionals/router.py — GET /me, PATCH /me (TenantSession + RLS)
+   ✅ tests/conftest.py — http_client, authenticated_http_client, test_professional
+   ✅ 99 testes passando (model + repository + service + router)
+✅ Autenticação — frontend
+   ✅ src/types/auth.ts — ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
+   ✅ src/services/api.ts — instância axios, token em módulo, interceptors, fila de refresh
+   ✅ src/contexts/AuthContext.tsx — AuthProvider, restore de sessão, login/register/logout
+   ✅ src/hooks/useAuth.ts — wrapper com null-check
+   ✅ src/components/ProtectedRoute.tsx — spinner + redirect /login
+   ✅ src/components/PublicRoute.tsx — null + redirect /dashboard
+   ✅ src/pages/LoginPage.tsx — formulário, isSubmitting, error display
+   ✅ src/pages/RegisterPage.tsx — 5 campos, specialty/bio opcionais
+   ✅ src/pages/DashboardPage.tsx — placeholder com logout
+   ✅ src/App.tsx — BrowserRouter + AuthProvider + Routes
+   ✅ build limpo (tsc --noEmit + vite build: zero erros)
+⬜ Módulo clients   ← próximo passo
 ⬜ Módulo agenda
 ⬜ Módulo reports + IA no relatório
 ⬜ WhatsApp webhook + IA conversacional
