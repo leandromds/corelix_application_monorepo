@@ -89,10 +89,10 @@ async def set_tenant_context(session: AsyncSession, professional_id: UUID) -> No
     e o RLS fica inativo para o restante da requisição sem nenhum aviso.
     O commit é responsabilidade exclusiva de get_db() no finally.
     """
-    await session.execute(
-        text("SET LOCAL app.current_tenant = :tenant_id"),
-        {"tenant_id": str(professional_id)},
-    )
+    # PostgreSQL SET LOCAL does not support bind parameters ($1).
+    # UUID str is validated format — safe to interpolate directly.
+    tenant_id = str(professional_id)
+    await session.execute(text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
 
 async def clear_tenant_context(session: AsyncSession) -> None:
