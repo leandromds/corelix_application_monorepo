@@ -51,8 +51,9 @@ class TestClientRLS:
         await db_session.flush()
 
         # Ativa contexto para o profissional A
+        tenant_id = str(prof_a.id)
         await db_session.execute(
-            text("SET LOCAL app.current_tenant = :id"), {"id": str(prof_a.id)}
+            text(f"SET LOCAL app.current_tenant = '{tenant_id}'")
         )
 
         result = await db_session.execute(select(Client))

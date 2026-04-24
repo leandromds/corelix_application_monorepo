@@ -1,10 +1,10 @@
 """
 FastAPI main application entry point.
 
-This module sets up:
-- FastAPI app with CORS
-- Database lifecycle management (startup/shutdown)
-- Custom exception handlers
+Setup:
+- FastAPI app with strict CORS (explicit origins, credentials=True for cookies)
+- Database lifecycle (startup/shutdown)
+- Custom exception handlers (AppException -> JSON, ValidationError -> JSON)
 - Router inclusion for all modules
 - Health check endpoint
 """
@@ -21,9 +21,11 @@ from core.config import settings
 from core.database import check_database_connection, close_db
 from core.exceptions import AppException
 
-# Import routers (will be implemented later)
-# from auth.router import router as auth_router
-# from professionals.router import router as professionals_router
+# Routers
+from auth.router import router as auth_router
+from professionals.router import router as professionals_router
+
+# Future routers (uncomment as implemented)
 # from clients.router import router as clients_router
 # from agenda.router import router as agenda_router
 # from reports.router import router as reports_router
@@ -37,35 +39,20 @@ from core.exceptions import AppException
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Manage application lifecycle (startup and shutdown).
+    """Startup: verify DB. Shutdown: close pool."""
+    print(f"Starting Secretaria Digital API in {settings.ENVIRONMENT} mode...")
 
-    Startup:
-    - Verify database connection
-    - Log startup message
-
-    Shutdown:
-    - Close database connections gracefully
-    - Clean up resources
-
-    This replaces the deprecated @app.on_event("startup") decorator.
-    """
-    # Startup
-    print(f"🚀 Starting Secretária Digital API in {settings.ENVIRONMENT} mode...")
-
-    # Check database connection
     if await check_database_connection():
-        print("✅ Database connection established")
+        print("Database connection established")
     else:
-        print("❌ Database connection failed")
+        print("Database connection failed")
         raise RuntimeError("Failed to connect to database")
 
     yield
 
-    # Shutdown
-    print("🛑 Shutting down Secretária Digital API...")
+    print("Shutting down Secretaria Digital API...")
     await close_db()
-    print("✅ Database connections closed")
+    print("Database connections closed")
 
 
 # ============================================================================
@@ -73,10 +60,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ============================================================================
 
 app = FastAPI(
-    title="Secretária Digital API",
-    description="API backend para secretária inteligente com IA para profissionais autônomos",
+    title="Secretaria Digital API",
+    description="API backend para secretaria inteligente com IA para profissionais autonomos",
     version="0.1.0",
-    docs_url="/docs" if settings.DEBUG else None,  # Disable docs in production
+    docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
     lifespan=lifespan,
 )
@@ -85,13 +72,17 @@ app = FastAPI(
 # ============================================================================
 # CORS Middleware
 # ============================================================================
+#
+# IMPORTANT: allow_credentials=True is mandatory for HttpOnly cookies
+# (refresh_token) to be sent cross-origin. Therefore allow_origins must
+# list explicit origins — "*" is forbidden when credentials=True.
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.CORS_ORIGINS,  # e.g. ["http://localhost:5173"]
+    allow_credentials=True,               # required for HttpOnly cookie
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 
@@ -103,18 +94,10 @@ app.add_middleware(
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
     """
-    Handle custom application exceptions.
-
-    Converts AppException instances to JSON responses with appropriate
-    status codes and error details.
+    Convert custom AppException subclasses to structured JSON response.
 
     Response format:
-    {
-        "error": {
-            "message": "Human-readable error message",
-            "detail": {"key": "additional context"}
-        }
-    }
+        {"error": {"message": "...", "detail": {...}}}
     """
     return JSONResponse(
         status_code=exc.status_code,
@@ -126,22 +109,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """
-    Handle Pydantic validation errors.
-
-    This catches validation errors from request body, query params, and path params.
-    Returns a 422 response with detailed validation errors.
-
-    Response format:
-    {
-        "error": {
-            "message": "Validation failed",
-            "detail": {
-                "errors": [{"loc": ["body", "email"], "msg": "invalid email", "type": "value_error.email"}]
-            }
-        }
-    }
-    """
+    """Convert Pydantic validation errors to 422 with field-level detail."""
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
@@ -155,23 +123,9 @@ async def validation_exception_handler(
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """
-    Catch-all handler for unexpected exceptions.
-
-    This ensures no exception leaks implementation details to the client.
-    In production, logs the full error but returns a generic message.
-
-    Response format:
-    {
-        "error": {
-            "message": "Internal server error",
-            "detail": {}
-        }
-    }
-    """
-    # In production, log the exception here (use proper logging)
+    """Catch-all: never leak implementation details to the client."""
     if settings.DEBUG:
-        print(f"❌ Unhandled exception: {exc}")
+        print(f"Unhandled exception: {exc}")
 
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -185,24 +139,13 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # ============================================================================
-# Health Check Endpoint
+# Health Check
 # ============================================================================
 
 
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"])
-async def health_check() -> dict[str, str]:
-    """
-    Health check endpoint.
-
-    Returns:
-    - 200 OK if service is healthy and database is reachable
-    - 503 Service Unavailable if database connection fails
-
-    This endpoint is used by:
-    - Load balancers
-    - Monitoring systems
-    - Railway health checks
-    """
+async def health_check() -> dict:
+    """Health check used by load balancers and Railway."""
     db_healthy = await check_database_connection()
 
     if not db_healthy:
@@ -222,9 +165,12 @@ async def health_check() -> dict[str, str]:
 # Router Inclusion
 # ============================================================================
 
-# TODO: Uncomment as routers are implemented
-# app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-# app.include_router(professionals_router, prefix="/api/v1/professionals", tags=["Professionals"])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(
+    professionals_router, prefix="/api/v1/professionals", tags=["Professionals"]
+)
+
+# Uncomment as implemented:
 # app.include_router(clients_router, prefix="/api/v1/clients", tags=["Clients"])
 # app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
 # app.include_router(reports_router, prefix="/api/v1/reports", tags=["Reports"])
@@ -232,7 +178,7 @@ async def health_check() -> dict[str, str]:
 
 
 # ============================================================================
-# Development Server (optional - use uvicorn CLI instead)
+# Dev entrypoint
 # ============================================================================
 
 if __name__ == "__main__":
