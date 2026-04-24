@@ -125,6 +125,8 @@ Router nunca acessa o banco. Repository nunca contém regra de negócio. Service
 - ON DELETE SET NULL: vínculo pode ser removido sem perder o registro (recurrence_id em sessions, client_id em conversations)
 - Constraints de integridade no banco (CHECK, UNIQUE) E no Pydantic — defense in depth
 - Lógica de negócio no Python, nunca em PL/pgSQL — para manter testabilidade
+- Sem `relationship()` nos models — navegação via queries explícitas nos repositories. Evita carregamento implícito de dados entre tenants.
+- Nunca `session.commit()` no service layer — RLS usa SET LOCAL válido só na transação atual. Commit encerra a transação e perde o contexto do tenant.
 
 ---
 
@@ -560,10 +562,28 @@ Toda saída da IA é identificada como sugestão. Prompts centralizados em ai/pr
    ✅ RLS ativo em 6 tabelas (policies adicionadas manualmente)
 ✅ core/deps.py — DbSession, TenantSession, CurrentProfessionalId
    ✅ tests/core/test_deps.py (6 testes — Green)
-   ✅ tests/{professionals,auth,clients}/test_model.py (Red — aguardam DB)
-⬜ Autenticação (backend + frontend)   ← próximo passo
-⬜ Módulo professionals
-⬜ Módulo clients
+✅ Autenticação — backend (99 testes passando)
+   ✅ professionals/schemas.py — RegisterRequest, UpdateProfileRequest, ProfessionalResponse
+   ✅ auth/schemas.py — LoginRequest, AccessTokenResponse
+   ✅ professionals/repository.py — create, find_by_email, find_by_id, update
+   ✅ auth/repository.py — create, find_by_hash, revoke, revoke_all, delete_expired
+   ✅ professionals/service.py — register (ConflictError), get_by_id, update_profile
+   ✅ auth/service.py — login (anti-enumeração), refresh_access_token, logout, logout_all
+   ✅ auth/router.py — /register (201), /login (cookie), /refresh, /logout (204), /logout-all
+   ✅ professionals/router.py — GET /me, PATCH /me (TenantSession + RLS)
+   ✅ tests/conftest.py — http_client, authenticated_http_client, test_professional
+   ✅ 99 testes passando (model + repository + service + router)
+✅ Autenticação — frontend
+   ✅ src/types/auth.ts — ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
+   ✅ src/services/api.ts — token em módulo, interceptors, fila de refresh, SKIP_REFRESH_PATHS
+   ✅ src/contexts/AuthContext.tsx — AuthProvider, isLoading, restore de sessão, login/register/logout
+   ✅ src/hooks/useAuth.ts — wrapper com null-check
+   ✅ src/components/ProtectedRoute.tsx + PublicRoute.tsx — guards com isLoading
+   ✅ src/pages/LoginPage.tsx + RegisterPage.tsx + DashboardPage.tsx
+   ✅ src/App.tsx — BrowserRouter + AuthProvider + Routes
+   ✅ auth/router.py — secure=settings.is_production (fix para dev HTTP)
+   ✅ build limpo (tsc + vite build)
+⬜ Módulo clients   ← próximo passo
 ⬜ Módulo agenda
 ⬜ Módulo reports + IA no relatório
 ⬜ WhatsApp webhook + IA conversacional
@@ -579,31 +599,105 @@ Toda saída da IA é identificada como sugestão. Prompts centralizados em ai/pr
 - Idioma do código: inglês
 - Idioma da documentação: português
 - Commits: conventional commits (feat:, fix:, chore:, docs:)
-- Branches: main → develop → feature/nome-da-feature
 - Variáveis de ambiente: sempre em .env, nunca commitar
+
+### Gitflow
+
+```
+main      → produção — nunca recebe push direto
+develop   → branch base do dia a dia
+feature/* → criada a partir de develop, mergeada via PR
+```
+
+Fluxo obrigatório:
+```bash
+git checkout develop
+git pull origin develop
+git checkout -b feature/nome-da-feature
+
+# desenvolve e commita...
+git push origin feature/nome-da-feature
+# abre PR: feature/* → develop
+
+# quando develop estiver estável:
+# abre PR: develop → main
+```
+
+Regra: nunca `git push origin main`. Sempre `origin feature/...`.
 
 
 ---
 
-## 12. Setup — arquivos e decisões técnicas
+## 12. Setup e implementações — arquivos e decisões técnicas
 
-### O que foi implementado no setup
+### Core e infraestrutura
 
 | Arquivo | Responsabilidade |
 |---|---|
 | `docker-compose.yml` | PostgreSQL 16 Alpine com healthcheck e volume persistente |
 | `.env.example` | Todas as variáveis documentadas com descrição |
-| `apps/api/pyproject.toml` | Deps de produção e dev com Poetry; config ruff, mypy e pytest |
-| `apps/api/main.py` | App FastAPI: CORS, lifespan (startup/shutdown), 3 exception handlers, `/health` |
+| `apps/api/pyproject.toml` | Deps de produção e dev com Poetry; bcrypt fixado em `<4`; config ruff, mypy e pytest |
+| `apps/api/main.py` | App FastAPI: CORS (allow_credentials=True + origens explícitas), lifespan, 3 exception handlers, `/health`, routers incluídos |
 | `core/config.py` | `Settings` via pydantic-settings — fail-fast se variável obrigatória ausente |
-| `core/database.py` | Engine async, pool de conexões, `get_db()`, `set_tenant_context()`, `Base` |
-| `core/security.py` | `hash_password/verify_password` (bcrypt), JWT (HS256), `generate_refresh_token` (SHA-256) |
+| `core/database.py` | Engine async, pool de conexões, `get_db()`, `set_tenant_context()` (SET LOCAL sem bind params — PostgreSQL não suporta `$1` em SET), `Base` |
+| `core/security.py` | `hash_password/verify_password` (bcrypt), JWT (HS256, 15min), `generate_refresh_token` (UUID + SHA-256) |
 | `core/exceptions.py` | `AppException` + 7 subclasses com HTTP status codes corretos |
+| `core/deps.py` | `DbSession`, `CurrentProfessionalId`, `TenantSession` — blocos de dependência FastAPI |
 | `ai/service.py` | `AIService`: `complete()` para single-turn, `complete_with_history()` para conversas |
 | `ai/prompts.py` | `PROMPTS` registry: `whatsapp_secretary`, `report_insights` |
-| `tests/conftest.py` | Fixtures: `test_engine` (session-scoped), `db_session` (rollback por teste), `client` |
-| `tests/core/test_security.py` | 17 testes TDD escritos na fase Red, implementados na fase Green |
 | `alembic/env.py` | Ambiente async-compatible para migrations (usa `asyncio.run`) |
+
+### Autenticação — backend
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `professionals/schemas.py` | `RegisterRequest` (specialty/bio opcionais), `UpdateProfileRequest`, `ProfessionalResponse` (nunca expõe password_hash) |
+| `auth/schemas.py` | `LoginRequest`, `AccessTokenResponse`; re-exporta de professionals (single source of truth) |
+| `professionals/repository.py` | `create`, `find_by_email`, `find_by_id`, `update` |
+| `auth/repository.py` | `create`, `find_by_hash`, `revoke`, `revoke_all`, `delete_expired` |
+| `professionals/service.py` | `register` (hash + ConflictError), `get_by_id` (NotFoundError), `update_profile` (PATCH com exclude_none) |
+| `auth/service.py` | `login` (anti-enumeração), `refresh_access_token`, `logout`, `logout_all` |
+| `auth/router.py` | 5 endpoints: `/register` (201), `/login` (cookie), `/refresh`, `/logout` (204), `/logout-all` (JWT) |
+| `professionals/router.py` | `GET /me`, `PATCH /me` — ambos com TenantSession (JWT + RLS) |
+
+### Autenticação — frontend
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `src/types/auth.ts` | Interfaces TypeScript espelhando os schemas do backend |
+| `src/services/api.ts` | Instância axios: baseURL, withCredentials=true, token em variável de módulo, interceptors de request e response, fila de refresh |
+| `src/contexts/AuthContext.tsx` | AuthProvider: professional, isLoading, login, register, logout, restore de sessão no mount |
+| `src/hooks/useAuth.ts` | Wrapper do contexto com null-check descritivo |
+| `src/components/ProtectedRoute.tsx` | Spinner durante isLoading, redirect /login se não autenticado |
+| `src/components/PublicRoute.tsx` | Null durante isLoading, redirect /dashboard se autenticado |
+| `src/pages/LoginPage.tsx` | Formulário email+senha, isSubmitting, error display |
+| `src/pages/RegisterPage.tsx` | Formulário 5 campos (specialty e bio opcionais), error display |
+| `src/pages/DashboardPage.tsx` | Placeholder com nome do profissional e logout |
+| `src/App.tsx` | BrowserRouter + AuthProvider + Routes com guards |
+| `apps/web/.env.example` | `VITE_API_URL=/api/v1` — proxy Vite em dev, URL completa em produção |
+
+### Testes
+
+| Arquivo | Testes | Estado |
+|---|---|---|
+| `tests/core/test_security.py` | 17 | ✅ Green |
+| `tests/core/test_deps.py` | 6 | ✅ Green |
+| `tests/professionals/test_model.py` | 5 | ✅ Green |
+| `tests/auth/test_model.py` | 3 | ✅ Green |
+| `tests/professionals/test_repository.py` | 8 | ✅ Green |
+| `tests/auth/test_repository.py` | 9 | ✅ Green |
+| `tests/professionals/test_service.py` | 10 | ✅ Green |
+| `tests/auth/test_service.py` | 14 | ✅ Green |
+| `tests/professionals/test_router.py` | 9 | ✅ Green |
+| `tests/auth/test_router.py` | 16 | ✅ Green |
+| `tests/clients/test_model.py` (RLS) | 1 | ⚠️ Red — banco de teste criado via `create_all`, sem policies RLS da migration |
+| **Total** | **99** | **99 passando** |
+
+Fixtures em `tests/conftest.py`:
+- `db_session` — transação por teste (rollback automático, isolamento total)
+- `http_client` — `AsyncClient` com `get_db` sobreescrito para a sessão de teste; usa `https://testserver` (httpx não envia cookies `Secure` para `http://`)
+- `authenticated_http_client` — `http_client` + `Authorization: Bearer <jwt>` do `test_professional`
+- `test_professional` — `Professional` real flushed na transação de teste
 
 ### Como rodar o projeto localmente
 
@@ -611,42 +705,38 @@ Toda saída da IA é identificada como sugestão. Prompts centralizados em ai/pr
 # 1. Subir PostgreSQL
 docker-compose up -d
 
-# 2. Instalar dependências Python
+# 2. Criar banco de testes
+docker exec secretaria-digital-db psql -U postgres -c "CREATE DATABASE secretaria_digital_test;"
+
+# 3. Instalar dependências Python
 cd apps/api && poetry install
 
-# 3. Configurar variáveis de ambiente
+# 4. Configurar variáveis de ambiente
 cp .env.example .env  # editar os valores
 
-# 4. Rodar testes de setup (devem todos passar)
-poetry run pytest tests/core/test_security.py -v
+# 5. Rodar todos os testes
+poetry run pytest tests/ -v --no-cov
 
-# 5. Iniciar a API
+# 6. Iniciar a API
 poetry run uvicorn main:app --reload --port 8000
 
-# 6. Em outro terminal — frontend
+# 7. Em outro terminal — frontend
 cd apps/web && npm install && npm run dev
 ```
 
-### Próximo passo imediato
+### Próximos passos
 
-Implementar o módulo de **autenticação** — pré-requisito para todos os demais módulos.
+**Frontend — autenticação:**
+1. `AuthContext` — access_token em memória (nunca localStorage — protege contra XSS)
+2. Interceptor axios — injeta `Authorization: Bearer`, renova automaticamente em 401
+3. Páginas de Login e Registro
+4. Proteção de rotas autenticadas (redirect para /login)
+5. Hook `useAuth()`
 
-**Backend (TDD em cada etapa):**
-1. `auth/repository.py` — CRUD na tabela `refresh_tokens`
-2. `auth/service.py` — `login()`, `refresh_access_token()`, `logout()`, `logout_all()`
-3. `professionals/repository.py` — `find_by_email()`, `find_by_id()`, `create()`
-4. `professionals/service.py` — `register()`, validação de email único
-5. `auth/router.py` — `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
-6. `professionals/router.py` — `POST /professionals/register`, `GET /professionals/me`
+**Backend — módulo clients:**
+6. Corrigir `test_engine` para aplicar policies RLS (permitir `TestClientRLS` passar)
+7. `clients/repository.py`, `clients/service.py`, `clients/router.py` (TDD)
 
-**Frontend:**
-7. `AuthContext` + `useAuth` hook
-8. Interceptor axios — injeta Bearer, renova no 401
-9. Páginas de Login e Registro
-10. Proteção de rotas
-
-
----
 
 ## 13. Banco de dados — modelos, migration e decisões
 
@@ -693,3 +783,156 @@ TenantSession         = Annotated[AsyncSession, Depends(get_tenant_db)]    # rot
 ```
 
 **Regra crítica:** nunca chamar `session.commit()` no service layer. O `SET LOCAL` é válido apenas na transação corrente — um commit manual antes do fim do request desativa o RLS silenciosamente.
+
+---
+
+## 14. Autenticação — detalhes de implementação
+
+### Endpoints
+
+| Método | Path | Auth | Descrição |
+|---|---|---|---|
+| POST | `/api/v1/auth/register` | Pública | Cria conta — retorna `ProfessionalResponse` (201) |
+| POST | `/api/v1/auth/login` | Pública | Autentica — `access_token` no body, `refresh_token` em cookie |
+| POST | `/api/v1/auth/refresh` | Cookie | Renova `access_token` usando o cookie |
+| POST | `/api/v1/auth/logout` | Cookie | Revoga token atual e limpa cookie (idempotente) |
+| POST | `/api/v1/auth/logout-all` | JWT | Revoga todos os tokens do profissional |
+| GET | `/api/v1/professionals/me` | JWT + RLS | Retorna perfil do profissional autenticado |
+| PATCH | `/api/v1/professionals/me` | JWT + RLS | Atualiza perfil (PATCH semântico — só campos enviados) |
+
+### Cookie de refresh token
+
+```python
+response.set_cookie(
+    key="refresh_token",
+    value=raw_token,    # UUID gerado por secrets.token_urlsafe(64)
+    httponly=True,      # inacessível ao JavaScript — protege contra XSS
+    secure=True,        # HTTPS only — obriga TLS em produção
+    samesite="strict",  # não enviado em requests cross-site — protege contra CSRF
+    max_age=30*24*60*60 # 30 dias
+)
+```
+
+O token raw NUNCA aparece no body da resposta. Só o `access_token` (JWT) vai no body.
+
+### Anti-enumeração no login
+
+```python
+if professional is None or not verify_password(password, professional.password_hash):
+    raise AuthenticationError("Invalid credentials")
+```
+
+A mesma mensagem de erro para email inexistente e senha incorreta. Um atacante não consegue
+distinguir as situações — não pode descobrir quais emails estão cadastrados.
+
+### SET LOCAL sem bind params
+
+PostgreSQL não suporta parâmetros de bind (`$1`) em `SET` statements.
+
+```python
+# ERRADO — gera PostgresSyntaxError
+await session.execute(text("SET LOCAL app.current_tenant = :id"), {"id": str(uuid)})
+
+# CORRETO — UUID é tipo validado pelo Python, seguro para interpolação
+tenant_id = str(professional_id)
+await session.execute(text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
+```
+
+### Testes de router — decisões de setup
+
+| Desafio | Solução |
+|---|---|
+| Isolar transações | Override de `get_db` injeta `db_session` (rollback por teste) |
+| Cookie Secure em HTTP | `base_url="https://testserver"` — httpx honra `Secure` por scheme |
+| TenantSession em testes | Funciona automaticamente: `get_tenant_db` usa o `get_db` sobreescrito |
+| Dados iniciais | Fixture `test_professional` cria Professional real flushed na transação |
+
+### Compatibilidade bcrypt
+
+`passlib 1.7.4` (última versão mantida) é incompatível com `bcrypt 4.x+`.
+Fixado em `pyproject.toml`:
+
+```toml
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = ">=3.2,<4"
+```
+
+Migração futura: substituir passlib por `bcrypt` diretamente ou usar `argon2-cffi`.
+
+---
+
+## 15. Frontend — autenticação: detalhes de implementação
+
+### Fluxo de autenticação
+
+```
+Registro:     RegisterPage → useAuth().register() → POST /auth/register → POST /auth/login → GET /professionals/me → setProfessional() → PublicRoute redireciona /dashboard
+
+Login:        LoginPage → useAuth().login() → POST /auth/login → GET /professionals/me → setProfessional() → PublicRoute redireciona /dashboard
+
+Restore:      mount → POST /auth/refresh (cookie) → setAccessToken() → GET /professionals/me → setProfessional() → isLoading=false
+
+Logout:       DashboardPage → useAuth().logout() → POST /auth/logout → setAccessToken(null) → setProfessional(null) → ProtectedRoute redireciona /login
+
+Token 401:    qualquer request → response interceptor → POST /auth/refresh → setAccessToken(novo) → retry original
+```
+
+### Por que token em variável de módulo (não useState)?
+
+Interceptors axios são registrados uma vez no mount do provider. Se o token fosse React state, o interceptor fecharia sobre o valor inicial (`null`) e nunca leria atualizações posteriores. A variável de módulo (`_accessToken`) é sempre lida no momento da execução do interceptor.
+
+Analogia frontend: é o mesmo motivo pelo qual `useCallback` com deps vazias captura closures stale.
+
+### Por que isLoading começa true?
+
+No primeiro render, antes do `useEffect` rodar, `professional === null` implica `isAuthenticated = false`. Sem `isLoading`, o `ProtectedRoute` redirecionaria imediatamente para /login — mesmo que o usuário tenha um cookie válido e a sessão vá ser restaurada em ~200ms. O `isLoading` age como um sinal de "não decida ainda".
+
+### Fila de requests durante refresh
+
+Se duas requests falham com 401 simultaneamente (ex: dois `useEffect` rodando em paralelo no mount), sem a fila você teria dois `POST /auth/refresh` simultâneos — e o segundo invalidaria o token gerado pelo primeiro.
+
+```
+Request A → 401 → isRefreshing=false → inicia refresh → isRefreshing=true
+Request B → 401 → isRefreshing=true  → entra na fila
+refresh termina → flushQueue(newToken) → Request B retenta com newToken
+```
+
+### Guard do React StrictMode
+
+Em desenvolvimento, React 18 invoca `useEffect` duas vezes (mount → cleanup → mount) para detectar side effects impuros. Sem o guard, a sessão seria restaurada duas vezes — o segundo attempt sobrescreveria o estado do primeiro.
+
+```typescript
+const didAttemptRestore = useRef(false)
+
+useEffect(() => {
+  if (didAttemptRestore.current) return  // segunda invocação no StrictMode
+  didAttemptRestore.current = true
+  // ...
+}, [])
+```
+
+`useRef` (não `let called = false` local) porque o ref persiste entre as duas invocações sem causar re-render.
+
+### Redirect implícito pós-login
+
+As páginas de Login e Registro não chamam `navigate()` após o submit. Quem faz o redirect é o `PublicRoute`:
+
+```
+login() resolve → setProfessional(data) → React re-render → PublicRoute vê isAuthenticated=true → <Navigate to=/dashboard replace />
+```
+
+Isso centraliza a lógica de redirecionamento no guard, não nos formulários. Cada formulário novo não precisa saber para onde ir.
+
+### Cookie secure em desenvolvimento
+
+```python
+# auth/router.py
+response.set_cookie(
+    key="refresh_token",
+    ...
+    secure=settings.is_production,  # False em dev (HTTP), True em prod (HTTPS)
+    samesite="strict",
+)
+```
+
+Com `secure=True` hardcoded, o Vite proxy (HTTP) não conseguia transmitir o cookie — o navegador o rejeitaria. Em produção (`ENVIRONMENT=production`), `is_production=True` e o cookie retoma o flag.

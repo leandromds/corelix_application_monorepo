@@ -3,7 +3,7 @@
 Você é um engenheiro de software sênior trabalhando em par com um desenvolvedor frontend senior (10 anos React/TS) que está aprendendo fullstack. Explique decisões, não apenas dê respostas.
 
 ## Projeto
-SaaS B2B de secretária digital inteligente para profissionais autônomos de saúde e bem-estar. IA transversal (não automação simples). Dev solo, foco em qualidade, aprendizado e TDD.
+SaaS B2B de Corelix — secretária digital inteligente para profissionais autônomos de saúde e bem-estar. IA transversal (não automação simples). Dev solo, foco em qualidade, aprendizado e TDD.
 
 ## Stack
 - Frontend: React 18 + TypeScript + Vite 5
@@ -12,7 +12,7 @@ SaaS B2B de secretária digital inteligente para profissionais autônomos de sa�
 - Banco: PostgreSQL 16 | Multi-tenancy: Row-level + RLS
 - Auth: JWT (15min) + Refresh Token no banco (30 dias, revogável)
 - Jobs: pgqueuer (sem Redis)
-- Testes: pytest + pytest-asyncio + httpx + pytest-postgresql + factory-boy
+- Testes: pytest + pytest-asyncio + httpx + factory-boy
 - WhatsApp: Meta Cloud API — Embedded Signup (Tech Provider)
 - IA: Anthropic API (Claude Sonnet)
 - Hospedagem: Railway
@@ -24,21 +24,45 @@ Regra: router → service → repository → banco. Nunca pular camada.
 IA e WhatsApp são serviços chamados pelo service layer.
 Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / core
 
-## core/ — já implementado
+## core/ — implementado
 - config.py → Settings via pydantic-settings (lê .env, valida tipos, fail-fast no startup)
-- database.py → engine async, get_db() (sessão sem RLS), set_tenant_context() (SET LOCAL), Base (só id)
+- database.py → engine async, get_db() (sessão sem RLS), set_tenant_context() (SET LOCAL sem bind params — PostgreSQL não suporta $1 em SET), Base (só id)
 - mixins.py → TimestampMixin (created_at + updated_at), CreatedAtMixin (created_at apenas)
 - security.py → hash_password, verify_password, create_access_token, decode_access_token, generate_refresh_token, hash_refresh_token
 - exceptions.py → AppException, AuthenticationError, AuthorizationError, NotFoundError, ValidationError, ConflictError, ExternalServiceError, RateLimitError, DatabaseError
 - deps.py → DbSession (get_db puro), CurrentProfessionalId (JWT), TenantSession (get_db + JWT + SET LOCAL)
 - models.py → AuditLog
-- middleware.py → ⚠️ A CRIAR: rate limiting, request ID, audit log
 
-## ai/ — já implementado
+## ai/ — implementado
 - service.py → AIService.complete(system, message), AIService.complete_with_history(system, messages)
 - prompts.py → PROMPTS["whatsapp_secretary"], PROMPTS["report_insights"] — registry centralizado
 
-## models/ — já implementado (todos com UUID pk, TIMESTAMPTZ, sem relationship())
+## auth/ + professionals/ — implementado
+- professionals/schemas.py → RegisterRequest (specialty e bio opcionais), UpdateProfileRequest, ProfessionalResponse (nunca expõe password_hash; inclui created_at)
+- auth/schemas.py → LoginRequest, AccessTokenResponse; re-exporta RegisterRequest e ProfessionalResponse de professionals (single source of truth)
+- professionals/repository.py → ProfessionalsRepository: create, find_by_email, find_by_id, update
+- professionals/service.py → ProfessionalsService: register (hash + ConflictError se email duplicado), get_by_id (NotFoundError), update_profile (PATCH semântico com exclude_none)
+- auth/repository.py → RefreshTokenRepository: create, find_by_hash, revoke, revoke_all, delete_expired (retorna count — para job noturno)
+- auth/service.py → AuthService: login (anti-enumeração — mesma mensagem para email errado ou senha errada), refresh_access_token, logout, logout_all
+- auth/router.py → POST /auth/register (201 ProfessionalResponse), /auth/login (access_token no body + refresh_token HttpOnly cookie), /auth/refresh (lê cookie → novo JWT), /auth/logout (204 idempotente), /auth/logout-all (protegido — TenantSession)
+- professionals/router.py → GET /professionals/me, PATCH /professionals/me (ambos TenantSession + RLS)
+- main.py → routers incluídos, CORS com allow_credentials=True + origens explícitas
+
+## web/ — implementado
+- src/types/auth.ts → ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse (espelham schemas do backend; session_price como string — NUMERIC vira string no JSON)
+- src/services/api.ts → instância axios: baseURL=VITE_API_URL, withCredentials=true, _accessToken como variável de módulo (não React state — interceptors precisam de binding estável, não closure), interceptor de request (injeta Bearer), interceptor de response (401 → refresh → retry com fila para evitar N refreshes simultâneos), SKIP_REFRESH_PATHS para /auth/login|register|refresh
+- src/contexts/AuthContext.tsx → AuthProvider: professional (null | ProfessionalResponse), isLoading (true até restore de sessão terminar — evita flash de redirect), login(), register() (cria conta + login automático), logout() (finally garante limpeza mesmo em erro de rede); useRef guard contra double-invocation do StrictMode
+- src/hooks/useAuth.ts → useAuth(): wrapper com null-check — lança erro descritivo se usado fora do AuthProvider
+- src/components/ProtectedRoute.tsx → isLoading: spinner | não autenticado: redirect /login | autenticado: children
+- src/components/PublicRoute.tsx → isLoading: null | autenticado: redirect /dashboard | não autenticado: children
+- src/pages/LoginPage.tsx → formulário email+senha, isSubmitting, error display com mensagem do backend
+- src/pages/RegisterPage.tsx → formulário 5 campos (specialty e bio opcionais com strip antes de enviar), error display
+- src/pages/DashboardPage.tsx → placeholder com nome do profissional e botão logout
+- src/App.tsx → BrowserRouter + AuthProvider + Routes (/, /login, /register, /dashboard, fallback *)
+- .env.example → VITE_API_URL=/api/v1
+
+
+## models/ — implementado (todos UUID pk, TIMESTAMPTZ, sem relationship())
 - professionals/models.py → Professional (TimestampMixin)
 - auth/models.py → RefreshToken (CreatedAtMixin — sem updated_at)
 - clients/models.py → Client (TimestampMixin) | RLS ativo
@@ -48,12 +72,41 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - whatsapp/models.py → WhatsAppMessage (sem mixin — usa sent_at)
 - Migration: 56f1e41b5d4c_initial_schema.py aplicada com RLS em 6 tabelas
 
-## TDD — ciclo obrigatório
+## TDD — estado atual
 Red → Green → Refactor. Sempre mostrar o teste antes da implementação.
 Testes em api/tests/{modulo}/test_router, test_service, test_repository.
-- tests/core/test_security.py → 17 testes (Green)
-- tests/core/test_deps.py → 6 testes (Green)
-- tests/{professionals,auth,clients}/test_model.py → fase Red (aguardam DB de teste)
+
+| Arquivo de teste | Testes | Estado |
+|---|---|---|
+| tests/core/test_security.py | 17 | ✅ Green |
+| tests/core/test_deps.py | 6 | ✅ Green |
+| tests/professionals/test_model.py | 5 | ✅ Green |
+| tests/auth/test_model.py | 3 | ✅ Green |
+| tests/professionals/test_repository.py | 8 | ✅ Green |
+| tests/auth/test_repository.py | 9 | ✅ Green |
+| tests/professionals/test_service.py | 10 | ✅ Green |
+| tests/auth/test_service.py | 14 | ✅ Green |
+| tests/professionals/test_router.py | 9 | ✅ Green |
+| tests/auth/test_router.py | 16 | ✅ Green |
+| tests/clients/test_model.py (RLS) | 1 | ⚠️ Red — banco de teste não aplica migrations Alembic |
+| **Total** | **99** | **99 passando** |
+
+## Gotchas de implementação (registrar para não repetir)
+- **SET LOCAL sem bind params:** PostgreSQL não suporta `$1` em `SET LOCAL`. Usar f-string com UUID direto: `text(f"SET LOCAL app.current_tenant = '{tenant_id}'")`
+- **Cookie Secure em testes:** httpx não envia cookies `Secure` para `http://`. O base_url do `http_client` fixture usa `https://testserver` (ASGITransport ignora o scheme para conexão, mas httpx o usa para cookies)
+- **bcrypt<4:** passlib 1.7.4 é incompatível com bcrypt 4.x+. Fixado em `pyproject.toml` com `bcrypt = ">=3.2,<4"`
+- **RLS em testes:** o banco de testes é criado via `Base.metadata.create_all`, sem as políticas RLS da migration Alembic. Testes que dependem de RLS real precisam de setup diferente (a resolver no módulo clients)
+- **Token em variável de módulo (não useState):** interceptors axios são registrados uma vez no mount — se o token fosse state React, o interceptor fecharia sobre o valor inicial `null` para sempre. A variável de módulo é sempre lida no momento da execução.
+- **isLoading e flash de redirect:** sem `isLoading: true` no mount, a app veria `isAuthenticated=false` durante os ~200ms do restore de sessão e redirecionaria para /login mesmo com cookie válido. Só setar `false` após o restore terminar (sucesso ou falha).
+- **StrictMode double-invocation:** em desenvolvimento, React 18 invoca `useEffect` duas vezes. Usar `useRef` como guard (não boolean local) porque o ref persiste entre invocações sem causar re-render.
+- **cookie secure em desenvolvimento:** `auth/router.py` usa `secure=settings.is_production` — `False` em dev (HTTP funciona), `True` em produção. Hardcoded `True` impede o Vite proxy de transmitir o cookie.
+
+## Próximo passo: Módulo clients
+Backend (TDD — na ordem):
+1. Corrigir test_engine para aplicar policies RLS do Alembic (habilita TestClientRLS)
+2. clients/repository.py — CRUD com RLS
+3. clients/service.py — regras de negócio
+4. clients/router.py — endpoints CRUD
 
 ## Schema — tabelas e RLS
 - professionals: email (unique), password_hash, full_name, specialty, bio, session_duration, session_price (NUMERIC), phone, whatsapp_*, is_active | sem RLS
@@ -67,16 +120,6 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 - whatsapp_messages: conversation_id (CASCADE), direction (inbound/outbound), sender_type (client/ai/professional), content, whatsapp_msg_id (unique), sent_at | sem RLS
 - audit_logs: professional_id (SET NULL), action, entity, entity_id, old_data (JSONB), new_data (JSONB), ip_address, user_agent | sem RLS
 
-## Próximo passo: Autenticação
-Backend (TDD em cada etapa):
-1. auth/repository.py — CRUD refresh_tokens
-2. auth/service.py — login(), refresh_access_token(), logout(), logout_all()
-3. professionals/repository.py — find_by_email(), find_by_id(), create()
-4. professionals/service.py — register(), validação email único
-5. auth/router.py — POST /auth/login, /auth/refresh, /auth/logout
-6. professionals/router.py — POST /professionals/register, GET /professionals/me
-Frontend: AuthContext, interceptor axios, páginas de Login/Registro, proteção de rotas
-
 ## Decisões fixas (não sugerir alternativas salvo solicitação)
 - Multi-tenancy: Row-level + RLS (dupla barreira)
 - Auth: JWT + Refresh Token (sem OAuth de terceiros no MVP)
@@ -87,9 +130,16 @@ Frontend: AuthContext, interceptor axios, páginas de Login/Registro, proteção
 - Código em inglês, documentação em português
 - Conventional commits
 - RLS: set_tenant_context() chamado explicitamente — não middleware automático
-- Refresh token: hash SHA-256 no banco, raw token só no cliente (HttpOnly cookie)
+- Refresh token: raw token em HttpOnly cookie (secure, samesite=strict); hash SHA-256 no banco; nunca no body
 - Sem relationship() nos models — navegação via queries explícitas nos repositories
 - Nunca session.commit() no service layer — RLS usa SET LOCAL (válido só na transação)
+- Anti-enumeração no login: mesma mensagem de erro para email inexistente e senha errada
+- Token frontend em variável de módulo no api.ts — nunca localStorage, nunca sessionStorage, nunca React state
+- withCredentials: true em toda instância axios — obrigatório para o cookie HttpOnly trafegar
+- isLoading no AuthContext: true até o restore de sessão terminar — evita flash de redirect indevido no reload
+- Redirect pós-login/registro implícito: PublicRoute re-renderiza quando isAuthenticated muda — sem navigate() nas páginas de formulário
+- SKIP_REFRESH_PATHS no interceptor: /auth/login, /auth/register, /auth/refresh não disparam tentativa de refresh em 401
+- Gitflow: main (produção, nunca push direto) → develop (base do dia a dia) → feature/* (PR obrigatório). Nunca `git push origin main`, sempre `origin feature/...`
 
 ## Como responder
 - Python: async/await, type hints sempre, Pydantic para validação
