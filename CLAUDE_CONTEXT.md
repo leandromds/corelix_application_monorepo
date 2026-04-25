@@ -37,6 +37,13 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - service.py → AIService.complete(system, message), AIService.complete_with_history(system, messages)
 - prompts.py → PROMPTS["whatsapp_secretary"], PROMPTS["report_insights"] — registry centralizado
 
+## clients/ — implementado
+- clients/schemas.py → ClientCreate (phone e email opcionais, ao menos um obrigatório via model_validator), ClientUpdate (PATCH semântico, exclude_unset=True), ClientResponse (inclui created_at, updated_at; exclui professional_id)
+- clients/repository.py → ClientsRepository: create(professional_id, data), find_by_id, find_all(skip, limit, active_only=True), find_by_phone (apenas ativos), update(client, data), soft_delete
+- clients/service.py → ClientsService: create_client (ConflictError se phone duplicado no tenant), get_client (NotFoundError via RLS), list_clients, update_client (PATCH semântico), delete_client (soft delete)
+- clients/router.py → POST /clients/ (201), GET /clients/ (paginação skip/limit), GET /clients/{id}, PATCH /clients/{id}, DELETE /clients/{id} (204)
+- RLS ativo na tabela — repository não filtra por professional_id, banco filtra automaticamente
+
 ## auth/ + professionals/ — implementado
 - professionals/schemas.py → RegisterRequest (specialty e bio opcionais), UpdateProfileRequest, ProfessionalResponse (nunca expõe password_hash; inclui created_at)
 - auth/schemas.py → LoginRequest, AccessTokenResponse; re-exporta RegisterRequest e ProfessionalResponse de professionals (single source of truth)
@@ -88,10 +95,18 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 | tests/auth/test_service.py | 14 | ✅ Green |
 | tests/professionals/test_router.py | 9 | ✅ Green |
 | tests/auth/test_router.py | 16 | ✅ Green |
-| tests/clients/test_model.py (RLS) | 1 | ⚠️ Red — banco de teste não aplica migrations Alembic |
-| **Total** | **99** | **99 passando** |
+| tests/clients/test_model.py | 3 | ✅ Green |
+| tests/clients/test_repository.py | 19 | ✅ Green |
+| tests/clients/test_service.py | 22 | ✅ Green |
+| tests/clients/test_router.py | 32 | ✅ Green |
+| **Total** | **173** | **173 passando** |
 
 ## Gotchas de implementação (registrar para não repetir)
+- **BYPASSRLS vs FORCE ROW LEVEL SECURITY:** o usuário `postgres` tem o privilege `BYPASSRLS` nativo. A documentação do PostgreSQL diz explicitamente que `FORCE ROW LEVEL SECURITY` NÃO afeta usuários com `BYPASSRLS`. Solução: criar role `test_rls_user` (NOLOGIN, sem BYPASSRLS) e usar `SET LOCAL ROLE test_rls_user` nos testes de isolamento antes de `SET LOCAL app.current_tenant`. O `SET LOCAL` é transação-scoped — revertido no rollback automático do `db_session`.
+- **Policy null-permissive no banco de testes:** usar `current_setting('app.current_tenant', TRUE)` (com o flag TRUE) na policy do banco de testes. Isso retorna NULL ao invés de lançar erro quando o contexto não está definido. Necessário porque: (a) testes de modelo fazem apenas INSERT sem definir tenant, e (b) o `INSERT ... RETURNING *` do SQLAlchemy é filtrado pelo USING — com policy que lança erro, `client.id` ficaria None após `flush()`.
+- **Pydantic v2 model_validator + JSONResponse:** `exc.errors()` em Pydantic v2 inclui `ctx: {'error': ValueError(...)}` para erros de `model_validator`. `ValueError` não é JSON-serializable. Usar `jsonable_encoder(exc.errors())` no `validation_exception_handler` do `main.py`.
+- **min_length em testes de router:** campos com `min_length=2` no schema (ex: `full_name`) precisam de valores com pelo menos 2 caracteres nos testes de router. `full_name="A"` falha silenciosamente (422 sem criar o cliente), resultando em 0 clientes no banco quando o teste esperava N.
+- **exclude_unset=True vs exclude_none=True em PATCH:** para schemas com campos nullable (phone, email), usar `model_dump(exclude_unset=True)` ao invés de `exclude_none=True`. Com `exclude_none`, um campo explicitamente enviado como `null` seria ignorado (não limparia o campo). Com `exclude_unset`, campos não enviados são ignorados e campos enviados como `null` são atualizados para NULL no banco.
 - **SET LOCAL sem bind params:** PostgreSQL não suporta `$1` em `SET LOCAL`. Usar f-string com UUID direto: `text(f"SET LOCAL app.current_tenant = '{tenant_id}'")`
 - **Cookie Secure em testes:** httpx não envia cookies `Secure` para `http://`. O base_url do `http_client` fixture usa `https://testserver` (ASGITransport ignora o scheme para conexão, mas httpx o usa para cookies)
 - **bcrypt<4:** passlib 1.7.4 é incompatível com bcrypt 4.x+. Fixado em `pyproject.toml` com `bcrypt = ">=3.2,<4"`
@@ -101,12 +116,12 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 - **StrictMode double-invocation:** em desenvolvimento, React 18 invoca `useEffect` duas vezes. Usar `useRef` como guard (não boolean local) porque o ref persiste entre invocações sem causar re-render.
 - **cookie secure em desenvolvimento:** `auth/router.py` usa `secure=settings.is_production` — `False` em dev (HTTP funciona), `True` em produção. Hardcoded `True` impede o Vite proxy de transmitir o cookie.
 
-## Próximo passo: Módulo clients
+## Próximo passo: Módulo agenda
 Backend (TDD — na ordem):
-1. Corrigir test_engine para aplicar policies RLS do Alembic (habilita TestClientRLS)
-2. clients/repository.py — CRUD com RLS
-3. clients/service.py — regras de negócio
-4. clients/router.py — endpoints CRUD
+1. agenda/schemas.py — AvailabilitySlot, BlockedPeriod, Recurrence
+2. agenda/repository.py — CRUD com RLS
+3. agenda/service.py — regras de negócio (validação de conflitos de horário)
+4. agenda/router.py — endpoints CRUD
 
 ## Schema — tabelas e RLS
 - professionals: email (unique), password_hash, full_name, specialty, bio, session_duration, session_price (NUMERIC), phone, whatsapp_*, is_active | sem RLS
