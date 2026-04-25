@@ -13,20 +13,20 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+# Routers
+from auth.router import router as auth_router
+from clients.router import router as clients_router
 from core.config import settings
 from core.database import check_database_connection, close_db
 from core.exceptions import AppException
-
-# Routers
-from auth.router import router as auth_router
 from professionals.router import router as professionals_router
 
 # Future routers (uncomment as implemented)
-# from clients.router import router as clients_router
 # from agenda.router import router as agenda_router
 # from reports.router import router as reports_router
 # from whatsapp.router import router as whatsapp_router
@@ -80,7 +80,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,  # e.g. ["http://localhost:5173"]
-    allow_credentials=True,               # required for HttpOnly cookie
+    allow_credentials=True,  # required for HttpOnly cookie
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
@@ -109,13 +109,19 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """Convert Pydantic validation errors to 422 with field-level detail."""
+    """Convert Pydantic validation errors to 422 with field-level detail.
+
+    Uses jsonable_encoder to handle Pydantic v2's model_validator errors,
+    which include ctx={'error': ValueError(...)} — a non-JSON-serializable
+    object that would cause a serialization failure if passed directly to
+    JSONResponse.
+    """
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": {
                 "message": "Validation failed",
-                "detail": {"errors": exc.errors()},
+                "detail": {"errors": jsonable_encoder(exc.errors())},
             }
         },
     )
@@ -166,12 +172,11 @@ async def health_check() -> dict:
 # ============================================================================
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(
-    professionals_router, prefix="/api/v1/professionals", tags=["Professionals"]
-)
+app.include_router(professionals_router, prefix="/api/v1/professionals", tags=["Professionals"])
+
+app.include_router(clients_router, prefix="/api/v1/clients", tags=["Clients"])
 
 # Uncomment as implemented:
-# app.include_router(clients_router, prefix="/api/v1/clients", tags=["Clients"])
 # app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
 # app.include_router(reports_router, prefix="/api/v1/reports", tags=["Reports"])
 # app.include_router(whatsapp_router, prefix="/api/v1/whatsapp", tags=["WhatsApp"])

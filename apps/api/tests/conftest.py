@@ -53,9 +53,7 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     NullPool ensures no connection is reused between tests.
     Tables are created once per session and dropped at the end.
     """
-    test_db_url = settings.DATABASE_URL.replace(
-        "secretaria_digital_dev", "secretaria_digital_test"
-    )
+    test_db_url = settings.DATABASE_URL.replace("secretaria_digital_dev", "secretaria_digital_test")
 
     engine = create_async_engine(
         test_db_url,
@@ -66,9 +64,73 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+        # ── RLS setup for the clients table ──────────────────────────────────
+        #
+        # PROBLEM: 'postgres' (the test DB user) has the BYPASSRLS privilege.
+        # PostgreSQL documentation explicitly states that FORCE ROW LEVEL SECURITY
+        # has NO effect on users with BYPASSRLS. Even with FORCE RLS enabled on
+        # the table, postgres simply ignores all policies.
+        #
+        # SOLUTION: create a limited role 'test_rls_user' (NOLOGIN, no BYPASSRLS).
+        # Tests that need to verify cross-tenant isolation call
+        #   SET LOCAL ROLE test_rls_user
+        # before their SELECT queries. Since that role lacks BYPASSRLS, RLS is
+        # naturally enforced. SET LOCAL limits the role switch to the current
+        # transaction — it is reverted automatically on rollback.
+        #
+        # WHY current_setting(..., TRUE) in the policy:
+        # The TRUE flag returns NULL instead of an error when 'app.current_tenant'
+        # is not set. TestClientModel tests perform only INSERTs (flush) without
+        # setting a tenant; the IS NULL branch keeps those tests working.
+        # The RETURNING clause of INSERT is also filtered by USING, so a strict
+        # policy would silently make client.id = None after flush().
+        #
+        # Policy behaviour summary:
+        #   - No tenant set    → all rows visible / all inserts allowed  (model tests)
+        #   - Tenant set       → only rows matching professional_id = tenant visible
+        #   - Role = test_rls_user + tenant set → strict isolation enforced  (RLS tests)
+        await conn.execute(text("ALTER TABLE clients ENABLE ROW LEVEL SECURITY"))
+        # Drop any stale policy from a previous interrupted session (create_all
+        # skips existing tables, so CREATE POLICY would fail with "already exists").
+        await conn.execute(text("DROP POLICY IF EXISTS tenant_isolation ON clients"))
+        await conn.execute(
+            text("""
+            CREATE POLICY tenant_isolation ON clients
+            USING (
+                current_setting('app.current_tenant', TRUE) IS NULL
+                OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+            )
+            WITH CHECK (
+                current_setting('app.current_tenant', TRUE) IS NULL
+                OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+            )
+        """)
+        )
+
+        # Create test_rls_user (non-privileged role, no BYPASSRLS).
+        # Clean up any leftover role from a previous interrupted test session.
+        await conn.execute(
+            text("""
+            DO $$ BEGIN
+                IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'test_rls_user') THEN
+                    DROP OWNED BY test_rls_user;
+                    DROP ROLE test_rls_user;
+                END IF;
+            END $$
+        """)
+        )
+        await conn.execute(text("CREATE ROLE test_rls_user NOLOGIN"))
+        await conn.execute(text("GRANT USAGE ON SCHEMA public TO test_rls_user"))
+        await conn.execute(text("GRANT ALL ON ALL TABLES IN SCHEMA public TO test_rls_user"))
+
     yield engine
 
     async with engine.begin() as conn:
+        # Revoke all privileges before dropping tables, then remove the role.
+        # DROP OWNED BY revokes all privileges granted TO the role (schema, tables).
+        # Without this, DROP ROLE fails with "dependent objects still exist".
+        await conn.execute(text("DROP OWNED BY test_rls_user"))
+        await conn.execute(text("DROP ROLE IF EXISTS test_rls_user"))
         await conn.run_sync(Base.metadata.drop_all)
 
     await engine.dispose()
@@ -111,9 +173,7 @@ async def db_session_with_tenant(
 
     Use this fixture when testing queries that depend on Row-Level Security.
     """
-    await db_session.execute(
-        text(f"SET LOCAL app.current_tenant = '{test_professional_id}'")
-    )
+    await db_session.execute(text(f"SET LOCAL app.current_tenant = '{test_professional_id}'"))
     yield db_session
 
 
@@ -270,9 +330,7 @@ def mock_whatsapp_webhook_payload() -> dict:
                                     "from": "5511999999999",
                                     "id": "wamid.test123",
                                     "timestamp": "1234567890",
-                                    "text": {
-                                        "body": "Ola, gostaria de agendar uma consulta"
-                                    },
+                                    "text": {"body": "Ola, gostaria de agendar uma consulta"},
                                     "type": "text",
                                 }
                             ],

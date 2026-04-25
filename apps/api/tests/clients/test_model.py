@@ -1,10 +1,11 @@
 """Tests for Client model + RLS isolation — TDD Red phase. Requer banco."""
 
+import uuid as _uuid
+
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid as _uuid
 
 from clients.models import Client
 from professionals.models import Professional
@@ -38,9 +39,7 @@ class TestClientModel:
 class TestClientRLS:
     """Valida o isolamento multi-tenant via RLS do PostgreSQL."""
 
-    async def test_rls_isolates_clients_between_tenants(
-        self, db_session: AsyncSession
-    ) -> None:
+    async def test_rls_isolates_clients_between_tenants(self, db_session: AsyncSession) -> None:
         """Profissional A não deve ver clientes do Profissional B."""
         prof_a = await _make_prof(db_session, "prof_a_rls@example.com")
         prof_b = await _make_prof(db_session, "prof_b_rls@example.com")
@@ -50,11 +49,15 @@ class TestClientRLS:
         db_session.add_all([client_a, client_b])
         await db_session.flush()
 
-        # Ativa contexto para o profissional A
+        # Ativa contexto para o profissional A.
+        # SET LOCAL ROLE test_rls_user é necessário porque o usuário 'postgres'
+        # tem o privilege BYPASSRLS — ele ignora todas as policies mesmo com
+        # FORCE ROW LEVEL SECURITY ativo. Ao mudar para test_rls_user (sem
+        # BYPASSRLS), o RLS é naturalmente aplicado. SET LOCAL limita a troca
+        # à transação atual — revertida automaticamente no rollback do db_session.
         tenant_id = str(prof_a.id)
-        await db_session.execute(
-            text(f"SET LOCAL app.current_tenant = '{tenant_id}'")
-        )
+        await db_session.execute(text("SET LOCAL ROLE test_rls_user"))
+        await db_session.execute(text(f"SET LOCAL app.current_tenant = '{tenant_id}'"))
 
         result = await db_session.execute(select(Client))
         visible_ids = {c.id for c in result.scalars().all()}
