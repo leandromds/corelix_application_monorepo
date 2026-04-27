@@ -5,6 +5,22 @@ Você é um engenheiro de software sênior trabalhando em par com um desenvolved
 ## Projeto
 SaaS B2B de Corelix — secretária digital inteligente para profissionais autônomos de saúde e bem-estar. IA transversal (não automação simples). Dev solo, foco em qualidade, aprendizado e TDD.
 
+## Documentação do Projeto (ADR Structure)
+A documentação vive em `docs/`. Carregue seletivamente conforme a necessidade:
+
+| Necessidade                        | Arquivo                         |
+|------------------------------------|---------------------------------|
+| Estado atual, próximos passos      | `docs/STATE.json`               |
+| Contexto geral, decisões fixas     | `docs/CORE.md`                  |
+| Raciocínio por trás de uma decisão | `docs/decisions/XXX-titulo.md`  |
+| Detalhes de implementação de módulo| `docs/domains/{modulo}.md`      |
+| Schema completo do banco           | `docs/domains/schema.md`        |
+| Detalhes de setup/ambiente         | `docs/domains/setup.md`         |
+
+Arquivos legados (consulta histórica apenas, não atualizar): `docs/legacy/`
+
+---
+
 ## Stack
 - Frontend: React 18 + TypeScript + Vite 5
 - Backend: Python 3.11+ + FastAPI (async)
@@ -37,6 +53,13 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - service.py → AIService.complete(system, message), AIService.complete_with_history(system, messages)
 - prompts.py → PROMPTS["whatsapp_secretary"], PROMPTS["report_insights"] — registry centralizado
 
+## clients/ — implementado
+- clients/schemas.py → ClientCreate (phone e email opcionais, ao menos um obrigatório via model_validator), ClientUpdate (PATCH semântico, exclude_unset=True), ClientResponse (inclui created_at, updated_at; exclui professional_id)
+- clients/repository.py → ClientsRepository: create(professional_id, data), find_by_id, find_all(skip, limit, active_only=True), find_by_phone (apenas ativos), update(client, data), soft_delete
+- clients/service.py → ClientsService: create_client (ConflictError se phone duplicado no tenant), get_client (NotFoundError via RLS), list_clients, update_client (PATCH semântico), delete_client (soft delete)
+- clients/router.py → POST /clients/ (201), GET /clients/ (paginação skip/limit), GET /clients/{id}, PATCH /clients/{id}, DELETE /clients/{id} (204)
+- RLS ativo na tabela — repository não filtra por professional_id, banco filtra automaticamente
+
 ## auth/ + professionals/ — implementado
 - professionals/schemas.py → RegisterRequest (specialty e bio opcionais), UpdateProfileRequest, ProfessionalResponse (nunca expõe password_hash; inclui created_at)
 - auth/schemas.py → LoginRequest, AccessTokenResponse; re-exporta RegisterRequest e ProfessionalResponse de professionals (single source of truth)
@@ -47,6 +70,25 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - auth/router.py → POST /auth/register (201 ProfessionalResponse), /auth/login (access_token no body + refresh_token HttpOnly cookie), /auth/refresh (lê cookie → novo JWT), /auth/logout (204 idempotente), /auth/logout-all (protegido — TenantSession)
 - professionals/router.py → GET /professionals/me, PATCH /professionals/me (ambos TenantSession + RLS)
 - main.py → routers incluídos, CORS com allow_credentials=True + origens explícitas
+
+## agenda/ — implementado
+- agenda/schemas.py → AvailabilitySlotCreate/Update/Response, BlockedPeriodCreate/Response, RecurrenceCreate/Response (session_price: Decimal), SessionCreate/Update/Response (price: Decimal)
+- agenda/repository.py → AvailabilitySlotsRepository, BlockedPeriodsRepository, RecurrencesRepository, SessionsRepository — inclui find_conflicting (usa índice parcial WHERE status='scheduled'), find_upcoming, cancel_future_by_recurrence
+- agenda/service.py → AgendaService(session, professional_id): create_availability_slot (ConflictError se day_of_week+start_time duplicado), _check_session_conflict (sessões agendadas + blocked periods; exclude_session_id para reschedule), create_session, create/list/delete blocked_period, create/list/deactivate recurrence (cancela sessões futuras e retorna count), list/get/update/list_today/list_upcoming sessions
+- agenda/router.py → 17 endpoints com TenantSession: slots (5), blocked (3), recurrences (4), sessions (5 incluindo /today e /upcoming)
+- RLS ativo em 4 tabelas: availability_slots, blocked_periods, recurrences, sessions
+
+## web/ — implementado
+- src/types/auth.ts → ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse (espelham schemas do backend; session_price como string — NUMERIC vira string no JSON)
+- src/services/api.ts → instância axios: baseURL=VITE_API_URL, withCredentials=true, _accessToken como variável de módulo (não React state — interceptors precisam de binding estável, não closure), interceptor de request (injeta Bearer), interceptor de response (401 → refresh → retry com fila para evitar N refreshes simultâneos), SKIP_REFRESH_PATHS para /auth/login|register|refresh
+- src/contexts/AuthContext.tsx → AuthProvider: professional (null | ProfessionalResponse), isLoading (true até restore de sessão terminar — evita flash de redirect), login(), register() (cria conta + login automático), logout() (finally garante limpeza mesmo em erro de rede); useRef guard contra double-invocation do StrictMode
+- src/hooks/useAuth.ts → useAuth(): wrapper com null-check — lança erro descritivo se usado fora do AuthProvider
+- src/components/ProtectedRoute.tsx → isLoading: spinner | não autenticado: redirect /login | autenticado: children
+- src/components/PublicRoute.tsx → isLoading: null | autenticado: redirect /dashboard | não autenticado: children
+- src/pages/LoginPage.tsx → formulário email+senha, isSubmitting, error display com mensagem do backend
+- src/pages/RegisterPage.tsx → formulário 5 campos (specialty e bio opcionais com strip antes de enviar), error display
+- src/pages/DashboardPage.tsx → placeholder com nome do profissional e botão logout
+- src/App.tsx → BrowserRouter + AuthProvider + Routes (/, /login, /register, /dashboard, fallback *)
 
 ## models/ — implementado (todos UUID pk, TIMESTAMPTZ, sem relationship())
 - professionals/models.py → Professional (TimestampMixin)
@@ -74,28 +116,38 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 | tests/auth/test_service.py | 14 | ✅ Green |
 | tests/professionals/test_router.py | 9 | ✅ Green |
 | tests/auth/test_router.py | 16 | ✅ Green |
-| tests/clients/test_model.py (RLS) | 1 | ⚠️ Red — banco de teste não aplica migrations Alembic |
-| **Total** | **99** | **99 passando** |
+| tests/clients/test_model.py | 3 | ✅ Green |
+| tests/clients/test_repository.py | 19 | ✅ Green |
+| tests/clients/test_service.py | 22 | ✅ Green |
+| tests/clients/test_router.py | 32 | ✅ Green |
+| tests/agenda/test_schemas.py | 40 | ✅ Green |
+| tests/agenda/test_model.py | 28 | ✅ Green |
+| tests/agenda/test_repository.py | 77 | ✅ Green |
+| tests/agenda/test_service.py | 47 | ✅ Green |
+| tests/agenda/test_router.py | 71 | ✅ Green |
+| **Total** | **436** | **436 passando** |
 
 ## Gotchas de implementação (registrar para não repetir)
-- **SET LOCAL sem bind params:** PostgreSQL não suporta `$1` em `SET LOCAL`. Usar f-string com UUID direto: `text(f"SET LOCAL app.current_tenant = '{tenant_id}'")`
-- **Cookie Secure em testes:** httpx não envia cookies `Secure` para `http://`. O base_url do `http_client` fixture usa `https://testserver` (ASGITransport ignora o scheme para conexão, mas httpx o usa para cookies)
-- **bcrypt<4:** passlib 1.7.4 é incompatível com bcrypt 4.x+. Fixado em `pyproject.toml` com `bcrypt = ">=3.2,<4"`
-- **RLS em testes:** o banco de testes é criado via `Base.metadata.create_all`, sem as políticas RLS da migration Alembic. Testes que dependem de RLS real precisam de setup diferente (a resolver no módulo clients)
+- **BYPASSRLS vs FORCE ROW LEVEL SECURITY:** o usuário `postgres` tem o privilege `BYPASSRLS` nativo. A documentação do PostgreSQL diz explicitamente que `FORCE ROW LEVEL SECURITY` NÃO afeta usuários com `BYPASSRLS`. Solução: criar role `test_rls_user` (NOLOGIN, sem BYPASSRLS) e usar `SET LOCAL ROLE test_rls_user` nos testes de isolamento antes de `SET LOCAL app.current_tenant`. O `SET LOCAL` é transação-scoped — revertido no rollback automático do `db_session`. Ver ADR-021.
+- **Policy null-permissive no banco de testes:** usar `current_setting('app.current_tenant', TRUE)` (com o flag TRUE) na policy do banco de testes. Isso retorna NULL ao invés de lançar erro quando o contexto não está definido. Necessário porque: (a) testes de modelo fazem apenas INSERT sem definir tenant, e (b) o `INSERT ... RETURNING *` do SQLAlchemy é filtrado pelo USING — com policy que lança erro, `client.id` ficaria None após `flush()`.
+- **Pydantic v2 model_validator + JSONResponse:** `exc.errors()` em Pydantic v2 inclui `ctx: {'error': ValueError(...)}` para erros de `model_validator`. `ValueError` não é JSON-serializable. Usar `jsonable_encoder(exc.errors())` no `validation_exception_handler` do `main.py`. Ver ADR-023.
+- **min_length em testes de router:** campos com `min_length=2` no schema (ex: `full_name`) precisam de valores com pelo menos 2 caracteres nos testes de router. `full_name="A"` falha silenciosamente (422 sem criar o cliente), resultando em 0 clientes no banco quando o teste esperava N.
+- **exclude_unset=True vs exclude_none=True em PATCH:** para schemas com campos nullable (phone, email), usar `model_dump(exclude_unset=True)` ao invés de `exclude_none=True`. Com `exclude_none`, um campo explicitamente enviado como `null` seria ignorado (não limparia o campo). Ver ADR-024.
+- **SET LOCAL sem bind params:** PostgreSQL não suporta `$1` em `SET LOCAL`. Usar f-string com UUID direto: `text(f"SET LOCAL app.current_tenant = '{tenant_id}'")`  Ver ADR-008.
+- **Cookie Secure em testes:** httpx não envia cookies `Secure` para `http://`. O base_url do `http_client` fixture usa `https://testserver` (ASGITransport ignora o scheme para conexão, mas httpx o usa para cookies).
+- **bcrypt<4:** passlib 1.7.4 é incompatível com bcrypt 4.x+. Fixado em `pyproject.toml` com `bcrypt = ">=3.2,<4"`. Ver ADR-013.
+- **Token em variável de módulo (não useState):** interceptors axios são registrados uma vez no mount — se o token fosse state React, o interceptor fecharia sobre o valor inicial `null` para sempre. Ver ADR-014.
+- **isLoading e flash de redirect:** sem `isLoading: true` no mount, a app veria `isAuthenticated=false` durante os ~200ms do restore de sessão e redirecionaria para /login mesmo com cookie válido. Ver ADR-015.
+- **StrictMode double-invocation:** em desenvolvimento, React 18 invoca `useEffect` duas vezes. Usar `useRef` como guard (não boolean local) porque o ref persiste entre invocações sem causar re-render.
+- **cookie secure em desenvolvimento:** `auth/router.py` usa `secure=settings.is_production` — `False` em dev (HTTP funciona), `True` em produção. Ver ADR-017.
+- **Decimal em response schemas (não str):** asyncpg retorna `NUMERIC` como `Decimal` Python. `RecurrenceResponse.session_price` e `SessionResponse.price` usam `Decimal` (não `str`). FastAPI serializa `Decimal` para número no JSON corretamente.
 
-## Próximo passo: Frontend auth + Módulo clients
-Frontend (token em memória, nunca localStorage):
-1. AuthContext com access_token em memória
-2. Interceptor axios: injeta Authorization header + renova token em 401
-3. Páginas de Login e Registro
-4. Proteção de rotas autenticadas
-5. Hook useAuth()
-
-Backend — módulo clients (TDD):
-6. clients/repository.py — CRUD com RLS
-7. clients/service.py — regras de negócio
-8. clients/router.py — endpoints CRUD
-9. Corrigir test_engine para aplicar policies RLS (para TestClientRLS passar)
+## Próximo passo: Módulo reports
+Backend (TDD — na ordem):
+1. reports/schemas.py — ReportSummary, SessionReport, RevenueReport
+2. reports/repository.py — queries agregadas (por período, por cliente, por status)
+3. reports/service.py — orquestração + chamada ao AIService para insights
+4. reports/router.py — endpoints de relatório
 
 ## Schema — tabelas e RLS
 - professionals: email (unique), password_hash, full_name, specialty, bio, session_duration, session_price (NUMERIC), phone, whatsapp_*, is_active | sem RLS
@@ -110,20 +162,33 @@ Backend — módulo clients (TDD):
 - audit_logs: professional_id (SET NULL), action, entity, entity_id, old_data (JSONB), new_data (JSONB), ip_address, user_agent | sem RLS
 
 ## Decisões fixas (não sugerir alternativas salvo solicitação)
-- Multi-tenancy: Row-level + RLS (dupla barreira)
-- Auth: JWT + Refresh Token (sem OAuth de terceiros no MVP)
-- Soft delete (is_active) em entidades com valor histórico
-- UUID em todas as PKs, TIMESTAMPTZ em todas as datas, NUMERIC para moeda
-- WhatsApp: cada profissional usa seu número via Embedded Signup
-- Sem ferramentas pagas de terceiros salvo necessidade avaliada
+Ver `docs/decisions/` para o raciocínio completo de cada uma.
+- Multi-tenancy: Row-level + RLS (dupla barreira) → ADR-001
+- Auth: JWT + Refresh Token (sem OAuth de terceiros no MVP) → ADR-002
+- RLS: set_tenant_context() chamado explicitamente via TenantSession — não middleware automático → ADR-003
+- Arquitetura feature-based com 3 camadas obrigatórias → ADR-004
+- TDD obrigatório: Red → Green → Refactor → ADR-005
+- Sem relationship() nos models — navegação via queries explícitas → ADR-006
+- Nunca session.commit() no service layer → ADR-007
+- SET LOCAL via f-string (PostgreSQL não suporta bind params em SET) → ADR-008
+- Soft delete (is_active) em entidades com valor histórico → ADR-009
+- UUID em todas as PKs, TIMESTAMPTZ em todas as datas, NUMERIC para moeda → ADR-010
+- WhatsApp: cada profissional usa seu número via Embedded Signup → ADR-011
+- Anti-enumeração no login: mesma mensagem de erro para email inexistente e senha errada → ADR-012
+- bcrypt fixado em <4 → ADR-013
+- Token frontend em variável de módulo — nunca localStorage/sessionStorage/React state → ADR-014
+- isLoading: true no mount do AuthContext até restore de sessão terminar → ADR-015
+- Fila de requests durante refresh (evita N refreshes simultâneos) → ADR-016
+- secure=settings.is_production no cookie → ADR-017
+- CORS com allow_credentials=True e origens explícitas → ADR-018
+- pgqueuer sem Redis → ADR-019
+- Poetry para dependências Python → ADR-020
+- test_rls_user (NOLOGIN, sem BYPASSRLS) para testes de isolamento RLS → ADR-021
+- Gitflow: main ← PR ← develop ← PR ← feature/* → ADR-022
+- Pydantic v2 model_validator + jsonable_encoder no exception handler → ADR-023
+- PATCH semântico: exclude_unset=True em vez de exclude_none=True → ADR-024
 - Código em inglês, documentação em português
 - Conventional commits
-- RLS: set_tenant_context() chamado explicitamente — não middleware automático
-- Refresh token: raw token em HttpOnly cookie (secure, samesite=strict); hash SHA-256 no banco; nunca no body
-- Sem relationship() nos models — navegação via queries explícitas nos repositories
-- Nunca session.commit() no service layer — RLS usa SET LOCAL (válido só na transação)
-- Anti-enumeração no login: mesma mensagem de erro para email inexistente e senha errada
-- Gitflow: main (produção, nunca push direto) → develop (base do dia a dia) → feature/* (PR obrigatório). Nunca `git push origin main`, sempre `origin feature/...`
 
 ## Como responder
 - Python: async/await, type hints sempre, Pydantic para validação
@@ -131,3 +196,5 @@ Backend — módulo clients (TDD):
 - Explique o "por quê" de decisões não óbvias
 - Mencione trade-offs antes de implementar
 - Direto e objetivo — sem enrolação
+- Ao final de cada tarefa concluída: atualizar `docs/STATE.json` (status, testes, pending_tasks), o `docs/domains/{módulo}.md` se houver novos detalhes de implementação, e este arquivo `.rules` se houver novos módulos implementados ou gotchas a registrar
+- Gerar título e descrição do Pull Request

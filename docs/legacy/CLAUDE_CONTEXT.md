@@ -1,3 +1,16 @@
+> ⚠️ **ARQUIVO DEPRECIADO**
+> Este arquivo foi substituído pelo arquivo `.rules` (system prompt do Zed) e pela estrutura ADR em `docs/`.
+> Mantido apenas para consulta histórica. **Não atualizar.**
+>
+> **Consulte em vez deste:**
+> - `.rules` — system prompt ativo carregado automaticamente pelo Zed
+> - `docs/CORE.md` — contexto geral, stack, decisões fixas e comportamento esperado
+> - `docs/STATE.json` — estado atual do projeto (módulos, testes, pending tasks)
+> - `docs/decisions/` — ADRs com contexto, decisão, rationale e consequências
+> - `docs/domains/` — documentação detalhada por módulo
+
+---
+
 # Claude Context — Secretária Digital (System Prompt Compacto)
 
 Você é um engenheiro de software sênior trabalhando em par com um desenvolvedor frontend senior (10 anos React/TS) que está aprendendo fullstack. Explique decisões, não apenas dê respostas.
@@ -36,6 +49,16 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 ## ai/ — implementado
 - service.py → AIService.complete(system, message), AIService.complete_with_history(system, messages)
 - prompts.py → PROMPTS["whatsapp_secretary"], PROMPTS["report_insights"] — registry centralizado
+
+## agenda/ — implementado
+- agenda/models.py → AvailabilitySlot (TimestampMixin), BlockedPeriod (CreatedAtMixin), Recurrence (TimestampMixin), Session (TimestampMixin) | RLS ativo em todas
+- agenda/schemas.py → AvailabilitySlotCreate (end_time > start_time), AvailabilitySlotUpdate (PATCH), AvailabilitySlotResponse | BlockedPeriodCreate (end_datetime > start_datetime), BlockedPeriodResponse | RecurrenceCreate (day_of_week required para weekly/biweekly; end_date > start_date), RecurrenceResponse (session_price: Decimal) | SessionCreate, SessionUpdate (PATCH), SessionResponse (price: Decimal)
+- agenda/repository.py → AvailabilitySlotsRepository (find_by_day_and_time para UNIQUE check), BlockedPeriodsRepository (find_overlapping), RecurrencesRepository (find_active_by_client, deactivate), SessionsRepository (find_conflicting com func.make_interval + índice parcial, find_upcoming, cancel_future_by_recurrence com bulk UPDATE)
+- agenda/service.py → AgendaService(session, professional_id): create_availability_slot (ConflictError se duplicate), _check_session_conflict (verifica sessões + blocked periods), create_session, deactivate_recurrence (soft delete + cascade cancel future sessions → retorna count), list_today_sessions, list_upcoming_sessions
+- agenda/router.py → POST/GET/GET{id}/PATCH/DELETE /agenda/slots/ | POST/GET/DELETE /agenda/blocked/ | POST/GET/GET{id}/DELETE /agenda/recurrences/ | POST/GET/GET{today}/GET{upcoming}/GET{id}/PATCH /agenda/sessions/
+- tests/agenda/conftest.py → tenant_session (SET LOCAL ROLE test_rls_user + SET LOCAL app.current_tenant), test_client, test_availability_slot, test_blocked_period, test_recurrence, test_agenda_session
+- tests/conftest.py → atualizado com RLS policies para as 4 novas tabelas (loop sobre availability_slots, blocked_periods, sessions, recurrences)
+- main.py → agenda_router incluído em /api/v1/agenda
 
 ## clients/ — implementado
 - clients/schemas.py → ClientCreate (phone e email opcionais, ao menos um obrigatório via model_validator), ClientUpdate (PATCH semântico, exclude_unset=True), ClientResponse (inclui created_at, updated_at; exclui professional_id)
@@ -99,7 +122,12 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 | tests/clients/test_repository.py | 19 | ✅ Green |
 | tests/clients/test_service.py | 22 | ✅ Green |
 | tests/clients/test_router.py | 32 | ✅ Green |
-| **Total** | **173** | **173 passando** |
+| tests/agenda/test_schemas.py | 40 | ✅ Green |
+| tests/agenda/test_model.py | 28 | ✅ Green |
+| tests/agenda/test_repository.py | 77 | ✅ Green |
+| tests/agenda/test_service.py | 47 | ✅ Green |
+| tests/agenda/test_router.py | 71 | ✅ Green |
+| **Total** | **436** | **436 passando** |
 
 ## Gotchas de implementação (registrar para não repetir)
 - **BYPASSRLS vs FORCE ROW LEVEL SECURITY:** o usuário `postgres` tem o privilege `BYPASSRLS` nativo. A documentação do PostgreSQL diz explicitamente que `FORCE ROW LEVEL SECURITY` NÃO afeta usuários com `BYPASSRLS`. Solução: criar role `test_rls_user` (NOLOGIN, sem BYPASSRLS) e usar `SET LOCAL ROLE test_rls_user` nos testes de isolamento antes de `SET LOCAL app.current_tenant`. O `SET LOCAL` é transação-scoped — revertido no rollback automático do `db_session`.
@@ -110,18 +138,23 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 - **SET LOCAL sem bind params:** PostgreSQL não suporta `$1` em `SET LOCAL`. Usar f-string com UUID direto: `text(f"SET LOCAL app.current_tenant = '{tenant_id}'")`
 - **Cookie Secure em testes:** httpx não envia cookies `Secure` para `http://`. O base_url do `http_client` fixture usa `https://testserver` (ASGITransport ignora o scheme para conexão, mas httpx o usa para cookies)
 - **bcrypt<4:** passlib 1.7.4 é incompatível com bcrypt 4.x+. Fixado em `pyproject.toml` com `bcrypt = ">=3.2,<4"`
-- **RLS em testes:** o banco de testes é criado via `Base.metadata.create_all`, sem as políticas RLS da migration Alembic. Testes que dependem de RLS real precisam de setup diferente (a resolver no módulo clients)
+- **RLS em testes — solução definitiva:** `postgres` tem `BYPASSRLS` e ignora todas as policies silenciosamente, mesmo com `FORCE ROW LEVEL SECURITY`. Solução em 3 partes: (1) `test_engine` cria `test_rls_user` (NOLOGIN, sem BYPASSRLS); (2) testes de isolamento fazem `SET LOCAL ROLE test_rls_user` + `SET LOCAL app.current_tenant = '{id}'` — ambos transaction-scoped, revertidos no ROLLBACK automático do db_session; (3) policy usa `current_setting('app.current_tenant', TRUE)` com segundo argumento TRUE (null-safe — retorna NULL em vez de erro quando variável não definida). Resultado: model tests usam postgres (BYPASSRLS, vê tudo), isolation tests usam test_rls_user (policy ativa, vê só o próprio tenant). → ADR-021
 - **Token em variável de módulo (não useState):** interceptors axios são registrados uma vez no mount — se o token fosse state React, o interceptor fecharia sobre o valor inicial `null` para sempre. A variável de módulo é sempre lida no momento da execução.
 - **isLoading e flash de redirect:** sem `isLoading: true` no mount, a app veria `isAuthenticated=false` durante os ~200ms do restore de sessão e redirecionaria para /login mesmo com cookie válido. Só setar `false` após o restore terminar (sucesso ou falha).
 - **StrictMode double-invocation:** em desenvolvimento, React 18 invoca `useEffect` duas vezes. Usar `useRef` como guard (não boolean local) porque o ref persiste entre invocações sem causar re-render.
 - **cookie secure em desenvolvimento:** `auth/router.py` usa `secure=settings.is_production` — `False` em dev (HTTP funciona), `True` em produção. Hardcoded `True` impede o Vite proxy de transmitir o cookie.
+- **Decimal em response schemas (não str):** asyncpg retorna `NUMERIC` como `Decimal` Python. Pydantic v2 não coerce `Decimal → str` automaticamente — usar `Decimal` nos campos de preço dos response schemas (`RecurrenceResponse.session_price`, `SessionResponse.price`), igual ao `ProfessionalResponse`. FastAPI serializa `Decimal` como número no JSON.
+- **AgendaService recebe professional_id no construtor:** diferente de ClientsService (que recebe só session). Justificativa: o service gerencia 4 repositories e todos os métodos de criação precisam do professional_id — passá-lo uma vez no construtor evita repetição.
+- **find_conflicting com func.make_interval:** `func.make_interval(0, 0, 0, 0, 0, Session.duration_minutes)` gera `make_interval(years, months, weeks, days, hours, mins)` no PostgreSQL. Explora o índice parcial `idx_sessions_conflict_check WHERE status = 'scheduled'`.
+- **cancel_future_by_recurrence com bulk UPDATE:** usa `update(Session).values(status='cancelled').execution_options(synchronize_session=False)`. O identity map não é sincronizado — testes que verificam status após cancel devem chamar `session.refresh(obj)`.
+- **Rotas /sessions/today e /sessions/upcoming antes de /{session_id}:** FastAPI avalia rotas em ordem de registro. Segmentos estáticos têm precedência, mas registrar explicitamente antes do parâmetro é mais claro e seguro.
 
-## Próximo passo: Módulo agenda
-Backend (TDD — na ordem):
-1. agenda/schemas.py — AvailabilitySlot, BlockedPeriod, Recurrence
-2. agenda/repository.py — CRUD com RLS
-3. agenda/service.py — regras de negócio (validação de conflitos de horário)
-4. agenda/router.py — endpoints CRUD
+## Próximo passo: Módulo reports
+Skeleton criado. Implementar via TDD na ordem:
+1. tests/reports/test_schemas.py + reports/schemas.py — schemas de relatório de cobrança
+2. tests/reports/test_repository.py + reports/repository.py — queries agregadas (faturamento por período, sessões por status)
+3. tests/reports/test_service.py + reports/service.py — lógica de relatório + integração AIService para insights
+4. tests/reports/test_router.py + reports/router.py — endpoints de relatório
 
 ## Schema — tabelas e RLS
 - professionals: email (unique), password_hash, full_name, specialty, bio, session_duration, session_price (NUMERIC), phone, whatsapp_*, is_active | sem RLS
@@ -162,3 +195,5 @@ Backend (TDD — na ordem):
 - Explique o "por quê" de decisões não óbvias
 - Mencione trade-offs antes de implementar
 - Direto e objetivo — sem enrolação
+- Ao final de cada tarefa concluída atualizar os arquivos ARCHITECTURE.md, CLAUDE_CONTEXT.md e PROJECT_INSTRUCTIONS.md
+- Gerar título e descrição do Pull Request

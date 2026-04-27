@@ -1,3 +1,16 @@
+> ⚠️ **ARQUIVO DEPRECIADO**
+> Este arquivo foi substituído pela estrutura ADR em `docs/`.
+> Mantido apenas para consulta histórica. **Não atualizar.**
+>
+> **Consulte em vez deste:**
+> - `docs/CORE.md` — contexto geral, stack, decisões fixas e comportamento esperado
+> - `docs/STATE.json` — estado atual do projeto (módulos, testes, pending tasks)
+> - `docs/decisions/` — ADRs com contexto, decisão, rationale e consequências
+> - `docs/domains/` — documentação detalhada por módulo
+> - `docs/domains/schema.md` — schema completo do banco de dados
+
+---
+
 # Secretária Digital — Architecture & Project Context
 
 > Documento vivo. Atualizar sempre que uma decisão técnica relevante for tomada.
@@ -541,28 +554,25 @@ Toda saída da IA é identificada como sugestão. Prompts centralizados em ai/pr
    ✅ availability_slots
    ✅ blocked_periods
    ✅ sessions
-      ✅ recurrences
+   ✅ recurrences
    ✅ whatsapp_conversations + whatsapp_messages
    ✅ audit_logs
 ✅ Setup do monorepo e ambiente
    ✅ docker-compose.yml (PostgreSQL 16 Alpine + healthcheck)
    ✅ .env.example (todas as variáveis documentadas)
    ✅ apps/api — pyproject.toml (Poetry), main.py, alembic/
-   ✅ core/ — config.py, database.py, security.py, exceptions.py
-   ✅ Skeletons: auth, professionals, clients, agenda, reports, whatsapp
+   ✅ core/ — config.py, database.py, security.py, exceptions.py, deps.py
+   ✅ Skeletons criados: agenda, reports, whatsapp (schemas/repo/service/router)
    ✅ ai/service.py e ai/prompts.py
-   ✅ tests/conftest.py + tests/core/test_security.py (17 testes TDD)
    ✅ apps/web — React 18 + Vite 5 + TypeScript scaffold
+   ✅ .github/workflows/ci.yml — CI com PostgreSQL, mypy, ruff
 ✅ Modelos SQLAlchemy + Migration inicial + RLS policies
    ✅ core/mixins.py (TimestampMixin, CreatedAtMixin)
-   ✅ professionals/models.py, auth/models.py, clients/models.py
-   ✅ agenda/models.py (4 models), whatsapp/models.py (2 models)
-   ✅ core/models.py (AuditLog)
+   ✅ todos os 10 models criados
    ✅ alembic/versions/56f1e41b5d4c_initial_schema.py (aplicada)
    ✅ RLS ativo em 6 tabelas (policies adicionadas manualmente)
 ✅ core/deps.py — DbSession, TenantSession, CurrentProfessionalId
-   ✅ tests/core/test_deps.py (6 testes — Green)
-✅ Autenticação — backend (99 testes passando)
+✅ Autenticação — backend (74 testes passando)
    ✅ professionals/schemas.py — RegisterRequest, UpdateProfileRequest, ProfessionalResponse
    ✅ auth/schemas.py — LoginRequest, AccessTokenResponse
    ✅ professionals/repository.py — create, find_by_email, find_by_id, update
@@ -571,26 +581,42 @@ Toda saída da IA é identificada como sugestão. Prompts centralizados em ai/pr
    ✅ auth/service.py — login (anti-enumeração), refresh_access_token, logout, logout_all
    ✅ auth/router.py — /register (201), /login (cookie), /refresh, /logout (204), /logout-all
    ✅ professionals/router.py — GET /me, PATCH /me (TenantSession + RLS)
-   ✅ tests/conftest.py — http_client, authenticated_http_client, test_professional
-   ✅ 99 testes passando (model + repository + service + router)
 ✅ Autenticação — frontend
-   ✅ src/types/auth.ts — ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
-   ✅ src/services/api.ts — token em módulo, interceptors, fila de refresh, SKIP_REFRESH_PATHS
-   ✅ src/contexts/AuthContext.tsx — AuthProvider, isLoading, restore de sessão, login/register/logout
+   ✅ src/types/auth.ts — tipos espelhando o backend
+   ✅ src/services/api.ts — token em módulo, interceptors, fila de refresh
+   ✅ src/contexts/AuthContext.tsx — AuthProvider, isLoading, restore de sessão
    ✅ src/hooks/useAuth.ts — wrapper com null-check
-   ✅ src/components/ProtectedRoute.tsx + PublicRoute.tsx — guards com isLoading
+   ✅ src/components/ProtectedRoute.tsx + PublicRoute.tsx
    ✅ src/pages/LoginPage.tsx + RegisterPage.tsx + DashboardPage.tsx
    ✅ src/App.tsx — BrowserRouter + AuthProvider + Routes
-   ✅ auth/router.py — secure=settings.is_production (fix para dev HTTP)
-   ✅ build limpo (tsc + vite build)
-⬜ Módulo clients   ← próximo passo
-⬜ Módulo agenda
-⬜ Módulo reports + IA no relatório
-⬜ WhatsApp webhook + IA conversacional
+✅ Módulo clients — backend (74 testes passando)
+   ✅ clients/schemas.py — ClientCreate, ClientUpdate, ClientResponse
+   ✅ clients/repository.py — CRUD com RLS
+   ✅ clients/service.py — create (ConflictError), list, get, update, soft_delete
+   ✅ clients/router.py — POST/GET/PATCH/DELETE com paginação
+   ✅ RLS ativo + conftest com test_rls_user para testes de isolamento
+✅ Total: 436 testes passando (core:23, auth+professionals:74, clients:76, agenda:263)
+✅ Módulo agenda — backend (263 testes passando)
+   ✅ tests/agenda/test_schemas.py — 40 testes (validators: time range, day_of_week, end_date, frequency)
+   ✅ tests/agenda/test_model.py — 28 testes (defaults, CHECK constraints, RLS isolation em 4 tabelas)
+   ✅ agenda/repository.py — 4 repositories (AvailabilitySlotsRepository, BlockedPeriodsRepository,
+      RecurrencesRepository, SessionsRepository) com find_conflicting + cancel_future_by_recurrence
+   ✅ tests/agenda/test_repository.py — 77 testes (CRUD, paginação, overlap detection, RLS isolation)
+   ✅ agenda/service.py — AgendaService com _check_session_conflict (sessões + blocked periods)
+   ✅ tests/agenda/test_service.py — 47 testes (ConflictError, NotFoundError, deactivate_recurrence cascade)
+   ✅ agenda/router.py — 17 endpoints (slots, blocked, recurrences, sessions + today/upcoming)
+   ✅ tests/agenda/test_router.py — 71 testes (201/200/204/409/422/401 por endpoint)
+   ✅ RLS: conftest atualizado com policies para as 4 novas tabelas (padrão null-permissive)
+   ✅ main.py: agenda_router incluído em /api/v1/agenda
+⬜ Módulo reports + IA no relatório (skeleton criado)
+⬜ WhatsApp webhook + IA conversacional (skeleton criado)
 ⬜ Dashboard com insights
 ⬜ Segurança, LGPD e auditoria
 ⬜ Testes e deploy no Railway
 ```
+
+> 📁 **Nova estrutura de documentação:** `docs/CORE.md`, `docs/STATE.json`, `docs/decisions/` (24 ADRs),
+> `docs/domains/` (10 domínios). Usar para contexto seletivo por thread.
 
 ---
 
@@ -726,16 +752,37 @@ cd apps/web && npm install && npm run dev
 
 ### Próximos passos
 
-**Frontend — autenticação:**
-1. `AuthContext` — access_token em memória (nunca localStorage — protege contra XSS)
-2. Interceptor axios — injeta `Authorization: Bearer`, renova automaticamente em 401
-3. Páginas de Login e Registro
-4. Proteção de rotas autenticadas (redirect para /login)
-5. Hook `useAuth()`
+> ✅ Frontend — autenticação: concluído (AuthContext, interceptors, páginas de login/registro, guards de rota)
+> ✅ Backend — módulo clients: concluído (74 testes passando, RLS com test_rls_user)
+> ✅ Backend — módulo agenda: concluído (263 testes passando, 436 total)
 
-**Backend — módulo clients:**
-6. Corrigir `test_engine` para aplicar policies RLS (permitir `TestClientRLS` passar)
-7. `clients/repository.py`, `clients/service.py`, `clients/router.py` (TDD)
+**Backend — módulo reports (próximo):**
+1. `tests/reports/test_schemas.py` + `reports/schemas.py` — schemas de relatório de cobrança
+2. `tests/reports/test_repository.py` + `reports/repository.py` — queries agregadas (faturamento, sessões por período)
+3. `tests/reports/test_service.py` + `reports/service.py` — lógica de relatório + integração AI insights
+4. `tests/reports/test_router.py` + `reports/router.py` — endpoints de relatório
+
+> Ver spec completo em `docs/domains/reports.md` e `docs/STATE.json`.
+
+### Módulo agenda — decisões de implementação
+
+**AgendaService recebe `professional_id` no construtor** (diferente de ClientsService):
+- Justificativa: o agenda service gerencia 4 repositories e todos os métodos de criação precisam do `professional_id`. Passá-lo uma vez no construtor evita repetição e torna o contexto explícito.
+
+**`find_conflicting` usa `func.make_interval(0, 0, 0, 0, 0, duration_minutes)`** para aritmética de intervalo em PostgreSQL:
+- Gera `make_interval(years, months, weeks, days, hours, mins)` com `mins=duration_minutes`.
+- Alternativa `cast(concat(col, ' minutes'), INTERVAL)` também funciona mas é menos legível.
+
+**`cancel_future_by_recurrence` usa bulk UPDATE com `synchronize_session=False`**:
+- Eficiente para cancelar N sessões de uma vez. O identity map não é sincronizado — testes que verificam o status após o cancel devem chamar `session.refresh(obj)`.
+
+**`Decimal` nos response schemas** (não `str`):
+- `RecurrenceResponse.session_price` e `SessionResponse.price` usam `Decimal` (igual ao `ProfessionalResponse`).
+- asyncpg retorna `NUMERIC` como `Decimal`. Pydantic v2 não coerce `Decimal → str` automaticamente.
+- FastAPI serializa `Decimal` como número no JSON — o frontend lida com isso nativamente.
+
+**Rotas `/sessions/today` e `/sessions/upcoming` registradas antes de `/sessions/{session_id}`**:
+- FastAPI avalia rotas em ordem de registro. Segmentos estáticos devem vir antes de parâmetros.
 
 
 ## 13. Banco de dados — modelos, migration e decisões
