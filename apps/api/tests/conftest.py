@@ -107,6 +107,35 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
         """)
         )
 
+        # ── RLS setup for agenda tables ───────────────────────────────────
+        #
+        # Same pattern as clients: null-permissive policy so model tests
+        # (which don't set a tenant) can INSERT freely, while isolation tests
+        # using test_rls_user see only their own tenant's rows.
+        #
+        # Tables: availability_slots, blocked_periods, sessions, recurrences
+        for agenda_table in [
+            "availability_slots",
+            "blocked_periods",
+            "sessions",
+            "recurrences",
+        ]:
+            await conn.execute(text(f"ALTER TABLE {agenda_table} ENABLE ROW LEVEL SECURITY"))
+            await conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation ON {agenda_table}"))
+            await conn.execute(
+                text(f"""
+                CREATE POLICY tenant_isolation ON {agenda_table}
+                USING (
+                    current_setting('app.current_tenant', TRUE) IS NULL
+                    OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+                )
+                WITH CHECK (
+                    current_setting('app.current_tenant', TRUE) IS NULL
+                    OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+                )
+            """)
+            )
+
         # Create test_rls_user (non-privileged role, no BYPASSRLS).
         # Clean up any leftover role from a previous interrupted test session.
         await conn.execute(
