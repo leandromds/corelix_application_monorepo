@@ -27,9 +27,9 @@ from core.config import settings
 from core.database import check_database_connection, close_db
 from core.exceptions import AppException
 from professionals.router import router as professionals_router
+from reports.router import router as reports_router
 
 # Future routers (uncomment as implemented)
-# from reports.router import router as reports_router
 # from whatsapp.router import router as whatsapp_router
 
 
@@ -179,8 +179,9 @@ app.include_router(clients_router, prefix="/api/v1/clients", tags=["Clients"])
 
 app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
 
+app.include_router(reports_router, prefix="/api/v1")
+
 # Uncomment as implemented:
-# app.include_router(reports_router, prefix="/api/v1/reports", tags=["Reports"])
 # app.include_router(whatsapp_router, prefix="/api/v1/whatsapp", tags=["WhatsApp"])
 
 
