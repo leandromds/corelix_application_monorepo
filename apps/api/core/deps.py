@@ -50,8 +50,8 @@ async def get_current_professional_id(
 
     try:
         payload = decode_access_token(token)
-    except JWTError:
-        raise credentials_exception
+    except JWTError as err:
+        raise credentials_exception from err
 
     professional_id: str | None = payload.get("sub")
     if professional_id is None:

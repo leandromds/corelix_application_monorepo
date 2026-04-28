@@ -10,8 +10,8 @@ Design decisions:
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 from jose import jwt
 from passlib.context import CryptContext
@@ -41,7 +41,7 @@ def hash_password(password: str) -> str:
     Returns:
         bcrypt hash string (includes salt, cost factor, and hash)
     """
-    return pwd_context.hash(password)
+    return cast(str, pwd_context.hash(password))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -60,7 +60,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         True if password matches, False otherwise (never raises)
     """
     try:
-        return pwd_context.verify(plain_password, hashed_password)
+        return cast(bool, pwd_context.verify(plain_password, hashed_password))
     except Exception:
         # Never raise — always return False for invalid hashes
         return False
@@ -90,7 +90,7 @@ def create_access_token(
     Returns:
         Signed JWT string
     """
-    expire = datetime.now(tz=timezone.utc) + (
+    expire = datetime.now(tz=UTC) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
@@ -100,7 +100,7 @@ def create_access_token(
         "exp": expire,
     }
 
-    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return cast(str, jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM))
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
@@ -121,7 +121,9 @@ def decode_access_token(token: str) -> dict[str, Any]:
     Raises:
         jose.JWTError: If token is invalid, expired, or tampered
     """
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    return cast(
+        dict[str, Any], jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    )
 
 
 # ============================================================================

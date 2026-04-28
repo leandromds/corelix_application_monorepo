@@ -19,13 +19,11 @@ policy applied in conftest.test_engine. The pattern is:
 
 from uuid import uuid4
 
-import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from clients.models import Client
 from clients.repository import ClientsRepository
-from clients.schemas import ClientCreate, ClientUpdate
 from professionals.models import Professional
 from tests.clients.conftest import make_client_create
 
@@ -295,8 +293,8 @@ class TestClientsRepositoryFindAll:
         """find_all(skip=N) deve pular os primeiros N registros."""
         repo = ClientsRepository(tenant_session)
 
-        c1 = await repo.create(test_professional.id, make_client_create(phone="11999990050"))
-        c2 = await repo.create(test_professional.id, make_client_create(phone="11999990051"))
+        await repo.create(test_professional.id, make_client_create(phone="11999990050"))
+        await repo.create(test_professional.id, make_client_create(phone="11999990051"))
 
         all_results = await repo.find_all()
         skipped_results = await repo.find_all(skip=1)

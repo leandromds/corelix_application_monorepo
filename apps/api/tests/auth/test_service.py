@@ -1,17 +1,16 @@
 """Tests for AuthService — TDD Red phase."""
 
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.service import AuthService
 from auth.repository import RefreshTokenRepository
-from professionals.service import ProfessionalsService
-from professionals.schemas import RegisterRequest
+from auth.service import AuthService
 from core.exceptions import AuthenticationError
 from core.security import decode_access_token, generate_refresh_token, hash_refresh_token
-
+from professionals.schemas import RegisterRequest
+from professionals.service import ProfessionalsService
 
 # ---------------------------------------------------------------------------
 # Module-level helper — NOT a fixture
@@ -158,7 +157,7 @@ class TestAuthServiceRefresh:
         await repo.create(
             professional_id=professional.id,
             token_hash=token_hash,
-            expires_at=datetime.now(tz=timezone.utc) - timedelta(seconds=1),
+            expires_at=datetime.now(tz=UTC) - timedelta(seconds=1),
         )
         auth = AuthService(db_session)
 

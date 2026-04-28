@@ -7,7 +7,7 @@ Responsibilities:
 - Never handles raw tokens — only receives/returns hashes
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
@@ -83,9 +83,7 @@ class RefreshTokenRepository:
             token_hash: SHA-256 hex digest of the token to revoke
         """
         await self.session.execute(
-            update(RefreshToken)
-            .where(RefreshToken.token_hash == token_hash)
-            .values(revoked=True)
+            update(RefreshToken).where(RefreshToken.token_hash == token_hash).values(revoked=True)
         )
 
     async def revoke_all(self, professional_id: UUID) -> None:
@@ -117,8 +115,8 @@ class RefreshTokenRepository:
         Returns:
             Number of rows deleted.
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         result = await self.session.execute(
             delete(RefreshToken).where(RefreshToken.expires_at < now)
         )
-        return result.rowcount
+        return int(result.rowcount)  # type: ignore[attr-defined]

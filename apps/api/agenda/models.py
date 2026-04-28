@@ -25,7 +25,8 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import TIMESTAMP, UUID as SQLUUID
+from sqlalchemy.types import TIMESTAMP
+from sqlalchemy.types import UUID as SQLUUID
 
 from core.database import Base
 from core.mixins import CreatedAtMixin, TimestampMixin

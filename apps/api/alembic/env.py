@@ -12,17 +12,17 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from agenda.models import AvailabilitySlot, BlockedPeriod, Recurrence, Session  # noqa: F401
 from alembic import context
+from auth.models import RefreshToken  # noqa: F401
+from clients.models import Client  # noqa: F401
 from core.config import settings
 from core.database import Base
+from core.models import AuditLog  # noqa: F401
 
 # --- Importar todos os models para registrá-los no Base.metadata ---
-from professionals.models import Professional          # noqa: F401
-from auth.models import RefreshToken                  # noqa: F401
-from clients.models import Client                     # noqa: F401
-from agenda.models import AvailabilitySlot, BlockedPeriod, Recurrence, Session  # noqa: F401
+from professionals.models import Professional  # noqa: F401
 from whatsapp.models import WhatsAppConversation, WhatsAppMessage  # noqa: F401
-from core.models import AuditLog                      # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url_sync)

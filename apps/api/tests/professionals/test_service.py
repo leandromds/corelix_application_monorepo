@@ -5,15 +5,15 @@ NOTE: These tests target the *to-be-implemented* RegisterRequest schema
 The current schemas.py will be updated as part of the Green phase.
 """
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from professionals.service import ProfessionalsService
-from professionals.schemas import RegisterRequest, UpdateProfileRequest
 from core.exceptions import ConflictError, NotFoundError
 from core.security import verify_password
+from professionals.schemas import RegisterRequest, UpdateProfileRequest
+from professionals.service import ProfessionalsService
 
 
 class TestProfessionalsServiceRegister:

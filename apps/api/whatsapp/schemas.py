@@ -44,6 +44,6 @@ class MessageResponse(BaseModel):
     direction: str
     sender_type: str
     content: str
-    created_at: datetime
+    sent_at: datetime
 
     model_config = {"from_attributes": True}

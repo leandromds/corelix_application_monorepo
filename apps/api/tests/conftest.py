@@ -8,7 +8,8 @@ This module provides:
 """
 
 import asyncio
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -107,6 +108,35 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
         """)
         )
 
+        # ── RLS setup for agenda tables ───────────────────────────────────
+        #
+        # Same pattern as clients: null-permissive policy so model tests
+        # (which don't set a tenant) can INSERT freely, while isolation tests
+        # using test_rls_user see only their own tenant's rows.
+        #
+        # Tables: availability_slots, blocked_periods, sessions, recurrences
+        for agenda_table in [
+            "availability_slots",
+            "blocked_periods",
+            "sessions",
+            "recurrences",
+        ]:
+            await conn.execute(text(f"ALTER TABLE {agenda_table} ENABLE ROW LEVEL SECURITY"))
+            await conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation ON {agenda_table}"))
+            await conn.execute(
+                text(f"""
+                CREATE POLICY tenant_isolation ON {agenda_table}
+                USING (
+                    current_setting('app.current_tenant', TRUE) IS NULL
+                    OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+                )
+                WITH CHECK (
+                    current_setting('app.current_tenant', TRUE) IS NULL
+                    OR professional_id = current_setting('app.current_tenant', TRUE)::uuid
+                )
+            """)
+            )
+
         # Create test_rls_user (non-privileged role, no BYPASSRLS).
         # Clean up any leftover role from a previous interrupted test session.
         await conn.execute(
@@ -200,7 +230,7 @@ async def http_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://testserver") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://testserver") as ac:  # type: ignore[arg-type]
         yield ac
 
     # Clean up only our override
@@ -210,7 +240,7 @@ async def http_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 @pytest_asyncio.fixture
 async def authenticated_http_client(
     http_client: AsyncClient,
-    test_professional: "Professional",  # noqa: F821
+    test_professional: Any,  # Professional fixture (imported inside test_professional fixture body)
 ) -> AsyncGenerator[AsyncClient, None]:
     """
     HTTP client with a valid Bearer JWT for test_professional.

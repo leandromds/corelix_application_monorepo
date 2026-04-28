@@ -9,14 +9,16 @@ Setup:
 - Health check endpoint
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from agenda.router import router as agenda_router
 
 # Routers
 from auth.router import router as auth_router
@@ -27,7 +29,6 @@ from core.exceptions import AppException
 from professionals.router import router as professionals_router
 
 # Future routers (uncomment as implemented)
-# from agenda.router import router as agenda_router
 # from reports.router import router as reports_router
 # from whatsapp.router import router as whatsapp_router
 
@@ -149,8 +150,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 # ============================================================================
 
 
-@app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"])
-async def health_check() -> dict:
+@app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"], response_model=None)
+async def health_check() -> dict | JSONResponse:
     """Health check used by load balancers and Railway."""
     db_healthy = await check_database_connection()
 
@@ -176,8 +177,9 @@ app.include_router(professionals_router, prefix="/api/v1/professionals", tags=["
 
 app.include_router(clients_router, prefix="/api/v1/clients", tags=["Clients"])
 
+app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
+
 # Uncomment as implemented:
-# app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
 # app.include_router(reports_router, prefix="/api/v1/reports", tags=["Reports"])
 # app.include_router(whatsapp_router, prefix="/api/v1/whatsapp", tags=["WhatsApp"])
 

@@ -1,14 +1,12 @@
 """Tests for RefreshTokenRepository — TDD Red phase."""
 
-import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth.repository import RefreshTokenRepository
 from auth.models import RefreshToken  # noqa: F401
+from auth.repository import RefreshTokenRepository
 from professionals.models import Professional
-
 
 # ---------------------------------------------------------------------------
 # Module-level helper — NOT a fixture (no decorator)
@@ -39,7 +37,7 @@ class TestRefreshTokenRepository:
         """create() deve persistir o RefreshToken no banco com os campos fornecidos."""
         prof = await _make_professional(db_session, "persist@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
 
         token = await repo.create(
             professional_id=prof.id,
@@ -57,7 +55,7 @@ class TestRefreshTokenRepository:
         """create() deve criar o token com revoked=False por padrão."""
         prof = await _make_professional(db_session, "revoked_default@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
 
         token = await repo.create(
             professional_id=prof.id,
@@ -77,7 +75,7 @@ class TestRefreshTokenRepository:
         """find_by_hash() deve retornar o token correspondente ao hash."""
         prof = await _make_professional(db_session, "findhash@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
         await repo.create(
             professional_id=prof.id,
             token_hash="findable_hash",
@@ -109,7 +107,7 @@ class TestRefreshTokenRepository:
         """revoke() deve marcar o token com revoked=True."""
         prof = await _make_professional(db_session, "revoke@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
         await repo.create(
             professional_id=prof.id,
             token_hash="to_be_revoked",
@@ -132,7 +130,7 @@ class TestRefreshTokenRepository:
         """revoke_all() deve revogar todos os tokens de um profissional."""
         prof = await _make_professional(db_session, "revokeall@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
         await repo.create(professional_id=prof.id, token_hash="token_a", expires_at=expires)
         await repo.create(professional_id=prof.id, token_hash="token_b", expires_at=expires)
 
@@ -150,7 +148,7 @@ class TestRefreshTokenRepository:
         prof_a = await _make_professional(db_session, "prof_a@example.com")
         prof_b = await _make_professional(db_session, "prof_b@example.com")
         repo = RefreshTokenRepository(db_session)
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
         await repo.create(professional_id=prof_a.id, token_hash="a_token", expires_at=expires)
         await repo.create(professional_id=prof_b.id, token_hash="b_token", expires_at=expires)
 
@@ -170,7 +168,7 @@ class TestRefreshTokenRepository:
         """delete_expired() deve remover tokens vencidos e retornar a contagem."""
         prof = await _make_professional(db_session, "expired@example.com")
         repo = RefreshTokenRepository(db_session)
-        past = datetime.now(tz=timezone.utc) - timedelta(seconds=1)
+        past = datetime.now(tz=UTC) - timedelta(seconds=1)
         await repo.create(professional_id=prof.id, token_hash="expired_a", expires_at=past)
         await repo.create(professional_id=prof.id, token_hash="expired_b", expires_at=past)
 
@@ -186,7 +184,7 @@ class TestRefreshTokenRepository:
         """delete_expired() não deve remover tokens ainda válidos."""
         prof = await _make_professional(db_session, "future@example.com")
         repo = RefreshTokenRepository(db_session)
-        future = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        future = datetime.now(tz=UTC) + timedelta(days=30)
         await repo.create(professional_id=prof.id, token_hash="future_token", expires_at=future)
 
         count = await repo.delete_expired()
