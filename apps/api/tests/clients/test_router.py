@@ -19,7 +19,6 @@ so RLS context is set by the router's dependency for authenticated requests.
 
 from uuid import uuid4
 
-import pytest
 from httpx import AsyncClient
 
 

@@ -1,6 +1,5 @@
 """Tests for professionals router -- TDD Red phase."""
 
-import pytest
 from httpx import AsyncClient
 
 

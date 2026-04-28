@@ -10,14 +10,13 @@ então fazer requests com tokens válidos e inválidos.
 Não precisa de banco de dados — só valida JWT.
 """
 
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from core.security import create_access_token
-
 
 # ---------------------------------------------------------------------------
 # Mini-app de teste com um endpoint protegido
@@ -128,13 +127,15 @@ class TestGetCurrentProfessionalId:
         self, test_app: FastAPI
     ) -> None:
         """Token sem campo 'sub' no payload deve retornar 401."""
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from jose import jwt
+
         from core.config import settings
 
         # Token sem 'sub'
         bad_token = jwt.encode(
-            {"type": "access", "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1)},
+            {"type": "access", "exp": datetime.now(tz=UTC) + timedelta(hours=1)},
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,
         )

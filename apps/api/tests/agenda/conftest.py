@@ -15,7 +15,7 @@ WHY tenant_session here:
   (the postgres superuser has BYPASSRLS and would skip all policies).
 """
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 
 import pytest_asyncio
@@ -128,8 +128,8 @@ async def test_blocked_period(
     """
     period = BlockedPeriod(
         professional_id=test_professional.id,
-        start_datetime=datetime(2030, 1, 10, 8, 0, tzinfo=timezone.utc),
-        end_datetime=datetime(2030, 1, 10, 18, 0, tzinfo=timezone.utc),
+        start_datetime=datetime(2030, 1, 10, 8, 0, tzinfo=UTC),
+        end_datetime=datetime(2030, 1, 10, 18, 0, tzinfo=UTC),
         reason="Test block",
     )
     tenant_session.add(period)
@@ -192,7 +192,7 @@ async def test_agenda_session(
     agenda_session = AgendaSession(
         professional_id=test_professional.id,
         client_id=test_client.id,
-        scheduled_at=datetime(2030, 6, 1, 10, 0, tzinfo=timezone.utc),
+        scheduled_at=datetime(2030, 6, 1, 10, 0, tzinfo=UTC),
         duration_minutes=60,
         price=Decimal("150.00"),
     )

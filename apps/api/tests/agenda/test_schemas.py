@@ -11,7 +11,7 @@ Coverage:
 These are pure Pydantic tests — no database required.
 """
 
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from uuid import UUID
 
@@ -35,13 +35,13 @@ _CLIENT_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
 def _make_recurrence(**overrides) -> dict:
-    base = dict(
-        client_id=_CLIENT_ID,
-        frequency="monthly",
-        start_date=date(2025, 1, 1),
-        session_duration=60,
-        session_price=Decimal("150.00"),
-    )
+    base = {
+        "client_id": _CLIENT_ID,
+        "frequency": "monthly",
+        "start_date": date(2025, 1, 1),
+        "session_duration": 60,
+        "session_price": Decimal("150.00"),
+    }
     base.update(overrides)
     return base
 
@@ -177,24 +177,24 @@ class TestBlockedPeriodCreate:
     def test_valid_blocked_period_is_accepted(self) -> None:
         """Período com end > start deve ser aceito."""
         period = BlockedPeriodCreate(
-            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
         )
         assert period.start_datetime < period.end_datetime
 
     def test_notify_clients_default_is_true(self) -> None:
         """notify_clients deve ser True por padrão — opt-out intencional."""
         period = BlockedPeriodCreate(
-            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
         )
         assert period.notify_clients is True
 
     def test_notify_clients_can_be_set_to_false(self) -> None:
         """Profissional pode optar por não notificar clientes."""
         period = BlockedPeriodCreate(
-            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
             notify_clients=False,
         )
         assert period.notify_clients is False
@@ -202,16 +202,16 @@ class TestBlockedPeriodCreate:
     def test_reason_is_optional(self) -> None:
         """reason deve ser None quando não fornecido."""
         period = BlockedPeriodCreate(
-            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
         )
         assert period.reason is None
 
     def test_multi_day_block_is_accepted(self) -> None:
         """Bloqueio de múltiplos dias (ex: férias) deve ser aceito."""
         period = BlockedPeriodCreate(
-            start_datetime=datetime(2025, 7, 14, 0, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 7, 28, 23, 59, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 7, 14, 0, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 7, 28, 23, 59, tzinfo=UTC),
             reason="Férias de julho",
         )
         assert period.reason == "Férias de julho"
@@ -224,8 +224,8 @@ class TestBlockedPeriodCreate:
         """end_datetime anterior a start_datetime deve lançar ValidationError."""
         with pytest.raises(ValidationError) as exc_info:
             BlockedPeriodCreate(
-                start_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
-                end_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
+                start_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
+                end_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
             )
         assert "end_datetime must be after start_datetime" in str(exc_info.value)
 
@@ -233,16 +233,16 @@ class TestBlockedPeriodCreate:
         """end_datetime igual a start_datetime (duração zero) deve falhar."""
         with pytest.raises(ValidationError):
             BlockedPeriodCreate(
-                start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-                end_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
+                start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+                end_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
             )
 
     def test_reason_max_length_255(self) -> None:
         """reason com mais de 255 caracteres deve falhar."""
         with pytest.raises(ValidationError):
             BlockedPeriodCreate(
-                start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=timezone.utc),
-                end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=timezone.utc),
+                start_datetime=datetime(2025, 1, 1, 8, 0, tzinfo=UTC),
+                end_datetime=datetime(2025, 1, 1, 18, 0, tzinfo=UTC),
                 reason="x" * 256,
             )
 
@@ -381,7 +381,7 @@ class TestSessionCreate:
         """SessionCreate com todos os campos obrigatórios deve ser aceito."""
         session = SessionCreate(
             client_id=_CLIENT_ID,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
         )
@@ -394,7 +394,7 @@ class TestSessionCreate:
         with pytest.raises(ValidationError):
             SessionCreate(
                 client_id=_CLIENT_ID,
-                scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=0,
                 price=Decimal("150.00"),
             )
@@ -404,7 +404,7 @@ class TestSessionCreate:
         with pytest.raises(ValidationError):
             SessionCreate(
                 client_id=_CLIENT_ID,
-                scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
                 price=Decimal("0.00"),
             )

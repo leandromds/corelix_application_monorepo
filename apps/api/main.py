@@ -9,8 +9,8 @@ Setup:
 - Health check endpoint
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder

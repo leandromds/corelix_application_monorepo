@@ -30,7 +30,7 @@ Coverage:
 All tests use tenant_session so RLS is active for all SELECT queries.
 """
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from uuid import uuid4
 
@@ -40,9 +40,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agenda.models import AvailabilitySlot, BlockedPeriod, Recurrence
 from agenda.models import Session as AgendaSession
 from agenda.repository import (
-    AvailabilitySlotsRepository,
-    BlockedPeriodsRepository,
-    RecurrencesRepository,
     SessionsRepository,
 )
 from agenda.schemas import (
@@ -81,8 +78,8 @@ def _slot_create(
 
 def _blocked_create(
     *,
-    start: datetime = datetime(2030, 3, 1, 8, 0, tzinfo=timezone.utc),
-    end: datetime = datetime(2030, 3, 1, 18, 0, tzinfo=timezone.utc),
+    start: datetime = datetime(2030, 3, 1, 8, 0, tzinfo=UTC),
+    end: datetime = datetime(2030, 3, 1, 18, 0, tzinfo=UTC),
     reason: str | None = "Test block",
 ) -> BlockedPeriodCreate:
     return BlockedPeriodCreate(
@@ -95,7 +92,7 @@ def _blocked_create(
 def _session_create(
     client_id,
     *,
-    scheduled_at: datetime = datetime(2030, 6, 1, 10, 0, tzinfo=timezone.utc),
+    scheduled_at: datetime = datetime(2030, 6, 1, 10, 0, tzinfo=UTC),
     duration_minutes: int = 60,
     recurrence_id=None,
 ) -> SessionCreate:
@@ -109,13 +106,13 @@ def _session_create(
 
 
 def _recurrence_create(client_id, *, frequency: str = "weekly") -> RecurrenceCreate:
-    kwargs: dict = dict(
-        client_id=client_id,
-        frequency=frequency,
-        start_date=date(2025, 1, 1),
-        session_duration=60,
-        session_price=Decimal("150.00"),
-    )
+    kwargs: dict = {
+        "client_id": client_id,
+        "frequency": frequency,
+        "start_date": date(2025, 1, 1),
+        "session_duration": 60,
+        "session_price": Decimal("150.00"),
+    }
     if frequency in ("weekly", "biweekly"):
         kwargs["day_of_week"] = 1
     return RecurrenceCreate(**kwargs)
@@ -463,7 +460,7 @@ class TestAgendaServiceCreateSession:
         sess = await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 1, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 1, 1, 10, 0, tzinfo=UTC),
             )
         )
 
@@ -484,7 +481,7 @@ class TestAgendaServiceCreateSession:
         await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 2, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 2, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -494,7 +491,7 @@ class TestAgendaServiceCreateSession:
             await service.create_session(
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2031, 2, 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2031, 2, 1, 10, 0, tzinfo=UTC),
                     duration_minutes=60,
                 )
             )
@@ -511,8 +508,8 @@ class TestAgendaServiceCreateSession:
         # Bloquear 08h–18h do dia 2031-03-01
         await service.create_blocked_period(
             BlockedPeriodCreate(
-                start_datetime=datetime(2031, 3, 1, 8, 0, tzinfo=timezone.utc),
-                end_datetime=datetime(2031, 3, 1, 18, 0, tzinfo=timezone.utc),
+                start_datetime=datetime(2031, 3, 1, 8, 0, tzinfo=UTC),
+                end_datetime=datetime(2031, 3, 1, 18, 0, tzinfo=UTC),
                 reason="Bloqueio de teste",
             )
         )
@@ -522,7 +519,7 @@ class TestAgendaServiceCreateSession:
             await service.create_session(
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2031, 3, 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2031, 3, 1, 10, 0, tzinfo=UTC),
                     duration_minutes=60,
                 )
             )
@@ -540,7 +537,7 @@ class TestAgendaServiceCreateSession:
         await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 4, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 4, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -549,7 +546,7 @@ class TestAgendaServiceCreateSession:
         sess = await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 4, 1, 11, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 4, 1, 11, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -568,7 +565,7 @@ class TestAgendaServiceCreateSession:
         sess = await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=UTC),
             )
         )
 
@@ -602,7 +599,7 @@ class TestAgendaServiceListSessions:
             await service.create_session(
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2031, 5, i + 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2031, 5, i + 1, 10, 0, tzinfo=UTC),
                 )
             )
 
@@ -692,10 +689,10 @@ class TestAgendaServiceUpdateSession:
         service = _make_service(tenant_session, test_professional.id)
 
         # Criar sessão A: 10h–11h
-        sess_a = await service.create_session(
+        await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 6, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 6, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -704,7 +701,7 @@ class TestAgendaServiceUpdateSession:
         sess_b = await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 6, 1, 14, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 6, 1, 14, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -713,7 +710,7 @@ class TestAgendaServiceUpdateSession:
         with pytest.raises(ConflictError):
             await service.update_session(
                 sess_b.id,
-                SessionUpdate(scheduled_at=datetime(2031, 6, 1, 10, 30, tzinfo=timezone.utc)),
+                SessionUpdate(scheduled_at=datetime(2031, 6, 1, 10, 30, tzinfo=UTC)),
             )
 
     async def test_update_session_reschedule_same_slot_no_conflict(
@@ -728,7 +725,7 @@ class TestAgendaServiceUpdateSession:
         sess = await service.create_session(
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 7, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 7, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             )
         )
@@ -787,7 +784,7 @@ class TestAgendaServiceTodayAndUpcoming:
             await service.create_session(
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2032, i + 1, 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2032, i + 1, 1, 10, 0, tzinfo=UTC),
                 )
             )
 
@@ -923,7 +920,7 @@ class TestAgendaServiceDeactivateRecurrence:
             SessionCreate(
                 client_id=test_client.id,
                 recurrence_id=test_recurrence.id,
-                scheduled_at=datetime(2030, 8, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2030, 8, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
                 price=Decimal("150.00"),
             ),
@@ -933,7 +930,7 @@ class TestAgendaServiceDeactivateRecurrence:
             SessionCreate(
                 client_id=test_client.id,
                 recurrence_id=test_recurrence.id,
-                scheduled_at=datetime(2030, 9, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2030, 9, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
                 price=Decimal("150.00"),
             ),
@@ -964,7 +961,7 @@ class TestAgendaServiceDeactivateRecurrence:
                 SessionCreate(
                     client_id=test_client.id,
                     recurrence_id=test_recurrence.id,
-                    scheduled_at=datetime(2030, month, 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2030, month, 1, 10, 0, tzinfo=UTC),
                     duration_minutes=60,
                     price=Decimal("150.00"),
                 ),
@@ -990,7 +987,7 @@ class TestAgendaServiceDeactivateRecurrence:
             SessionCreate(
                 client_id=test_client.id,
                 recurrence_id=test_recurrence.id,
-                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
                 price=Decimal("150.00"),
             ),

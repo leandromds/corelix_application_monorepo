@@ -16,7 +16,7 @@ RLS isolation tests follow the same pattern as tests/clients/test_model.py:
   4. Query — RLS filters out the other tenant's rows.
 """
 
-from datetime import date, datetime, time, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from uuid import uuid4
 
@@ -178,8 +178,8 @@ class TestBlockedPeriodModel:
         prof = await _make_prof(db_session, "blocked_create@example.com")
         period = BlockedPeriod(
             professional_id=prof.id,
-            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=UTC),
         )
         db_session.add(period)
         await db_session.flush()
@@ -193,8 +193,8 @@ class TestBlockedPeriodModel:
         prof = await _make_prof(db_session, "blocked_notify@example.com")
         period = BlockedPeriod(
             professional_id=prof.id,
-            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=UTC),
         )
         db_session.add(period)
         await db_session.flush()
@@ -207,8 +207,8 @@ class TestBlockedPeriodModel:
         prof = await _make_prof(db_session, "blocked_ts@example.com")
         period = BlockedPeriod(
             professional_id=prof.id,
-            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=UTC),
         )
         db_session.add(period)
         await db_session.flush()
@@ -223,8 +223,8 @@ class TestBlockedPeriodModel:
         prof = await _make_prof(db_session, "blocked_range@example.com")
         period = BlockedPeriod(
             professional_id=prof.id,
-            start_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),  # end < start
+            start_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),  # end < start
         )
         db_session.add(period)
 
@@ -236,8 +236,8 @@ class TestBlockedPeriodModel:
         prof = await _make_prof(db_session, "blocked_reason@example.com")
         period = BlockedPeriod(
             professional_id=prof.id,
-            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 6, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 6, 1, 18, 0, tzinfo=UTC),
         )
         db_session.add(period)
         await db_session.flush()
@@ -355,7 +355,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
         )
@@ -371,7 +371,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
         )
@@ -388,7 +388,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
         )
@@ -404,7 +404,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
         )
@@ -420,7 +420,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("150.00"),
             status="pending",  # viola chk_session_status
@@ -437,7 +437,7 @@ class TestSessionModel:
         sess = AgendaSession(
             professional_id=prof.id,
             client_id=client.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=0,  # viola chk_duration (> 0)
             price=Decimal("150.00"),
         )
@@ -455,7 +455,7 @@ class TestSessionModel:
             sess = AgendaSession(
                 professional_id=prof.id,
                 client_id=client.id,
-                scheduled_at=datetime(2025, 6, i + 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2025, 6, i + 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
                 price=Decimal("100.00"),
                 status=status,
@@ -523,13 +523,13 @@ class TestAgendaRLS:
 
         period_a = BlockedPeriod(
             professional_id=prof_a.id,
-            start_datetime=datetime(2025, 8, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 8, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 8, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 8, 1, 18, 0, tzinfo=UTC),
         )
         period_b = BlockedPeriod(
             professional_id=prof_b.id,
-            start_datetime=datetime(2025, 8, 2, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2025, 8, 2, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2025, 8, 2, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2025, 8, 2, 18, 0, tzinfo=UTC),
         )
         db_session.add_all([period_a, period_b])
         await db_session.flush()
@@ -553,14 +553,14 @@ class TestAgendaRLS:
         sess_a = AgendaSession(
             professional_id=prof_a.id,
             client_id=client_a.id,
-            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("100.00"),
         )
         sess_b = AgendaSession(
             professional_id=prof_b.id,
             client_id=client_b.id,
-            scheduled_at=datetime(2025, 6, 1, 14, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2025, 6, 1, 14, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("100.00"),
         )

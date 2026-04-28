@@ -19,8 +19,7 @@ on the RLS pattern and the "service fetches, repository acts" convention.
 from datetime import datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import cast, func, literal, select, update
-from sqlalchemy.dialects.postgresql import INTERVAL
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agenda.models import AvailabilitySlot, BlockedPeriod, Recurrence, Session

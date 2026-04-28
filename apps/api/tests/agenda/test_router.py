@@ -17,7 +17,6 @@ with the test session, so RLS context is set by the router's dependency.
 
 from uuid import uuid4
 
-import pytest
 from httpx import AsyncClient
 
 # ---------------------------------------------------------------------------

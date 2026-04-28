@@ -7,7 +7,7 @@ Responsibilities:
 - Never handles raw tokens — only receives/returns hashes
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
@@ -115,7 +115,7 @@ class RefreshTokenRepository:
         Returns:
             Number of rows deleted.
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         result = await self.session.execute(
             delete(RefreshToken).where(RefreshToken.expires_at < now)
         )

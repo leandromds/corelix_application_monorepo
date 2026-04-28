@@ -21,11 +21,10 @@ RLS isolation pattern (same as tests/clients/test_repository.py):
   4. Query — RLS filters out the other tenant's rows → returns None / [].
 """
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from uuid import uuid4
 
-import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,8 +65,8 @@ def _slot_create(
 
 def _blocked_create(
     *,
-    start: datetime = datetime(2030, 3, 1, 8, 0, tzinfo=timezone.utc),
-    end: datetime = datetime(2030, 3, 1, 18, 0, tzinfo=timezone.utc),
+    start: datetime = datetime(2030, 3, 1, 8, 0, tzinfo=UTC),
+    end: datetime = datetime(2030, 3, 1, 18, 0, tzinfo=UTC),
     reason: str | None = "Test block",
 ) -> BlockedPeriodCreate:
     return BlockedPeriodCreate(
@@ -78,13 +77,13 @@ def _blocked_create(
 
 
 def _recurrence_create(client_id, *, frequency: str = "weekly") -> RecurrenceCreate:
-    kwargs: dict = dict(
-        client_id=client_id,
-        frequency=frequency,
-        start_date=date(2025, 1, 1),
-        session_duration=60,
-        session_price=Decimal("150.00"),
-    )
+    kwargs: dict = {
+        "client_id": client_id,
+        "frequency": frequency,
+        "start_date": date(2025, 1, 1),
+        "session_duration": 60,
+        "session_price": Decimal("150.00"),
+    }
     if frequency in ("weekly", "biweekly"):
         kwargs["day_of_week"] = 1
     return RecurrenceCreate(**kwargs)
@@ -93,7 +92,7 @@ def _recurrence_create(client_id, *, frequency: str = "weekly") -> RecurrenceCre
 def _session_create(
     client_id,
     *,
-    scheduled_at: datetime = datetime(2030, 6, 1, 10, 0, tzinfo=timezone.utc),
+    scheduled_at: datetime = datetime(2030, 6, 1, 10, 0, tzinfo=UTC),
     duration_minutes: int = 60,
     recurrence_id=None,
 ) -> SessionCreate:
@@ -487,8 +486,8 @@ class TestBlockedPeriodsRepositoryCreate:
         period = await repo.create(
             test_professional.id,
             BlockedPeriodCreate(
-                start_datetime=datetime(2030, 4, 1, 8, 0, tzinfo=timezone.utc),
-                end_datetime=datetime(2030, 4, 1, 18, 0, tzinfo=timezone.utc),
+                start_datetime=datetime(2030, 4, 1, 8, 0, tzinfo=UTC),
+                end_datetime=datetime(2030, 4, 1, 18, 0, tzinfo=UTC),
             ),
         )
 
@@ -529,8 +528,8 @@ class TestBlockedPeriodsRepositoryFindById:
         other_prof = await _make_prof(db_session, "blocked_other_tenant@example.com")
         other_period = BlockedPeriod(
             professional_id=other_prof.id,
-            start_datetime=datetime(2030, 5, 1, 8, 0, tzinfo=timezone.utc),
-            end_datetime=datetime(2030, 5, 1, 18, 0, tzinfo=timezone.utc),
+            start_datetime=datetime(2030, 5, 1, 8, 0, tzinfo=UTC),
+            end_datetime=datetime(2030, 5, 1, 18, 0, tzinfo=UTC),
         )
         db_session.add(other_period)
         await db_session.flush()
@@ -569,15 +568,15 @@ class TestBlockedPeriodsRepositoryFindAll:
         await repo.create(
             test_professional.id,
             _blocked_create(
-                start=datetime(2030, 8, 1, 8, 0, tzinfo=timezone.utc),
-                end=datetime(2030, 8, 1, 18, 0, tzinfo=timezone.utc),
+                start=datetime(2030, 8, 1, 8, 0, tzinfo=UTC),
+                end=datetime(2030, 8, 1, 18, 0, tzinfo=UTC),
             ),
         )
         await repo.create(
             test_professional.id,
             _blocked_create(
-                start=datetime(2030, 7, 1, 8, 0, tzinfo=timezone.utc),
-                end=datetime(2030, 7, 1, 18, 0, tzinfo=timezone.utc),
+                start=datetime(2030, 7, 1, 8, 0, tzinfo=UTC),
+                end=datetime(2030, 7, 1, 18, 0, tzinfo=UTC),
             ),
         )
 
@@ -600,15 +599,15 @@ class TestBlockedPeriodsRepositoryFindOverlapping:
         block = await repo.create(
             test_professional.id,
             _blocked_create(
-                start=datetime(2030, 6, 15, 10, 0, tzinfo=timezone.utc),
-                end=datetime(2030, 6, 15, 12, 0, tzinfo=timezone.utc),
+                start=datetime(2030, 6, 15, 10, 0, tzinfo=UTC),
+                end=datetime(2030, 6, 15, 12, 0, tzinfo=UTC),
             ),
         )
 
         # Consulta o intervalo 11h-13h — sobrepõe com 10h-12h
         overlapping = await repo.find_overlapping(
-            datetime(2030, 6, 15, 11, 0, tzinfo=timezone.utc),
-            datetime(2030, 6, 15, 13, 0, tzinfo=timezone.utc),
+            datetime(2030, 6, 15, 11, 0, tzinfo=UTC),
+            datetime(2030, 6, 15, 13, 0, tzinfo=UTC),
         )
 
         ids = [p.id for p in overlapping]
@@ -626,15 +625,15 @@ class TestBlockedPeriodsRepositoryFindOverlapping:
         await repo.create(
             test_professional.id,
             _blocked_create(
-                start=datetime(2030, 6, 20, 10, 0, tzinfo=timezone.utc),
-                end=datetime(2030, 6, 20, 11, 0, tzinfo=timezone.utc),
+                start=datetime(2030, 6, 20, 10, 0, tzinfo=UTC),
+                end=datetime(2030, 6, 20, 11, 0, tzinfo=UTC),
             ),
         )
 
         # Consulta 11h-12h — adjacente mas NÃO sobrepõe (start < end AND end > start)
         overlapping = await repo.find_overlapping(
-            datetime(2030, 6, 20, 11, 0, tzinfo=timezone.utc),
-            datetime(2030, 6, 20, 12, 0, tzinfo=timezone.utc),
+            datetime(2030, 6, 20, 11, 0, tzinfo=UTC),
+            datetime(2030, 6, 20, 12, 0, tzinfo=UTC),
         )
 
         assert overlapping == []
@@ -650,15 +649,15 @@ class TestBlockedPeriodsRepositoryFindOverlapping:
         block = await repo.create(
             test_professional.id,
             _blocked_create(
-                start=datetime(2030, 6, 25, 11, 0, tzinfo=timezone.utc),
-                end=datetime(2030, 6, 25, 12, 0, tzinfo=timezone.utc),
+                start=datetime(2030, 6, 25, 11, 0, tzinfo=UTC),
+                end=datetime(2030, 6, 25, 12, 0, tzinfo=UTC),
             ),
         )
 
         # Janela 10h-13h contém completamente o bloco 11h-12h
         overlapping = await repo.find_overlapping(
-            datetime(2030, 6, 25, 10, 0, tzinfo=timezone.utc),
-            datetime(2030, 6, 25, 13, 0, tzinfo=timezone.utc),
+            datetime(2030, 6, 25, 10, 0, tzinfo=UTC),
+            datetime(2030, 6, 25, 13, 0, tzinfo=UTC),
         )
 
         ids = [p.id for p in overlapping]
@@ -1072,7 +1071,7 @@ class TestSessionsRepositoryFindById:
         other_sess = AgendaSession(
             professional_id=other_prof.id,
             client_id=other_client.id,
-            scheduled_at=datetime(2030, 7, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2030, 7, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
             price=Decimal("100.00"),
         )
@@ -1115,7 +1114,7 @@ class TestSessionsRepositoryFindAll:
                 test_professional.id,
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2030, 9, i + 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2030, 9, i + 1, 10, 0, tzinfo=UTC),
                 ),
             )
 
@@ -1136,7 +1135,7 @@ class TestSessionsRepositoryFindAll:
                 test_professional.id,
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2030, 10, i + 1, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2030, 10, i + 1, 10, 0, tzinfo=UTC),
                 ),
             )
 
@@ -1158,7 +1157,7 @@ class TestSessionsRepositoryFindAll:
                 test_professional.id,
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2030, 11, 1, hour, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2030, 11, 1, hour, 0, tzinfo=UTC),
                 ),
             )
 
@@ -1207,13 +1206,13 @@ class TestSessionsRepositoryFindScheduledBetween:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 1, 15, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 1, 15, 10, 0, tzinfo=UTC),
             ),
         )
 
         found = await repo.find_scheduled_between(
-            datetime(2031, 1, 15, 0, 0, tzinfo=timezone.utc),
-            datetime(2031, 1, 16, 0, 0, tzinfo=timezone.utc),
+            datetime(2031, 1, 15, 0, 0, tzinfo=UTC),
+            datetime(2031, 1, 16, 0, 0, tzinfo=UTC),
         )
 
         ids = [s.id for s in found]
@@ -1231,13 +1230,13 @@ class TestSessionsRepositoryFindScheduledBetween:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 1, 20, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 1, 20, 10, 0, tzinfo=UTC),
             ),
         )
 
         found = await repo.find_scheduled_between(
-            datetime(2031, 1, 15, 0, 0, tzinfo=timezone.utc),
-            datetime(2031, 1, 16, 0, 0, tzinfo=timezone.utc),
+            datetime(2031, 1, 15, 0, 0, tzinfo=UTC),
+            datetime(2031, 1, 16, 0, 0, tzinfo=UTC),
         )
 
         ids = [s.id for s in found]
@@ -1259,14 +1258,14 @@ class TestSessionsRepositoryFindConflicting:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 3, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 3, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             ),
         )
 
         # Nova proposta: 10h30–11h30 → sobrepõe com a existente
         conflicting = await repo.find_conflicting(
-            scheduled_at=datetime(2031, 3, 1, 10, 30, tzinfo=timezone.utc),
+            scheduled_at=datetime(2031, 3, 1, 10, 30, tzinfo=UTC),
             duration_minutes=60,
         )
 
@@ -1287,14 +1286,14 @@ class TestSessionsRepositoryFindConflicting:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 4, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 4, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             ),
         )
 
         # Nova proposta: 11h00–12h00 → adjacente, NÃO sobrepõe
         conflicting = await repo.find_conflicting(
-            scheduled_at=datetime(2031, 4, 1, 11, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2031, 4, 1, 11, 0, tzinfo=UTC),
             duration_minutes=60,
         )
 
@@ -1313,7 +1312,7 @@ class TestSessionsRepositoryFindConflicting:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 5, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 5, 1, 10, 0, tzinfo=UTC),
                 duration_minutes=60,
             ),
         )
@@ -1322,7 +1321,7 @@ class TestSessionsRepositoryFindConflicting:
 
         # Mesma janela — não deve conflitar (sessão cancelada)
         conflicting = await repo.find_conflicting(
-            scheduled_at=datetime(2031, 5, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2031, 5, 1, 10, 0, tzinfo=UTC),
             duration_minutes=60,
         )
 
@@ -1342,14 +1341,14 @@ class TestSessionsRepositoryFindConflicting:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2031, 6, 1, 10, 30, tzinfo=timezone.utc),
+                scheduled_at=datetime(2031, 6, 1, 10, 30, tzinfo=UTC),
                 duration_minutes=30,
             ),
         )
 
         # Nova proposta: 10h00–12h00 — contém completamente a existente
         conflicting = await repo.find_conflicting(
-            scheduled_at=datetime(2031, 6, 1, 10, 0, tzinfo=timezone.utc),
+            scheduled_at=datetime(2031, 6, 1, 10, 0, tzinfo=UTC),
             duration_minutes=120,
         )
 
@@ -1413,7 +1412,7 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
                 test_professional.id,
                 _session_create(
                     test_client.id,
-                    scheduled_at=datetime(2030, month, 15, 10, 0, tzinfo=timezone.utc),
+                    scheduled_at=datetime(2030, month, 15, 10, 0, tzinfo=UTC),
                     recurrence_id=test_recurrence.id,
                 ),
             )
@@ -1436,7 +1435,7 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2030, 8, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2030, 8, 1, 10, 0, tzinfo=UTC),
                 recurrence_id=test_recurrence.id,
             ),
         )
@@ -1462,7 +1461,7 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2020, 1, 1, 10, 0, tzinfo=UTC),
                 recurrence_id=test_recurrence.id,
             ),
         )
@@ -1488,7 +1487,7 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2030, 9, 1, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2030, 9, 1, 10, 0, tzinfo=UTC),
                 recurrence_id=test_recurrence.id,
             ),
         )
@@ -1515,7 +1514,7 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
             test_professional.id,
             _session_create(
                 test_client.id,
-                scheduled_at=datetime(2030, 9, 15, 10, 0, tzinfo=timezone.utc),
+                scheduled_at=datetime(2030, 9, 15, 10, 0, tzinfo=UTC),
                 recurrence_id=None,
             ),
         )

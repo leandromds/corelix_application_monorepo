@@ -4,7 +4,7 @@ Loads environment variables and provides type-safe access to configuration.
 """
 
 import json
-from typing import Any, List, Tuple, Type, get_origin
+from typing import Any, get_origin
 
 from pydantic import Field, field_validator
 from pydantic.fields import FieldInfo
@@ -147,7 +147,7 @@ class Settings(BaseSettings):
     #   single:          CORS_ORIGINS=http://localhost:5173
     #   comma-separated: CORS_ORIGINS=http://localhost:5173,http://localhost:3000
     #   JSON array:      CORS_ORIGINS=["http://localhost:5173"]
-    CORS_ORIGINS: List[str] = Field(
+    CORS_ORIGINS: list[str] = Field(
         default=["http://localhost:5173", "http://localhost:3000"],
         description="Allowed CORS origins",
     )
@@ -185,12 +185,12 @@ class Settings(BaseSettings):
     @classmethod
     def settings_customise_sources(  # type: ignore[override]
         cls,
-        settings_cls: Type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
         **kwargs: Any,  # absorbs secrets_settings (2.1–2.3) or file_secret_settings (2.4+)
-    ) -> Tuple[PydanticBaseSettingsSource, ...]:
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         """
         Replace the default env and dotenv sources with flexible versions that
         accept comma-separated strings for List[str] fields in addition to the

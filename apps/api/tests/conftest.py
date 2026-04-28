@@ -8,7 +8,8 @@ This module provides:
 """
 
 import asyncio
-from typing import Any, AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 from uuid import uuid4
 
 import pytest

@@ -26,7 +26,7 @@ Design notes:
   A ConflictError is raised if either source returns results.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -342,10 +342,9 @@ class AgendaService:
             List of Session instances for the current UTC day, ordered by
             scheduled_at ascending.
         """
-        from datetime import date, timezone
 
-        today = datetime.now(timezone.utc).date()
-        start = datetime(today.year, today.month, today.day, tzinfo=timezone.utc)
+        today = datetime.now(UTC).date()
+        start = datetime(today.year, today.month, today.day, tzinfo=UTC)
         end = start + timedelta(days=1)
         return await self.sessions_repo.find_scheduled_between(start, end)
 

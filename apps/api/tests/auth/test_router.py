@@ -1,8 +1,6 @@
 """Tests for auth router -- TDD Red phase."""
 
-import pytest
 from httpx import AsyncClient
-
 
 # ---------------------------------------------------------------------------
 # Helpers

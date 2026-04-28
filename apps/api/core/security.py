@@ -10,7 +10,7 @@ Design decisions:
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 from jose import jwt
@@ -90,7 +90,7 @@ def create_access_token(
     Returns:
         Signed JWT string
     """
-    expire = datetime.now(tz=timezone.utc) + (
+    expire = datetime.now(tz=UTC) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
