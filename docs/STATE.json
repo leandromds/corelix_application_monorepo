@@ -1,0 +1,223 @@
+{
+  "last_updated": "2025-07-15",
+  "current_feature": {
+    "module": "agenda",
+    "branch": "feature/agenda-module",
+    "status": "done",
+    "implementation_order": [
+      "✅ agenda/schemas.py — schemas alinhados ao spec (AvailabilitySlotCreate, BlockedPeriodCreate, RecurrenceCreate, SessionCreate etc.)",
+      "✅ tests/agenda/test_schemas.py + tests/agenda/test_model.py — validators + constraints + RLS (40+28 testes)",
+      "✅ tests/agenda/test_repository.py + agenda/repository.py — 4 repositories, CRUD com RLS (77 testes)",
+      "✅ tests/agenda/test_service.py + agenda/service.py — regras de negócio, conflito de horário, deactivate cascade (47 testes)",
+      "✅ tests/agenda/test_router.py + agenda/router.py — todos os endpoints, 201/200/204, TenantSession (71 testes)",
+      "✅ main.py — agenda_router incluído em /api/v1/agenda"
+    ]
+  },
+  "modules": {
+    "core": {
+      "status": "done",
+      "files": [
+        "core/config.py",
+        "core/database.py",
+        "core/mixins.py",
+        "core/security.py",
+        "core/exceptions.py",
+        "core/deps.py",
+        "core/models.py"
+      ]
+    },
+    "auth": {
+      "status": "done",
+      "files": [
+        "auth/router.py",
+        "auth/service.py",
+        "auth/repository.py",
+        "auth/schemas.py"
+      ]
+    },
+    "professionals": {
+      "status": "done",
+      "files": [
+        "professionals/router.py",
+        "professionals/service.py",
+        "professionals/repository.py",
+        "professionals/schemas.py",
+        "professionals/models.py"
+      ]
+    },
+    "clients": {
+      "status": "done",
+      "files": [
+        "clients/router.py",
+        "clients/service.py",
+        "clients/repository.py",
+        "clients/schemas.py",
+        "clients/models.py"
+      ]
+    },
+    "agenda": {
+      "status": "done",
+      "files": [
+        "agenda/models.py",
+        "agenda/schemas.py",
+        "agenda/repository.py",
+        "agenda/service.py",
+        "agenda/router.py"
+      ]
+    },
+    "reports": {
+      "status": "skeleton",
+      "files": [
+        "reports/schemas.py",
+        "reports/repository.py",
+        "reports/service.py",
+        "reports/router.py"
+      ]
+    },
+    "whatsapp": {
+      "status": "skeleton",
+      "files": [
+        "whatsapp/models.py",
+        "whatsapp/schemas.py",
+        "whatsapp/repository.py",
+        "whatsapp/service.py",
+        "whatsapp/router.py"
+      ]
+    },
+    "ai": {
+      "status": "done",
+      "files": ["ai/service.py", "ai/prompts.py"]
+    },
+    "frontend": {
+      "status": "done",
+      "files": [
+        "src/types/auth.ts",
+        "src/services/api.ts",
+        "src/contexts/AuthContext.tsx",
+        "src/hooks/useAuth.ts",
+        "src/components/ProtectedRoute.tsx",
+        "src/components/PublicRoute.tsx",
+        "src/pages/LoginPage.tsx",
+        "src/pages/RegisterPage.tsx",
+        "src/pages/DashboardPage.tsx",
+        "src/App.tsx"
+      ]
+    }
+  },
+  "tests": {
+    "total": 436,
+    "passing": 436,
+    "failing": 0,
+    "suite": [
+      { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
+      { "file": "tests/core/test_deps.py", "count": 6, "status": "green" },
+      {
+        "file": "tests/professionals/test_model.py",
+        "count": 5,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_model.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/professionals/test_repository.py",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "tests/auth/test_repository.py",
+        "count": 9,
+        "status": "green"
+      },
+      {
+        "file": "tests/professionals/test_service.py",
+        "count": 10,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_service.py", "count": 14, "status": "green" },
+      {
+        "file": "tests/professionals/test_router.py",
+        "count": 9,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_router.py", "count": 16, "status": "green" },
+      { "file": "tests/clients/test_model.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/clients/test_repository.py",
+        "count": 19,
+        "status": "green"
+      },
+      {
+        "file": "tests/clients/test_service.py",
+        "count": 22,
+        "status": "green"
+      },
+      {
+        "file": "tests/clients/test_router.py",
+        "count": 32,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_schemas.py",
+        "count": 40,
+        "status": "green"
+      },
+      { "file": "tests/agenda/test_model.py", "count": 28, "status": "green" },
+      {
+        "file": "tests/agenda/test_repository.py",
+        "count": 77,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_service.py",
+        "count": 47,
+        "status": "green"
+      },
+      { "file": "tests/agenda/test_router.py", "count": 71, "status": "green" }
+    ]
+  },
+  "infrastructure": {
+    "database": {
+      "engine": "PostgreSQL 16",
+      "migration_applied": "56f1e41b5d4c_initial_schema",
+      "rls_tables": [
+        "clients",
+        "availability_slots",
+        "blocked_periods",
+        "sessions",
+        "recurrences",
+        "whatsapp_conversations"
+      ]
+    },
+    "docker_compose": "done",
+    "env_example": "done",
+    "alembic": "configured"
+  },
+  "pending_tasks": [
+    "reports module — relatório de cobrança + IA insights",
+    "whatsapp module — webhook + IA conversacional + handoff",
+    "dashboard — agenda do dia, status bot, insights IA",
+    "segurança e auditoria — LGPD, AES-256 para whatsapp_access_token",
+    "testes e deploy — Railway setup, variáveis de produção",
+    "pgqueuer jobs — limpeza de refresh_tokens expirados, geração de sessões recorrentes, renovação token WhatsApp"
+  ],
+  "known_issues": [],
+  "gotchas_resolved": [
+    "BYPASSRLS vs FORCE ROW LEVEL SECURITY — solução: test_rls_user role sem BYPASSRLS → ADR-021",
+    "Policy null-permissive — current_setting('app.current_tenant', TRUE) com flag TRUE",
+    "Pydantic v2 model_validator + JSONResponse — usar jsonable_encoder(exc.errors())",
+    "SET LOCAL sem bind params — f-string com UUID validado → ADR-008",
+    "Cookie Secure em testes — base_url https://testserver",
+    "bcrypt<4 — passlib 1.7.4 incompatível com bcrypt 4.x+ → ADR-013",
+    "Token frontend em variável de módulo — interceptors precisam de binding estável → ADR-014",
+    "isLoading flash de redirect — isLoading começa true → ADR-015",
+    "StrictMode double-invocation — useRef guard no AuthContext",
+    "Cookie secure em desenvolvimento — secure=settings.is_production → ADR-017",
+    "exclude_unset=True vs exclude_none=True em PATCH — campos nullable exigem exclude_unset",
+    "Decimal em response schemas (não str) — asyncpg retorna NUMERIC como Decimal Python. Em ProfessionalResponse o campo é Decimal, não str. Usar Decimal nos response schemas do agenda (RecurrenceResponse.session_price, SessionResponse.price). A serialização JSON do FastAPI converte Decimal para número."
+  ],
+  "post_mvp": [
+    "Disparo automático de documentos fiscais",
+    "Emissão de NFS-e",
+    "Gateway de pagamento (Pix e cartão)",
+    "App mobile"
+  ]
+}

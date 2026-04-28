@@ -1,3 +1,16 @@
+> ⚠️ **ARQUIVO DEPRECIADO**
+> Este arquivo foi substituído pelo arquivo `docs/CORE.md` e pela estrutura ADR em `docs/`.
+> Mantido apenas para consulta histórica. **Não atualizar.**
+>
+> **Consulte em vez deste:**
+> - `.rules` — system prompt ativo carregado automaticamente pelo Zed (comportamento esperado do Claude)
+> - `docs/CORE.md` — contexto geral, stack, decisões fixas e comportamento esperado
+> - `docs/STATE.json` — estado atual do projeto (módulos, testes, pending tasks)
+> - `docs/decisions/` — ADRs com contexto, decisão, rationale e consequências
+> - `docs/domains/` — documentação detalhada por módulo
+
+---
+
 # Instruções do Projeto — Corelix
 # Leia este arquivo inteiro antes de responder qualquer mensagem.
 
@@ -205,22 +218,32 @@ Direto, técnico, sem enrolação. Parceiro de trabalho sênior — não assiste
 ```
 ✅ Levantamento de requisitos
 ✅ Decisões arquiteturais (multi-tenancy, auth, estrutura, TDD)
-✅ Schema do banco de dados (10 tabelas, migration aplicada, RLS em 6 tabelas)
+✅ Schema do banco de dados
+   ✅ professionals
+   ✅ refresh_tokens
+   ✅ clients
+   ✅ availability_slots
+   ✅ blocked_periods
+   ✅ sessions
+   ✅ recurrences
+   ✅ whatsapp_conversations + whatsapp_messages
+   ✅ audit_logs
 ✅ Setup do monorepo e ambiente
    ✅ docker-compose.yml (PostgreSQL 16 Alpine + healthcheck)
    ✅ .env.example (todas as variáveis documentadas)
    ✅ apps/api — pyproject.toml (Poetry), main.py, alembic/
    ✅ core/ — config.py, database.py, security.py, exceptions.py, deps.py
-   ✅ Skeletons: clients, agenda, reports, whatsapp
+   ✅ Skeletons criados: agenda, reports, whatsapp (schemas/repo/service/router)
    ✅ ai/service.py e ai/prompts.py
    ✅ apps/web — React 18 + Vite 5 + TypeScript scaffold
+   ✅ .github/workflows/ci.yml — CI com PostgreSQL, mypy, ruff
 ✅ Modelos SQLAlchemy + Migration inicial + RLS policies
    ✅ core/mixins.py (TimestampMixin, CreatedAtMixin)
-   ✅ 10 models criados (professionals → audit_logs)
+   ✅ todos os 10 models criados
    ✅ alembic/versions/56f1e41b5d4c_initial_schema.py (aplicada)
    ✅ RLS ativo em 6 tabelas (policies adicionadas manualmente)
 ✅ core/deps.py — DbSession, TenantSession, CurrentProfessionalId
-✅ Autenticação — backend (99 testes passando)
+✅ Autenticação — backend (74 testes passando)
    ✅ professionals/schemas.py — RegisterRequest, UpdateProfileRequest, ProfessionalResponse
    ✅ auth/schemas.py — LoginRequest, AccessTokenResponse
    ✅ professionals/repository.py — create, find_by_email, find_by_id, update
@@ -229,24 +252,35 @@ Direto, técnico, sem enrolação. Parceiro de trabalho sênior — não assiste
    ✅ auth/service.py — login (anti-enumeração), refresh_access_token, logout, logout_all
    ✅ auth/router.py — /register (201), /login (cookie), /refresh, /logout (204), /logout-all
    ✅ professionals/router.py — GET /me, PATCH /me (TenantSession + RLS)
-   ✅ tests/conftest.py — http_client, authenticated_http_client, test_professional
-   ✅ 99 testes passando (model + repository + service + router)
 ✅ Autenticação — frontend
-   ✅ src/types/auth.ts — ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
-   ✅ src/services/api.ts — instância axios, token em módulo, interceptors, fila de refresh
-   ✅ src/contexts/AuthContext.tsx — AuthProvider, restore de sessão, login/register/logout
+   ✅ src/types/auth.ts — tipos espelhando o backend
+   ✅ src/services/api.ts — token em módulo, interceptors, fila de refresh
+   ✅ src/contexts/AuthContext.tsx — AuthProvider, isLoading, restore de sessão
    ✅ src/hooks/useAuth.ts — wrapper com null-check
-   ✅ src/components/ProtectedRoute.tsx — spinner + redirect /login
-   ✅ src/components/PublicRoute.tsx — null + redirect /dashboard
-   ✅ src/pages/LoginPage.tsx — formulário, isSubmitting, error display
-   ✅ src/pages/RegisterPage.tsx — 5 campos, specialty/bio opcionais
-   ✅ src/pages/DashboardPage.tsx — placeholder com logout
+   ✅ src/components/ProtectedRoute.tsx + PublicRoute.tsx
+   ✅ src/pages/LoginPage.tsx + RegisterPage.tsx + DashboardPage.tsx
    ✅ src/App.tsx — BrowserRouter + AuthProvider + Routes
-   ✅ build limpo (tsc --noEmit + vite build: zero erros)
-⬜ Módulo clients   ← próximo passo
-⬜ Módulo agenda
-⬜ Módulo reports + IA no relatório
-⬜ WhatsApp webhook + IA conversacional
+✅ Módulo clients — backend (74 testes passando)
+   ✅ clients/schemas.py — ClientCreate, ClientUpdate, ClientResponse
+   ✅ clients/repository.py — CRUD com RLS
+   ✅ clients/service.py — create (ConflictError), list, get, update, soft_delete
+   ✅ clients/router.py — POST/GET/PATCH/DELETE com paginação
+   ✅ RLS ativo + conftest com test_rls_user para testes de isolamento
+✅ Total: 436 testes passando (core:23, auth+professionals:74, clients:76, agenda:263)
+✅ Módulo agenda — backend (263 testes passando)
+   ✅ tests/agenda/test_schemas.py — 40 testes (validators: time range, day_of_week, end_date, frequency)
+   ✅ tests/agenda/test_model.py — 28 testes (defaults, CHECK constraints, RLS isolation em 4 tabelas)
+   ✅ agenda/repository.py — 4 repositories (AvailabilitySlotsRepository, BlockedPeriodsRepository,
+      RecurrencesRepository, SessionsRepository) com find_conflicting + cancel_future_by_recurrence
+   ✅ tests/agenda/test_repository.py — 77 testes (CRUD, paginação, overlap detection, RLS isolation)
+   ✅ agenda/service.py — AgendaService com _check_session_conflict (sessões + blocked periods)
+   ✅ tests/agenda/test_service.py — 47 testes (ConflictError, NotFoundError, deactivate_recurrence cascade)
+   ✅ agenda/router.py — 17 endpoints (slots, blocked, recurrences, sessions + today/upcoming)
+   ✅ tests/agenda/test_router.py — 71 testes (201/200/204/409/422/401 por endpoint)
+   ✅ RLS: conftest atualizado com policies para as 4 novas tabelas (padrão null-permissive)
+   ✅ main.py: agenda_router incluído em /api/v1/agenda
+⬜ Módulo reports + IA no relatório (skeleton criado)   ← próximo passo
+⬜ WhatsApp webhook + IA conversacional (skeleton criado)
 ⬜ Dashboard com insights
 ⬜ Segurança, LGPD e auditoria
 ⬜ Testes e deploy no Railway
@@ -261,3 +295,4 @@ Direto, técnico, sem enrolação. Parceiro de trabalho sênior — não assiste
 | `ARCHITECTURE.md` | Contexto completo — colar em novas conversas no chat |
 | `CLAUDE_CONTEXT.md` | System prompt compacto — usar no Zed IDE |
 | `PROJECT_INSTRUCTIONS.md` | Este arquivo — comportamento esperado do Claude neste projeto |
+| `docs/` | Documentação ADR estruturada — CORE.md, STATE.json, decisions/, domains/ |
