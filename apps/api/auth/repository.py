@@ -119,4 +119,4 @@ class RefreshTokenRepository:
         result = await self.session.execute(
             delete(RefreshToken).where(RefreshToken.expires_at < now)
         )
-        return result.rowcount  # type: ignore[attr-defined]
+        return int(result.rowcount)  # type: ignore[attr-defined]

@@ -500,7 +500,7 @@ class TestClientsServiceDeleteClient:
         """delete_client() deve retornar None (sem body na resposta HTTP 204)."""
         service = ClientsService(tenant_session)
 
-        result = await service.delete_client(test_client.id)
+        result = await service.delete_client(test_client.id)  # type: ignore[func-returns-value]
 
         assert result is None
 

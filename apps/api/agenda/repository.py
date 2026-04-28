@@ -450,4 +450,4 @@ class SessionsRepository:
         )
         result = await self.session.execute(stmt)
         await self.session.flush()
-        return result.rowcount  # type: ignore[attr-defined]
+        return int(result.rowcount)  # type: ignore[attr-defined]

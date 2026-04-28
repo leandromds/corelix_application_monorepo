@@ -102,14 +102,12 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # Test files use pytest conventions: fixtures and test functions intentionally
 # omit return type annotations (-> None is implicit), and helpers may return Any.
-# ASGITransport(app=FastAPI(...)) triggers arg-type due to httpx/starlette type
-# mismatch — a known false positive. name-defined covers runtime imports inside
-# fixtures (e.g. `from professionals.models import Professional` inside a function).
+# The remaining arg-type, name-defined, and func-returns-value errors in specific
+# test files are suppressed with inline # type: ignore comments.
 module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 warn_return_any = false
-disable_error_codes = ["arg-type", "name-defined", "func-returns-value"]
 
 [build-system]
 requires = ["poetry-core"]

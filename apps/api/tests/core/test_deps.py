@@ -68,7 +68,7 @@ class TestGetCurrentProfessionalId:
     ) -> None:
         """Token válido deve extrair o professional_id corretamente."""
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get(
                 "/protected", headers={"Authorization": f"Bearer {valid_token}"}
@@ -80,7 +80,7 @@ class TestGetCurrentProfessionalId:
     async def test_missing_token_returns_401(self, test_app: FastAPI) -> None:
         """Request sem Authorization header deve retornar 401."""
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get("/protected")
 
@@ -89,7 +89,7 @@ class TestGetCurrentProfessionalId:
     async def test_malformed_token_returns_401(self, test_app: FastAPI) -> None:
         """Token com formato inválido deve retornar 401, nunca 500."""
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get(
                 "/protected", headers={"Authorization": "Bearer not.a.valid.jwt"}
@@ -103,7 +103,7 @@ class TestGetCurrentProfessionalId:
             subject="some-uuid", expires_delta=timedelta(seconds=-1)
         )
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get(
                 "/protected", headers={"Authorization": f"Bearer {expired_token}"}
@@ -116,7 +116,7 @@ class TestGetCurrentProfessionalId:
     ) -> None:
         """Header sem prefixo 'Bearer ' deve retornar 401."""
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get(
                 "/protected", headers={"Authorization": valid_token}
@@ -139,7 +139,7 @@ class TestGetCurrentProfessionalId:
             algorithm=settings.ALGORITHM,
         )
         async with AsyncClient(
-            transport=ASGITransport(app=test_app), base_url="http://test"
+            transport=ASGITransport(app=test_app), base_url="http://test"  # type: ignore[arg-type]
         ) as client:
             resp = await client.get(
                 "/protected", headers={"Authorization": f"Bearer {bad_token}"}

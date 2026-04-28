@@ -229,7 +229,7 @@ async def http_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://testserver") as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://testserver") as ac:  # type: ignore[arg-type]
         yield ac
 
     # Clean up only our override
@@ -239,7 +239,7 @@ async def http_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 @pytest_asyncio.fixture
 async def authenticated_http_client(
     http_client: AsyncClient,
-    test_professional: "Professional",  # noqa: F821
+    test_professional: "Professional",  # noqa: F821  # type: ignore[name-defined]
 ) -> AsyncGenerator[AsyncClient, None]:
     """
     HTTP client with a valid Bearer JWT for test_professional.
