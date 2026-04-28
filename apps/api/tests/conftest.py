@@ -320,16 +320,24 @@ def refresh_token() -> str:
 
 
 @pytest.fixture
-def mock_anthropic_response() -> dict:
-    """Mock response from Anthropic API."""
+def mock_ai_response() -> dict:
+    """Mock response from OpenAI-compatible API (chat completions format)."""
     return {
-        "id": "msg_test123",
-        "type": "message",
-        "role": "assistant",
-        "content": [{"type": "text", "text": "This is a test AI response"}],
-        "model": "claude-sonnet-3-5-20241022",
-        "stop_reason": "end_turn",
-        "usage": {"input_tokens": 10, "output_tokens": 20},
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1234567890,
+        "model": "gpt-4o-mini",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "This is a test AI response",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
     }
 
 

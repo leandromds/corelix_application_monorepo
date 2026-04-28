@@ -105,7 +105,9 @@ jobs:
           REFRESH_TOKEN_EXPIRE_DAYS: 30
           ENVIRONMENT: development
           CORS_ORIGINS: http://localhost:5173
-          ANTHROPIC_API_KEY: sk-ant-ci-placeholder-not-real
+          AI_API_KEY: sk-ci-placeholder-not-real
+          AI_BASE_URL: https://api.openai.com/v1
+          AI_MODEL: gpt-4o-mini
           WHATSAPP_VERIFY_TOKEN: ci-verify-token-placeholder
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==
@@ -121,7 +123,9 @@ jobs:
           REFRESH_TOKEN_EXPIRE_DAYS: 30
           ENVIRONMENT: development
           CORS_ORIGINS: http://localhost:5173
-          ANTHROPIC_API_KEY: sk-ant-ci-placeholder-not-real
+          AI_API_KEY: sk-ci-placeholder-not-real
+          AI_BASE_URL: https://api.openai.com/v1
+          AI_MODEL: gpt-4o-mini
           WHATSAPP_VERIFY_TOKEN: ci-verify-token-placeholder
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==

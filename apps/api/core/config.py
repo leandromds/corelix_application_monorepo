@@ -106,10 +106,18 @@ class Settings(BaseSettings):
         description="Refresh token expiration time in days",
     )
 
-    # Anthropic API (Claude)
-    ANTHROPIC_API_KEY: str = Field(
+    # AI Provider (OpenAI-compatible API)
+    AI_API_KEY: str = Field(
         ...,
-        description="Anthropic API key for Claude integration",
+        description="API key for the AI provider (OpenAI, OpenRouter, LiteLLM, etc.)",
+    )
+    AI_BASE_URL: str = Field(
+        default="https://api.openai.com/v1",
+        description="Base URL for the OpenAI-compatible API endpoint",
+    )
+    AI_MODEL: str = Field(
+        default="gpt-4o-mini",
+        description="Model identifier to use for AI completions",
     )
 
     # WhatsApp Business API (Meta Cloud API)
