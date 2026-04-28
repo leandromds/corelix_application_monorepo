@@ -8,7 +8,7 @@ This module provides:
 """
 
 import asyncio
-from typing import AsyncGenerator, Generator
+from typing import Any, AsyncGenerator, Generator
 from uuid import uuid4
 
 import pytest
@@ -239,7 +239,7 @@ async def http_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, N
 @pytest_asyncio.fixture
 async def authenticated_http_client(
     http_client: AsyncClient,
-    test_professional: "Professional",  # noqa: F821  # type: ignore[name-defined]
+    test_professional: Any,  # Professional fixture (imported inside test_professional fixture body)
 ) -> AsyncGenerator[AsyncClient, None]:
     """
     HTTP client with a valid Bearer JWT for test_professional.
