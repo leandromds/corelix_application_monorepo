@@ -151,7 +151,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Health"])
-async def health_check() -> dict:
+async def health_check() -> dict | JSONResponse:
     """Health check used by load balancers and Railway."""
     db_healthy = await check_database_connection()
 

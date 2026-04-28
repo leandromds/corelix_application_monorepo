@@ -183,7 +183,7 @@ class Settings(BaseSettings):
         return self.DATABASE_URL.replace("+asyncpg", "")
 
     @classmethod
-    def settings_customise_sources(
+    def settings_customise_sources(  # type: ignore[override]
         cls,
         settings_cls: Type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,

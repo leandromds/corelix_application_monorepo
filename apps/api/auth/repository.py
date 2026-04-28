@@ -83,9 +83,7 @@ class RefreshTokenRepository:
             token_hash: SHA-256 hex digest of the token to revoke
         """
         await self.session.execute(
-            update(RefreshToken)
-            .where(RefreshToken.token_hash == token_hash)
-            .values(revoked=True)
+            update(RefreshToken).where(RefreshToken.token_hash == token_hash).values(revoked=True)
         )
 
     async def revoke_all(self, professional_id: UUID) -> None:
@@ -121,4 +119,4 @@ class RefreshTokenRepository:
         result = await self.session.execute(
             delete(RefreshToken).where(RefreshToken.expires_at < now)
         )
-        return result.rowcount
+        return result.rowcount  # type: ignore[attr-defined]

@@ -62,7 +62,7 @@ class AIService:
                 messages=[{"role": "user", "content": user_message}],
             )
             # message.content is a list; first item is the text block
-            return str(message.content[0].text)  # type: ignore[union-attr]
+            return str(message.content[0].text)
         except anthropic.APIError as e:
             raise ExternalServiceError(
                 message=f"Anthropic API error: {e.message}",
@@ -96,9 +96,9 @@ class AIService:
                 model=self.default_model,
                 max_tokens=max_tokens,
                 system=system_prompt,
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
             )
-            return str(message.content[0].text)  # type: ignore[union-attr]
+            return str(message.content[0].text)
         except anthropic.APIError as e:
             raise ExternalServiceError(
                 message=f"Anthropic API error: {e.message}",
