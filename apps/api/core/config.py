@@ -129,6 +129,10 @@ class Settings(BaseSettings):
         ...,
         description="App secret for WhatsApp webhook validation",
     )
+    WHATSAPP_APP_ID: str = Field(
+        ...,
+        description="Meta App ID for WhatsApp token exchange (long-lived token renewal)",
+    )
 
     # Application
     ENVIRONMENT: str = Field(

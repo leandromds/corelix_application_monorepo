@@ -413,6 +413,30 @@ class SessionsRepository:
         )
         return list(result.scalars().all())
 
+    async def find_by_exact(self, client_id: UUID, scheduled_at: datetime) -> Session | None:
+        """
+        Check if a non-cancelled session already exists for this client at this exact time.
+
+        Used by the recurring sessions job to prevent duplicate creation.
+        RLS automatically filters by the active tenant (professional_id).
+        Cancelled sessions are excluded — a cancelled slot can be re-scheduled.
+
+        Args:
+            client_id: Client UUID.
+            scheduled_at: Exact datetime to check (must be timezone-aware).
+
+        Returns:
+            Existing Session if found, None if the slot is free.
+        """
+        result = await self.session.execute(
+            select(Session).where(
+                Session.client_id == client_id,
+                Session.scheduled_at == scheduled_at,
+                Session.status != "cancelled",
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def update(self, session_obj: Session, data: dict) -> Session:
         """Apply partial updates to an existing session."""
         for field, value in data.items():
