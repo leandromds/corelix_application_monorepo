@@ -96,8 +96,6 @@ plugins = ["pydantic.mypy"]
 module = [
     "passlib.*",
     "jose.*",
-    "factory.*",
-    "pytest_postgresql.*",
 ]
 ignore_missing_imports = true
 
@@ -110,6 +108,7 @@ module = ["tests.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 warn_return_any = false
+disable_error_code = ["attr-defined"]
 
 [build-system]
 requires = ["poetry-core"]
