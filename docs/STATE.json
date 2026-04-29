@@ -1,16 +1,16 @@
 {
-  "last_updated": "2025-07-15",
+  "last_updated": "2025-07-16",
   "current_feature": {
-    "module": "agenda",
-    "branch": "feature/agenda-module",
+    "module": "whatsapp",
+    "branch": "feature/whatsapp-module",
     "status": "done",
     "implementation_order": [
-      "✅ agenda/schemas.py — schemas alinhados ao spec (AvailabilitySlotCreate, BlockedPeriodCreate, RecurrenceCreate, SessionCreate etc.)",
-      "✅ tests/agenda/test_schemas.py + tests/agenda/test_model.py — validators + constraints + RLS (40+28 testes)",
-      "✅ tests/agenda/test_repository.py + agenda/repository.py — 4 repositories, CRUD com RLS (77 testes)",
-      "✅ tests/agenda/test_service.py + agenda/service.py — regras de negócio, conflito de horário, deactivate cascade (47 testes)",
-      "✅ tests/agenda/test_router.py + agenda/router.py — todos os endpoints, 201/200/204, TenantSession (71 testes)",
-      "✅ main.py — agenda_router incluído em /api/v1/agenda"
+      "✅ whatsapp/schemas.py — hierarquia completa do webhook Meta + response schemas",
+      "✅ whatsapp/repository.py — 9 métodos (conversas + mensagens + lookup de profissional por phone_id)",
+      "✅ whatsapp/service.py — pipeline de mensagem inbound, Meta API, handoff, Fernet decrypt, degradação graciosa",
+      "✅ whatsapp/router.py — 5 endpoints: GET/POST /webhook (HMAC + BackgroundTasks), GET /conversations, GET /conversations/{id}, POST /conversations/{id}/handoff",
+      "✅ tests/whatsapp/ — 44 testes (model x4, repository x13, service x13, router x14)",
+      "✅ main.py — whatsapp_router incluído em /api/v1/whatsapp"
     ]
   },
   "modules": {
@@ -66,7 +66,7 @@
       ]
     },
     "reports": {
-      "status": "skeleton",
+      "status": "done",
       "files": [
         "reports/schemas.py",
         "reports/repository.py",
@@ -75,7 +75,7 @@
       ]
     },
     "whatsapp": {
-      "status": "skeleton",
+      "status": "done",
       "files": [
         "whatsapp/models.py",
         "whatsapp/schemas.py",
@@ -88,8 +88,13 @@
       "status": "done",
       "files": ["ai/service.py", "ai/prompts.py"]
     },
+    "jobs": {
+      "status": "pending",
+      "files": []
+    },
     "frontend": {
-      "status": "done",
+      "status": "partial",
+      "notes": "Auth (Login, Register, AuthContext, ProtectedRoute) done. Clients, Agenda, Reports, WhatsApp pages pendentes.",
       "files": [
         "src/types/auth.ts",
         "src/services/api.ts",
@@ -105,8 +110,8 @@
     }
   },
   "tests": {
-    "total": 436,
-    "passing": 436,
+    "total": 520,
+    "passing": 520,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -171,7 +176,39 @@
         "count": 47,
         "status": "green"
       },
-      { "file": "tests/agenda/test_router.py", "count": 71, "status": "green" }
+      { "file": "tests/agenda/test_router.py", "count": 71, "status": "green" },
+      {
+        "file": "tests/reports/test_schemas.py",
+        "count": 11,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_repository.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_service.py",
+        "count": 9,
+        "status": "green"
+      },
+      { "file": "tests/reports/test_router.py", "count": 7, "status": "green" },
+      { "file": "tests/whatsapp/test_model.py", "count": 4, "status": "green" },
+      {
+        "file": "tests/whatsapp/test_repository.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/whatsapp/test_service.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/whatsapp/test_router.py",
+        "count": 14,
+        "status": "green"
+      }
     ]
   },
   "infrastructure": {
@@ -192,27 +229,28 @@
     "alembic": "configured"
   },
   "pending_tasks": [
-    "reports module — relatório de cobrança + IA insights",
-    "whatsapp module — webhook + IA conversacional + handoff",
-    "dashboard — agenda do dia, status bot, insights IA",
-    "segurança e auditoria — LGPD, AES-256 para whatsapp_access_token",
-    "testes e deploy — Railway setup, variáveis de produção",
-    "pgqueuer jobs — limpeza de refresh_tokens expirados, geração de sessões recorrentes, renovação token WhatsApp"
+    "jobs — pgqueuer: cleanup refresh_tokens expirados, geração de sessões recorrentes, renovação token WhatsApp",
+    "segurança — AES-256 (Fernet) para whatsapp_access_token + endpoint Embedded Signup",
+    "frontend — páginas Clients, Agenda, Reports, WhatsApp conversations",
+    "deploy — Railway setup, variáveis de produção, CI environment"
   ],
   "known_issues": [],
   "gotchas_resolved": [
-    "BYPASSRLS vs FORCE ROW LEVEL SECURITY — solução: test_rls_user role sem BYPASSRLS → ADR-021",
+    "BYPASSRLS vs FORCE ROW LEVEL SECURITY — solução: test_rls_user role sem BYPASSRLS",
     "Policy null-permissive — current_setting('app.current_tenant', TRUE) com flag TRUE",
     "Pydantic v2 model_validator + JSONResponse — usar jsonable_encoder(exc.errors())",
-    "SET LOCAL sem bind params — f-string com UUID validado → ADR-008",
+    "SET LOCAL sem bind params — f-string com UUID validado",
     "Cookie Secure em testes — base_url https://testserver",
-    "bcrypt<4 — passlib 1.7.4 incompatível com bcrypt 4.x+ → ADR-013",
-    "Token frontend em variável de módulo — interceptors precisam de binding estável → ADR-014",
-    "isLoading flash de redirect — isLoading começa true → ADR-015",
+    "bcrypt<4 — passlib 1.7.4 incompatível com bcrypt 4.x+",
+    "Token frontend em variável de módulo — interceptors precisam de binding estável",
+    "isLoading flash de redirect — isLoading começa true",
     "StrictMode double-invocation — useRef guard no AuthContext",
-    "Cookie secure em desenvolvimento — secure=settings.is_production → ADR-017",
+    "Cookie secure em desenvolvimento — secure=settings.is_production",
     "exclude_unset=True vs exclude_none=True em PATCH — campos nullable exigem exclude_unset",
-    "Decimal em response schemas (não str) — asyncpg retorna NUMERIC como Decimal Python. Em ProfessionalResponse o campo é Decimal, não str. Usar Decimal nos response schemas do agenda (RecurrenceResponse.session_price, SessionResponse.price). A serialização JSON do FastAPI converte Decimal para número."
+    "Decimal em response schemas — asyncpg retorna NUMERIC como Decimal Python; usar Decimal nos schemas",
+    "WebhookMessage.from_ — 'from' é keyword Python; usar Field(alias='from') + populate_by_name=True",
+    "BackgroundTasks + sessão própria — background task do webhook cria async_session_maker() próprio; nunca reusar sessão da request",
+    "mypy no-untyped-def em service — parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test"
   ],
   "post_mvp": [
     "Disparo automático de documentos fiscais",
