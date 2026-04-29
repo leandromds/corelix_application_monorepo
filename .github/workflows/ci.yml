@@ -110,6 +110,7 @@ jobs:
           AI_MODEL: gpt-4o-mini
           WHATSAPP_VERIFY_TOKEN: ci-verify-token-placeholder
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
+          WHATSAPP_APP_ID: ci-app-id-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==
         run: poetry run pytest tests/ -v --tb=short --no-cov
 
@@ -128,6 +129,7 @@ jobs:
           AI_MODEL: gpt-4o-mini
           WHATSAPP_VERIFY_TOKEN: ci-verify-token-placeholder
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
+          WHATSAPP_APP_ID: ci-app-id-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==
         run: poetry run mypy .
 
