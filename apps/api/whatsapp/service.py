@@ -26,10 +26,12 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 import httpx
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai.prompts import PROMPTS
 from ai.service import AIService
 from core.exceptions import ExternalServiceError, NotFoundError
+from professionals.models import Professional
 from whatsapp.models import WhatsAppConversation, WhatsAppMessage
 from whatsapp.repository import WhatsAppRepository
 
@@ -39,7 +41,7 @@ logger = logging.getLogger(__name__)
 class WhatsAppService:
     """Handles WhatsApp business logic: message routing, AI replies, Meta API calls."""
 
-    def __init__(self, session) -> None:
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repository = WhatsAppRepository(session)
         self.ai = AIService()
@@ -50,7 +52,7 @@ class WhatsAppService:
 
     async def process_incoming_message(
         self,
-        professional,  # professionals.models.Professional instance
+        professional: Professional,
         client_phone: str,
         content: str,
         whatsapp_msg_id: str,
