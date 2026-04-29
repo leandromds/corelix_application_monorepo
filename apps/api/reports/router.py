@@ -31,6 +31,8 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 
 @router.get("/billing", response_model=BillingReportResponse)
 async def get_billing_report(
+    db: TenantSession,
+    professional_id: CurrentProfessionalId,
     start_date: date = Query(..., description="Period start (YYYY-MM-DD)"),
     end_date: date = Query(..., description="Period end (YYYY-MM-DD)"),
     client_id: UUID | None = Query(default=None, description="Filter by client"),
@@ -38,8 +40,6 @@ async def get_billing_report(
         default=["completed"],
         description="Session statuses to include",
     ),
-    db: TenantSession = ...,
-    professional_id: CurrentProfessionalId = ...,
 ) -> BillingReportResponse:
     """
     Generate a billing report for the authenticated professional.
@@ -68,7 +68,7 @@ async def get_billing_report(
             start_date=start_date,
             end_date=end_date,
             client_id=client_id,
-            status_filter=status_filter,  # type: ignore[arg-type]
+            status_filter=status_filter,
         )
     except PydanticValidationError as exc:
         # Re-raise as a structured 422 so the caller gets a consistent error

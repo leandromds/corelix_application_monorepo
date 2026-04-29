@@ -40,7 +40,7 @@ class ReportsService:
             start_date=request.start_date,
             end_date=request.end_date,
             client_id=request.client_id,
-            status_filter=request.status_filter,
+            status_filter=list(request.status_filter),
         )
 
         clients_map: dict[UUID, ClientBillingEntry] = {}
