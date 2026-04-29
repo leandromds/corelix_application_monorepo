@@ -98,6 +98,7 @@ plugins = ["pydantic.mypy"]
 module = [
     "passlib.*",
     "jose.*",
+    "dateutil.*",
 ]
 ignore_missing_imports = true
 

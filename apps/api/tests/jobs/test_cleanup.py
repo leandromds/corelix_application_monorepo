@@ -46,7 +46,12 @@ class TestCleanupExpiredRefreshTokens:
         """Ordem: delete_expired primeiro, depois commit."""
         call_order = []
         mock_repo = AsyncMock()
-        mock_repo.delete_expired.side_effect = lambda: call_order.append("delete") or 5
+
+        def _delete_side_effect() -> int:
+            call_order.append("delete")
+            return 5
+
+        mock_repo.delete_expired.side_effect = _delete_side_effect
         mock_session.commit.side_effect = lambda: call_order.append("commit")
 
         with (
