@@ -7,7 +7,7 @@ Responsibilities:
 - Generate AI insights via AIService (with graceful degradation)
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -21,6 +21,7 @@ from reports.schemas import (
     BillingReportRequest,
     BillingReportResponse,
     ClientBillingEntry,
+    PeriodSummaryResponse,
     SessionEntry,
 )
 
@@ -93,6 +94,31 @@ class ReportsService:
             clients=list(clients_map.values()),
             ai_insights=ai_insights,
             generated_at=datetime.now(UTC),
+        )
+
+    async def get_period_summary(
+        self,
+        start_date: date,
+        end_date: date,
+        status_filter: list[str] | None = None,
+    ) -> PeriodSummaryResponse:
+        """
+        Return lightweight (total_sessions, total_amount) for a period.
+        Used by dashboard KPI cards — does not aggregate by client and does
+        not call the AI service.
+        """
+        effective_filter = status_filter if status_filter is not None else ["completed"]
+        row = await self.repository.get_period_summary(
+            start_date=start_date,
+            end_date=end_date,
+            status_filter=effective_filter,
+        )
+        return PeriodSummaryResponse(
+            period_start=start_date,
+            period_end=end_date,
+            total_sessions=row.total_sessions,
+            total_amount=row.total_amount,
+            status_filter=effective_filter,
         )
 
     async def _generate_ai_insights(

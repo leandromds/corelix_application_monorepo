@@ -765,6 +765,17 @@ class TestListTodaySessions:
         ids = [s["id"] for s in response.json()]
         assert sess_id not in ids
 
+    async def test_list_today_sessions_includes_client_name(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """Sessão de hoje deve incluir client_name no response."""
+        response = await authenticated_http_client.get("/api/v1/agenda/sessions/today")
+        assert response.status_code == 200
+        items = response.json()
+        # Se houver sessões, verificar que client_name está presente
+        for item in items:
+            assert "client_name" in item
+
     async def test_list_today_sessions_unauthenticated_returns_401(
         self, http_client: AsyncClient
     ) -> None:
@@ -791,6 +802,26 @@ class TestListUpcomingSessions:
         )
         assert response.status_code == 200
         assert len(response.json()) <= 3
+
+    async def test_list_upcoming_sessions_includes_client_name(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """Sessões upcoming devem incluir client_name no response."""
+        client_id = await _api_create_client(authenticated_http_client, name="Client With Name")
+        sess_id = await _api_create_session(
+            authenticated_http_client, client_id, "2036-06-01T10:00:00Z"
+        )
+
+        response = await authenticated_http_client.get(
+            "/api/v1/agenda/sessions/upcoming", params={"limit": 50}
+        )
+        assert response.status_code == 200
+        items = response.json()
+        ids = [s["id"] for s in items]
+        assert sess_id in ids
+
+        found = next(s for s in items if s["id"] == sess_id)
+        assert found["client_name"] == "Client With Name"
 
     async def test_list_upcoming_sessions_unauthenticated_returns_401(
         self, http_client: AsyncClient

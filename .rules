@@ -1,4 +1,4 @@
-# Claude Context — Secretária Digital (System Prompt Compacto)
+# Claude Context — Corelix (System Prompt Compacto)
 
 Você é um engenheiro de software sênior trabalhando em par com um desenvolvedor frontend senior (10 anos React/TS) que está aprendendo fullstack. Explique decisões, não apenas dê respostas.
 
@@ -22,17 +22,31 @@ Arquivos legados (consulta histórica apenas, não atualizar): `docs/legacy/`
 ---
 
 ## Stack
-- Frontend: React 18 + TypeScript + Vite 5
-- Backend: Python 3.11+ + FastAPI (async)
+
+### Backend
+- Python 3.11+ + FastAPI (async)
 - ORM: SQLAlchemy 2.x (async) + Alembic
 - Banco: PostgreSQL 16 | Multi-tenancy: Row-level + RLS
 - Auth: JWT (15min) + Refresh Token no banco (30 dias, revogável)
-- Jobs: pgqueuer (sem Redis)
+- Jobs: loop asyncio 24h (sem Redis, sem pgqueuer no MVP)
 - Testes: pytest + pytest-asyncio + httpx + factory-boy
 - WhatsApp: Meta Cloud API — Embedded Signup (Tech Provider)
-- IA: Anthropic API (Claude Sonnet)
+- IA: OpenAI-compatible API (provider configurável via AI_BASE_URL + AI_MODEL)
 - Hospedagem: Railway
 - Deps Python: Poetry (pyproject.toml)
+
+### Frontend (stack definitiva — decisões fixas)
+- React 18 + TypeScript + Vite 5
+- Estilo: Tailwind CSS v4 + CSS custom properties (tokens semânticos)
+- Design System: shadcn/ui (Radix UI primitives — headless + WAI-ARIA)
+- Server State: TanStack Query v5 (cache, mutations, background refetch)
+- Client State (UI): Zustand (apenas estado de UI, NÃO server state)
+- Formulários: React Hook Form + Zod + @hookform/resolvers
+- Calendário: react-big-calendar + date-fns (visão dia/semana/mês)
+- Datas: date-fns v3 + date-fns-tz (timezone-aware)
+- Gráficos: Recharts (BarChart, AreaChart, PieChart para reports)
+- Toasts: Sonner (integrado ao shadcn/ui)
+- Roteamento: React Router v6 (já implementado)
 
 ## Arquitetura backend (feature-based)
 Cada módulo: router.py → service.py → repository.py → schemas.py
@@ -72,23 +86,43 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - main.py → routers incluídos, CORS com allow_credentials=True + origens explícitas
 
 ## agenda/ — implementado
-- agenda/schemas.py → AvailabilitySlotCreate/Update/Response, BlockedPeriodCreate/Response, RecurrenceCreate/Response (session_price: Decimal), SessionCreate/Update/Response (price: Decimal)
-- agenda/repository.py → AvailabilitySlotsRepository, BlockedPeriodsRepository, RecurrencesRepository, SessionsRepository — inclui find_conflicting (usa índice parcial WHERE status='scheduled'), find_upcoming, cancel_future_by_recurrence
-- agenda/service.py → AgendaService(session, professional_id): create_availability_slot (ConflictError se day_of_week+start_time duplicado), _check_session_conflict (sessões agendadas + blocked periods; exclude_session_id para reschedule), create_session, create/list/delete blocked_period, create/list/deactivate recurrence (cancela sessões futuras e retorna count), list/get/update/list_today/list_upcoming sessions
+- agenda/schemas.py → AvailabilitySlotCreate/Update/Response, BlockedPeriodCreate/Response, RecurrenceCreate/Response (session_price: Decimal), SessionCreate/Update/Response (price: Decimal, **client_name: str | None = None**)
+- agenda/repository.py → AvailabilitySlotsRepository, BlockedPeriodsRepository, RecurrencesRepository, SessionsRepository — inclui find_conflicting, find_upcoming, cancel_future_by_recurrence, **find_today_with_clients(), find_upcoming_with_clients()** (JOIN com clients, retornam list[Row])
+- agenda/service.py → AgendaService(session, professional_id): todos os métodos CRUD + list_today_sessions() e list_upcoming_sessions() agora usam JOIN para popular client_name
 - agenda/router.py → 17 endpoints com TenantSession: slots (5), blocked (3), recurrences (4), sessions (5 incluindo /today e /upcoming)
 - RLS ativo em 4 tabelas: availability_slots, blocked_periods, recurrences, sessions
 
-## web/ — implementado
-- src/types/auth.ts → ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse (espelham schemas do backend; session_price como string — NUMERIC vira string no JSON)
-- src/services/api.ts → instância axios: baseURL=VITE_API_URL, withCredentials=true, _accessToken como variável de módulo (não React state — interceptors precisam de binding estável, não closure), interceptor de request (injeta Bearer), interceptor de response (401 → refresh → retry com fila para evitar N refreshes simultâneos), SKIP_REFRESH_PATHS para /auth/login|register|refresh
-- src/contexts/AuthContext.tsx → AuthProvider: professional (null | ProfessionalResponse), isLoading (true até restore de sessão terminar — evita flash de redirect), login(), register() (cria conta + login automático), logout() (finally garante limpeza mesmo em erro de rede); useRef guard contra double-invocation do StrictMode
-- src/hooks/useAuth.ts → useAuth(): wrapper com null-check — lança erro descritivo se usado fora do AuthProvider
-- src/components/ProtectedRoute.tsx → isLoading: spinner | não autenticado: redirect /login | autenticado: children
-- src/components/PublicRoute.tsx → isLoading: null | autenticado: redirect /dashboard | não autenticado: children
-- src/pages/LoginPage.tsx → formulário email+senha, isSubmitting, error display com mensagem do backend
-- src/pages/RegisterPage.tsx → formulário 5 campos (specialty e bio opcionais com strip antes de enviar), error display
-- src/pages/DashboardPage.tsx → placeholder com nome do profissional e botão logout
-- src/App.tsx → BrowserRouter + AuthProvider + Routes (/, /login, /register, /dashboard, fallback *)
+## web/ — implementado (parcial)
+- src/types/auth.ts → ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
+- src/services/api.ts → instância axios: baseURL=VITE_API_URL, withCredentials=true, _accessToken como variável de módulo (não React state), interceptor de request (Bearer), interceptor de response (401 → refresh → retry com fila), SKIP_REFRESH_PATHS
+- src/contexts/AuthContext.tsx → AuthProvider: professional, isLoading, login(), register(), logout(); useRef guard contra StrictMode double-invocation
+- src/hooks/useAuth.ts → useAuth(): wrapper com null-check
+- src/components/ProtectedRoute.tsx, PublicRoute.tsx → guards de rota
+- src/pages/LoginPage.tsx, RegisterPage.tsx → formulários com error display
+- src/pages/DashboardPage.tsx → placeholder ("Dashboard em construção")
+- src/App.tsx → BrowserRouter + AuthProvider + Routes
+
+**Pendente (4 domínios):** Clients, Agenda, Reports, WhatsApp pages
+
+**Fluxo de trabalho frontend (para cada nova tela):**
+1. Spec textual com Claude (contexto de produto + endpoints + componentes shadcn/ui)
+2. Gerar componente no v0.dev (shadcn/ui nativo — output é TSX direto)
+3. Adaptar ao codebase: imports, tokens semânticos (sem hex hardcoded), sem mock data
+4. Hook TanStack Query em `features/[módulo]/hooks/` com query keys centralizados
+5. Formulário RHF + Zod schema em `features/[módulo]/schemas/`
+6. Gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px
+
+**Estrutura de pastas frontend:**
+```
+src/
+  components/ui/      ← shadcn CLI (não editar)
+  components/shared/  ← componentes customizados reutilizáveis
+  features/[módulo]/
+    components/       ← componentes do módulo
+    hooks/            ← useClients, useCreateClient, etc.
+    schemas/          ← zod schemas
+  pages/              ← só composição, sem lógica
+```
 
 ## models/ — implementado (todos UUID pk, TIMESTAMPTZ, sem relationship())
 - professionals/models.py → Professional (TimestampMixin)
@@ -122,10 +156,21 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 | tests/clients/test_router.py | 32 | ✅ Green |
 | tests/agenda/test_schemas.py | 40 | ✅ Green |
 | tests/agenda/test_model.py | 28 | ✅ Green |
-| tests/agenda/test_repository.py | 77 | ✅ Green |
+| tests/agenda/test_repository.py | 81 | ✅ Green |
 | tests/agenda/test_service.py | 47 | ✅ Green |
-| tests/agenda/test_router.py | 71 | ✅ Green |
-| **Total** | **436** | **436 passando** |
+| tests/agenda/test_router.py | 73 | ✅ Green |
+| tests/reports/test_schemas.py | 11 | ✅ Green |
+| tests/reports/test_repository.py | 13 | ✅ Green |
+| tests/reports/test_service.py | 14 | ✅ Green |
+| tests/reports/test_router.py | 13 | ✅ Green |
+| tests/whatsapp/test_model.py | 4 | ✅ Green |
+| tests/whatsapp/test_repository.py | 13 | ✅ Green |
+| tests/whatsapp/test_service.py | 13 | ✅ Green |
+| tests/whatsapp/test_router.py | 14 | ✅ Green |
+| tests/jobs/test_cleanup.py | 8 | ✅ Green |
+| tests/jobs/test_recurrences.py | 11 | ✅ Green |
+| tests/jobs/test_whatsapp.py | 7 | ✅ Green |
+| **Total** | **563** | **563 passando** |
 
 ## Gotchas de implementação (registrar para não repetir)
 - **BYPASSRLS vs FORCE ROW LEVEL SECURITY:** o usuário `postgres` tem o privilege `BYPASSRLS` nativo. A documentação do PostgreSQL diz explicitamente que `FORCE ROW LEVEL SECURITY` NÃO afeta usuários com `BYPASSRLS`. Solução: criar role `test_rls_user` (NOLOGIN, sem BYPASSRLS) e usar `SET LOCAL ROLE test_rls_user` nos testes de isolamento antes de `SET LOCAL app.current_tenant`. O `SET LOCAL` é transação-scoped — revertido no rollback automático do `db_session`. Ver ADR-021.
@@ -141,13 +186,49 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 - **StrictMode double-invocation:** em desenvolvimento, React 18 invoca `useEffect` duas vezes. Usar `useRef` como guard (não boolean local) porque o ref persiste entre invocações sem causar re-render.
 - **cookie secure em desenvolvimento:** `auth/router.py` usa `secure=settings.is_production` — `False` em dev (HTTP funciona), `True` em produção. Ver ADR-017.
 - **Decimal em response schemas (não str):** asyncpg retorna `NUMERIC` como `Decimal` Python. `RecurrenceResponse.session_price` e `SessionResponse.price` usam `Decimal` (não `str`). FastAPI serializa `Decimal` para número no JSON corretamente.
+- **dateutil stubs — mypy:** python-dateutil não distribui stubs bundled. Adicionar `dateutil.*` ao bloco `ignore_missing_imports = true` no `pyproject.toml` (mesmo padrão de `passlib.*` e `jose.*`). Não instalar `types-python-dateutil` como dep de runtime.
+- **func-returns-value em testes — mypy:** padrão `lambda: list.append(...) or valor` é rejeitado pelo mypy (`[func-returns-value]`). Substituir por função interna com return type explícito: `def _fn() -> int: list.append(x); return val`.
+- **CI env vars — toda nova variável obrigatória:** toda nova variável com `...` (required) no `Settings` precisa ser adicionada nos dois steps do `ci.yml` que setam env (Run tests E Type check) como placeholder. Falhar isso causa `ValidationError` no import do conftest antes do pytest coletar qualquer teste.
+- **find_today/upcoming_with_clients retornam list[Row] não list[Session]:** usar `result.all()` sem `.scalars()` para preservar a Row com todas as colunas nomeadas. `SessionResponse.model_validate(row)` funciona via `from_attributes=True` — `getattr(row, 'client_name')` funciona em Row objects do SQLAlchemy. Para ORM objects sem o atributo, cai no default `None` (campo declarado como `str | None = None`).
+- **BackgroundTasks + sessão própria:** background task do webhook cria `async_session_maker()` próprio; nunca reusar sessão da request.
+- **mypy no-untyped-def em service:** parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test.
 
-## Próximo passo: Módulo reports
-Backend (TDD — na ordem):
-1. reports/schemas.py — ReportSummary, SessionReport, RevenueReport
-2. reports/repository.py — queries agregadas (por período, por cliente, por status)
-3. reports/service.py — orquestração + chamada ao AIService para insights
-4. reports/router.py — endpoints de relatório
+## Estado atual do backend — 100% completo para MVP
+
+Todos os módulos backend estão implementados e testados (563 testes, CI verde):
+- core, auth, professionals, clients, agenda, reports, whatsapp, ai, jobs ✅
+- GET /reports/summary — endpoint leve para KPI cards do dashboard ✅
+- GET /agenda/sessions/today e /upcoming — incluem client_name via JOIN ✅
+
+**Próximos passos — Frontend (prioridade):**
+1. Instalar stack frontend (shadcn/ui + Tailwind + TanStack Query + Zustand + RHF + Zod + Recharts + react-big-calendar + Sonner)
+2. Configurar tema base shadcn/ui (tokens CSS em globals.css)
+3. Implementar módulo Clients (spec → v0 → hook → RHF+Zod → gate a11y)
+4. Implementar módulo Agenda (spec → v0 → hook → RHF+Zod → gate a11y)
+5. Implementar módulo Reports (spec → v0 → hook → gate a11y)
+6. Implementar módulo WhatsApp conversations (spec → v0 → hook → gate a11y)
+
+**Pendente infra:**
+- Railway deploy config: Procfile com `web: uvicorn main:app` e `worker: python -m jobs.runner`
+- Variáveis de produção: ENCRYPTION_KEY (Fernet real), WHATSAPP_APP_ID, WHATSAPP_APP_SECRET, SECRET_KEY, DATABASE_URL
+
+## API endpoints disponíveis (resumo para o frontend)
+
+| Módulo | Endpoints principais | Notas |
+|---|---|---|
+| auth | POST /auth/login, /register, /refresh, /logout | refresh_token em HttpOnly cookie |
+| professionals | GET/PATCH /professionals/me | perfil do profissional autenticado |
+| clients | CRUD /clients/ e /clients/{id} | soft-delete, is_active |
+| agenda/slots | CRUD /agenda/slots/ | disponibilidade semanal |
+| agenda/blocked | POST/GET/DELETE /agenda/blocked/ | períodos bloqueados |
+| agenda/recurrences | CRUD /agenda/recurrences/ | regras de recorrência |
+| agenda/sessions | POST/GET/PATCH /agenda/sessions/ | inclui /today e /upcoming com client_name |
+| reports | GET /reports/billing (pesado) | agrega por cliente + IA insights |
+| reports | GET /reports/summary (leve) | COUNT+SUM para KPI cards |
+| whatsapp | GET/POST /whatsapp/webhook | verificação + processamento HMAC |
+| whatsapp | GET /whatsapp/conversations | lista conversas com status filter |
+| whatsapp | GET /whatsapp/conversations/{id} | conversa + mensagens |
+| whatsapp | POST /whatsapp/conversations/{id}/handoff | switch AI → profissional |
 
 ## Schema — tabelas e RLS
 - professionals: email (unique), password_hash, full_name, specialty, bio, session_duration, session_price (NUMERIC), phone, whatsapp_*, is_active | sem RLS

@@ -328,3 +328,79 @@ class TestReportsServiceGenerateBillingReport:
 
         assert result.period_start == date(2025, 3, 1)
         assert result.period_end == date(2025, 3, 31)
+
+
+# ===========================================================================
+# TestReportsServiceGetPeriodSummary
+# ===========================================================================
+
+
+class TestReportsServiceGetPeriodSummary:
+    async def test_returns_zero_when_no_sessions(self, service: ReportsService) -> None:
+        """Sem sessões: total_sessions=0, total_amount=0."""
+        service.repository.get_period_summary.return_value = MagicMock(
+            total_sessions=0, total_amount=Decimal("0")
+        )
+        result = await service.get_period_summary(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+        )
+        assert result.total_sessions == 0
+        assert result.total_amount == Decimal("0")
+
+    async def test_returns_correct_totals(self, service: ReportsService) -> None:
+        """total_sessions e total_amount refletem o retorno do repository."""
+        service.repository.get_period_summary.return_value = MagicMock(
+            total_sessions=5, total_amount=Decimal("750.00")
+        )
+        result = await service.get_period_summary(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+        )
+        assert result.total_sessions == 5
+        assert result.total_amount == Decimal("750.00")
+
+    async def test_default_status_filter_is_completed(self, service: ReportsService) -> None:
+        """Sem status_filter explícito, usa ['completed'] por padrão."""
+        service.repository.get_period_summary.return_value = MagicMock(
+            total_sessions=0, total_amount=Decimal("0")
+        )
+        result = await service.get_period_summary(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+        )
+        assert result.status_filter == ["completed"]
+        service.repository.get_period_summary.assert_called_once_with(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+            status_filter=["completed"],
+        )
+
+    async def test_custom_status_filter_is_forwarded(self, service: ReportsService) -> None:
+        """status_filter customizado é repassado ao repository."""
+        service.repository.get_period_summary.return_value = MagicMock(
+            total_sessions=2, total_amount=Decimal("300.00")
+        )
+        result = await service.get_period_summary(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+            status_filter=["completed", "no_show"],
+        )
+        assert result.status_filter == ["completed", "no_show"]
+        service.repository.get_period_summary.assert_called_once_with(
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 1, 31),
+            status_filter=["completed", "no_show"],
+        )
+
+    async def test_period_dates_propagated_to_response(self, service: ReportsService) -> None:
+        """period_start e period_end na resposta devem refletir os params."""
+        service.repository.get_period_summary.return_value = MagicMock(
+            total_sessions=0, total_amount=Decimal("0")
+        )
+        result = await service.get_period_summary(
+            start_date=date(2025, 3, 1),
+            end_date=date(2025, 3, 31),
+        )
+        assert result.period_start == date(2025, 3, 1)
+        assert result.period_end == date(2025, 3, 31)

@@ -331,37 +331,29 @@ class AgendaService:
 
         return await self.sessions_repo.update(session_obj, update_data)
 
-    async def list_today_sessions(self) -> list[Session]:
+    async def list_today_sessions(self) -> list:
         """
-        Return all sessions scheduled for today (UTC).
+        Return all sessions scheduled for today (UTC) with client names.
 
-        Does not filter by status — returns sessions in any status for today,
-        giving the professional a complete picture of the day.
-
-        Returns:
-            List of Session instances for the current UTC day, ordered by
-            scheduled_at ascending.
+        Uses a JOIN query so client_name is populated in SessionResponse.
+        Does not filter by status — returns sessions in any status for today.
         """
-
         today = datetime.now(UTC).date()
         start = datetime(today.year, today.month, today.day, tzinfo=UTC)
         end = start + timedelta(days=1)
-        return await self.sessions_repo.find_scheduled_between(start, end)
+        return await self.sessions_repo.find_today_with_clients(start, end)
 
-    async def list_upcoming_sessions(self, *, limit: int = 10) -> list[Session]:
+    async def list_upcoming_sessions(self, *, limit: int = 10) -> list:
         """
-        Return the next N upcoming scheduled sessions.
+        Return the next N upcoming scheduled sessions with client names.
 
-        Only returns sessions with status='scheduled' and scheduled_at in the
-        future. Used by the dashboard "next appointments" widget.
+        Uses a JOIN query so client_name is populated in SessionResponse.
+        Only returns sessions with status='scheduled' and scheduled_at in the future.
 
         Args:
             limit: Maximum number of sessions to return (default 10).
-
-        Returns:
-            List of upcoming Session instances ordered by scheduled_at ascending.
         """
-        return await self.sessions_repo.find_upcoming(limit=limit)
+        return await self.sessions_repo.find_upcoming_with_clients(limit=limit)
 
     # ──────────────────────────────────────────────────────────────────────────
     # Recurrences

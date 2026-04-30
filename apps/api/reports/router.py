@@ -23,10 +23,61 @@ from core.deps import CurrentProfessionalId, TenantSession
 from core.exceptions import NotFoundError
 from core.exceptions import ValidationError as CoreValidationError
 from professionals.repository import ProfessionalsRepository
-from reports.schemas import BillingReportRequest, BillingReportResponse
+from reports.schemas import BillingReportRequest, BillingReportResponse, PeriodSummaryResponse
 from reports.service import ReportsService
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
+
+
+@router.get("/summary", response_model=PeriodSummaryResponse)
+async def get_period_summary(
+    db: TenantSession,
+    professional_id: CurrentProfessionalId,
+    start_date: date = Query(..., description="Period start (YYYY-MM-DD)"),
+    end_date: date = Query(..., description="Period end (YYYY-MM-DD)"),
+    status_filter: list[str] = Query(
+        default=["completed"],
+        description="Session statuses to include",
+    ),
+) -> PeriodSummaryResponse:
+    """
+    Lightweight period summary for dashboard KPI cards.
+
+    Returns only total_sessions and total_amount — does not aggregate by
+    client and does not invoke the AI service. Designed for low-latency
+    dashboard widgets.
+
+    **Status filter:**
+    - Defaults to `["completed"]`
+    - Accepted values: `completed`, `cancelled`, `no_show`, `scheduled`
+    - Pass the parameter multiple times:
+      `?status_filter=completed&status_filter=no_show`
+    """
+    try:
+        # Reuse BillingReportRequest validation for date range rules
+        BillingReportRequest(
+            start_date=start_date,
+            end_date=end_date,
+            status_filter=status_filter,
+        )
+    except PydanticValidationError as exc:
+        errors = jsonable_encoder(exc.errors(include_url=False))
+        first_msg = (
+            errors[0].get("msg", "Invalid report parameters")
+            if errors
+            else "Invalid report parameters"
+        )
+        raise CoreValidationError(
+            message=first_msg,
+            detail={"errors": errors},
+        ) from exc
+
+    service = ReportsService(db)
+    return await service.get_period_summary(
+        start_date=start_date,
+        end_date=end_date,
+        status_filter=status_filter,
+    )
 
 
 @router.get("/billing", response_model=BillingReportResponse)
