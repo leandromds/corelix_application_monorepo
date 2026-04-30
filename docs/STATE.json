@@ -1,16 +1,18 @@
 {
-  "last_updated": "2025-07-16",
+  "last_updated": "2025-07-18",
   "current_feature": {
-    "module": "whatsapp",
-    "branch": "feature/whatsapp-module",
-    "status": "done",
+    "module": "backend-dashboard-api",
+    "branch": "feature/backend-dashboard-api",
+    "status": "in_progress",
     "implementation_order": [
-      "✅ whatsapp/schemas.py — hierarquia completa do webhook Meta + response schemas",
-      "✅ whatsapp/repository.py — 9 métodos (conversas + mensagens + lookup de profissional por phone_id)",
-      "✅ whatsapp/service.py — pipeline de mensagem inbound, Meta API, handoff, Fernet decrypt, degradação graciosa",
-      "✅ whatsapp/router.py — 5 endpoints: GET/POST /webhook (HMAC + BackgroundTasks), GET /conversations, GET /conversations/{id}, POST /conversations/{id}/handoff",
-      "✅ tests/whatsapp/ — 44 testes (model x4, repository x13, service x13, router x14)",
-      "✅ main.py — whatsapp_router incluído em /api/v1/whatsapp"
+      "✅ reports/schemas.py — PeriodSummaryResponse (period_start, period_end, total_sessions, total_amount, status_filter)",
+      "✅ reports/service.py — ReportsService.get_period_summary() sem agregação por cliente e sem IA",
+      "✅ reports/router.py — GET /reports/summary: reutiliza validação de BillingReportRequest, TenantSession",
+      "✅ agenda/schemas.py — SessionResponse.client_name: str | None = None (non-breaking, from_attributes)",
+      "✅ agenda/repository.py — find_today_with_clients() e find_upcoming_with_clients() com JOIN em clients",
+      "✅ agenda/service.py — list_today_sessions() e list_upcoming_sessions() delegam para novos métodos JOIN",
+      "✅ tests/reports/ — +11 testes (5 service + 6 router)",
+      "✅ tests/agenda/ — +6 testes (4 repository + 2 router)"
     ]
   },
   "modules": {
@@ -89,8 +91,13 @@
       "files": ["ai/service.py", "ai/prompts.py"]
     },
     "jobs": {
-      "status": "pending",
-      "files": []
+      "status": "done",
+      "files": [
+        "jobs/runner.py",
+        "jobs/tasks/cleanup.py",
+        "jobs/tasks/recurrences.py",
+        "jobs/tasks/whatsapp.py"
+      ]
     },
     "frontend": {
       "status": "partial",
@@ -110,8 +117,8 @@
     }
   },
   "tests": {
-    "total": 520,
-    "passing": 520,
+    "total": 563,
+    "passing": 563,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -208,6 +215,33 @@
         "file": "tests/whatsapp/test_router.py",
         "count": 14,
         "status": "green"
+      },
+      { "file": "tests/jobs/test_cleanup.py", "count": 8, "status": "green" },
+      {
+        "file": "tests/jobs/test_recurrences.py",
+        "count": 11,
+        "status": "green"
+      },
+      { "file": "tests/jobs/test_whatsapp.py", "count": 7, "status": "green" },
+      {
+        "file": "tests/reports/test_service.py — TestGetPeriodSummary",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_router.py — TestGetPeriodSummary",
+        "count": 6,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_repository.py — TestSessionsRepositoryWithClients",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_router.py — client_name assertions",
+        "count": 2,
+        "status": "green"
       }
     ]
   },
@@ -229,12 +263,30 @@
     "alembic": "configured"
   },
   "pending_tasks": [
-    "jobs — pgqueuer: cleanup refresh_tokens expirados, geração de sessões recorrentes, renovação token WhatsApp",
-    "segurança — AES-256 (Fernet) para whatsapp_access_token + endpoint Embedded Signup",
-    "frontend — páginas Clients, Agenda, Reports, WhatsApp conversations",
-    "deploy — Railway setup, variáveis de produção, CI environment"
+    "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
+    "frontend — instalar stack (shadcn/ui + Tailwind + TanStack Query + Zustand + RHF + Zod + Recharts + react-big-calendar + Sonner)",
+    "frontend — páginas Clients, Agenda, Reports, WhatsApp conversations (4 domínios restantes)",
+    "frontend — usar fluxo: spec textual (Claude) → v0.dev → adaptar ao codebase → hook TanStack Query → RHF+Zod → gate a11y",
+    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional",
+    "infra — Procfile / Railway worker config para jobs runner"
   ],
   "known_issues": [],
+  "api_gaps_resolved": [
+    {
+      "gap": "GET /reports/summary inexistente — dashboard precisava de endpoint leve para KPI cards",
+      "solution": "Exposto GET /reports/summary reutilizando ReportsRepository.get_period_summary() (COUNT+SUM, sem JOIN clientes, sem IA). Validação de range via BillingReportRequest.",
+      "files": ["reports/schemas.py", "reports/service.py", "reports/router.py"]
+    },
+    {
+      "gap": "SessionResponse sem client_name — /sessions/today e /upcoming retornavam só client_id, obrigando join no frontend",
+      "solution": "client_name: str | None = None adicionado ao SessionResponse (non-breaking via from_attributes). Novos métodos find_today_with_clients() e find_upcoming_with_clients() no repository fazem JOIN com clients. Apenas os dois endpoints de dashboard usam os novos métodos; os demais continuam retornando ORM objects com client_name=None.",
+      "files": [
+        "agenda/schemas.py",
+        "agenda/repository.py",
+        "agenda/service.py"
+      ]
+    }
+  ],
   "gotchas_resolved": [
     "BYPASSRLS vs FORCE ROW LEVEL SECURITY — solução: test_rls_user role sem BYPASSRLS",
     "Policy null-permissive — current_setting('app.current_tenant', TRUE) com flag TRUE",
@@ -250,7 +302,11 @@
     "Decimal em response schemas — asyncpg retorna NUMERIC como Decimal Python; usar Decimal nos schemas",
     "WebhookMessage.from_ — 'from' é keyword Python; usar Field(alias='from') + populate_by_name=True",
     "BackgroundTasks + sessão própria — background task do webhook cria async_session_maker() próprio; nunca reusar sessão da request",
-    "mypy no-untyped-def em service — parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test"
+    "mypy no-untyped-def em service — parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test",
+    "dateutil stubs — python-dateutil não distribui stubs; adicionar dateutil.* ao ignore_missing_imports no pyproject.toml (mesmo padrão de passlib.* e jose.*)",
+    "func-returns-value em testes — padrão lambda: list.append(...) or valor é rejeitado pelo mypy; substituir por função interna com return type explícito",
+    "CI env vars — toda nova variável obrigatória no Settings deve ser adicionada nos dois steps do ci.yml (Run tests e Type check) como placeholder",
+    "find_today/upcoming_with_clients retornam list[Row] não list[Session] — usar result.all() sem .scalars() para preservar Row com colunas nomeadas; SessionResponse.model_validate() funciona via from_attributes=True em ambos os tipos"
   ],
   "post_mvp": [
     "Disparo automático de documentos fiscais",
