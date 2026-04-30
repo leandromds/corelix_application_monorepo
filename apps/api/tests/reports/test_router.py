@@ -162,3 +162,74 @@ class TestGetBillingReport:
         data = response.json()
         assert data["total_sessions"] == 0
         assert isinstance(data["clients"], list)
+
+
+class TestGetPeriodSummary:
+    async def test_returns_200_with_valid_params(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """GET /reports/summary com params válidos deve retornar 200."""
+        response = await authenticated_http_client.get(
+            "/api/v1/reports/summary",
+            params={"start_date": "2025-01-01", "end_date": "2025-01-31"},
+        )
+        assert response.status_code == 200
+
+    async def test_returns_401_without_jwt(self, http_client: AsyncClient) -> None:
+        """Requisição sem JWT deve retornar 401."""
+        response = await http_client.get(
+            "/api/v1/reports/summary",
+            params={"start_date": "2025-01-01", "end_date": "2025-01-31"},
+        )
+        assert response.status_code == 401
+
+    async def test_returns_422_when_start_date_missing(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """start_date obrigatório — ausente deve retornar 422."""
+        response = await authenticated_http_client.get(
+            "/api/v1/reports/summary",
+            params={"end_date": "2025-01-31"},
+        )
+        assert response.status_code == 422
+
+    async def test_returns_422_when_end_date_before_start_date(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """end_date anterior a start_date deve retornar 422."""
+        response = await authenticated_http_client.get(
+            "/api/v1/reports/summary",
+            params={"start_date": "2025-01-31", "end_date": "2025-01-01"},
+        )
+        assert response.status_code == 422
+
+    async def test_response_schema_matches_period_summary_response(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """Response body deve conter os campos de PeriodSummaryResponse."""
+        response = await authenticated_http_client.get(
+            "/api/v1/reports/summary",
+            params={"start_date": "2025-02-01", "end_date": "2025-02-28"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "period_start" in data
+        assert "period_end" in data
+        assert "total_sessions" in data
+        assert "total_amount" in data
+        assert "status_filter" in data
+        assert data["period_start"] == "2025-02-01"
+        assert data["period_end"] == "2025-02-28"
+        assert data["total_sessions"] == 0
+        assert isinstance(data["status_filter"], list)
+
+    async def test_default_status_filter_in_response(
+        self, authenticated_http_client: AsyncClient
+    ) -> None:
+        """Sem status_filter na query, response deve ter ['completed'] no campo status_filter."""
+        response = await authenticated_http_client.get(
+            "/api/v1/reports/summary",
+            params={"start_date": "2025-07-01", "end_date": "2025-07-31"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status_filter"] == ["completed"]

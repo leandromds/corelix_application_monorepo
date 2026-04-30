@@ -54,3 +54,11 @@ class BillingReportResponse(BaseModel):
     clients: list[ClientBillingEntry]
     ai_insights: str | None
     generated_at: datetime
+
+
+class PeriodSummaryResponse(BaseModel):
+    period_start: date
+    period_end: date
+    total_sessions: int
+    total_amount: Decimal
+    status_filter: list[str]
