@@ -19,7 +19,7 @@ on the RLS pattern and the "service fetches, repository acts" convention.
 from datetime import datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import Row, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from agenda.models import AvailabilitySlot, BlockedPeriod, Recurrence, Session
@@ -29,6 +29,7 @@ from agenda.schemas import (
     RecurrenceCreate,
     SessionCreate,
 )
+from clients.models import Client
 
 # ---------------------------------------------------------------------------
 # AvailabilitySlotsRepository
@@ -374,6 +375,68 @@ class SessionsRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def find_today_with_clients(self, start: datetime, end: datetime) -> list[Row]:
+        """
+        Return today's sessions joined with client full_name.
+
+        Same date window as find_scheduled_between, but returns Row objects
+        (not ORM Session) so client_name is available for serialisation.
+        RLS on sessions guarantees tenant isolation.
+        """
+        result = await self.session.execute(
+            select(
+                Session.id,
+                Session.client_id,
+                Session.recurrence_id,
+                Session.scheduled_at,
+                Session.duration_minutes,
+                Session.price,
+                Session.status,
+                Session.notes,
+                Session.created_at,
+                Session.updated_at,
+                Client.full_name.label("client_name"),
+            )
+            .join(Client, Session.client_id == Client.id)
+            .where(
+                Session.scheduled_at >= start,
+                Session.scheduled_at < end,
+            )
+            .order_by(Session.scheduled_at.asc())
+        )
+        return list(result.all())
+
+    async def find_upcoming_with_clients(self, *, limit: int = 10) -> list[Row]:
+        """
+        Return upcoming scheduled sessions joined with client full_name.
+
+        Same logic as find_upcoming, but returns Row objects so client_name
+        is available for serialisation.
+        """
+        result = await self.session.execute(
+            select(
+                Session.id,
+                Session.client_id,
+                Session.recurrence_id,
+                Session.scheduled_at,
+                Session.duration_minutes,
+                Session.price,
+                Session.status,
+                Session.notes,
+                Session.created_at,
+                Session.updated_at,
+                Client.full_name.label("client_name"),
+            )
+            .join(Client, Session.client_id == Client.id)
+            .where(
+                Session.status == "scheduled",
+                Session.scheduled_at > func.now(),
+            )
+            .order_by(Session.scheduled_at.asc())
+            .limit(limit)
+        )
+        return list(result.all())
 
     async def find_conflicting(
         self, scheduled_at: datetime, duration_minutes: int

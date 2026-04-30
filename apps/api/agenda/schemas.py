@@ -202,6 +202,7 @@ class SessionResponse(BaseModel):
     price: Decimal  # asyncpg returns NUMERIC as Decimal
     status: str
     notes: str | None
+    client_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

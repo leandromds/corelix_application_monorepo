@@ -1535,3 +1535,100 @@ class TestSessionsRepositoryCancelFutureByRecurrence:
         count = await repo.cancel_future_by_recurrence(test_recurrence.id)
 
         assert count == 0
+
+
+# ===========================================================================
+# SessionsRepository — WITH CLIENTS (JOIN)
+# ===========================================================================
+
+
+class TestSessionsRepositoryWithClients:
+    """Tests for find_today_with_clients and find_upcoming_with_clients."""
+
+    async def test_find_today_with_clients_returns_client_name(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+        test_client,
+    ) -> None:
+        """find_today_with_clients deve incluir client_name na Row retornada."""
+        from datetime import UTC, datetime, timedelta
+
+        now = datetime.now(UTC)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+        # Cria sessão para hoje
+        session_obj = AgendaSession(
+            professional_id=test_professional.id,
+            client_id=test_client.id,
+            scheduled_at=now.replace(hour=10, minute=0, second=0, microsecond=0),
+            duration_minutes=60,
+            price=Decimal("150.00"),
+        )
+        tenant_session.add(session_obj)
+        await tenant_session.flush()
+
+        repo = SessionsRepository(tenant_session)
+        rows = await repo.find_today_with_clients(today_start, today_start + timedelta(days=1))
+        ids = [r.id for r in rows]
+        assert session_obj.id in ids
+
+        found = next(r for r in rows if r.id == session_obj.id)
+        assert found.client_name == test_client.full_name
+
+    async def test_find_today_with_clients_returns_empty_for_far_future(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+        test_agenda_session: AgendaSession,
+    ) -> None:
+        """Sessão em 2030 não deve aparecer no resultado de hoje."""
+        from datetime import UTC, datetime, timedelta
+
+        now = datetime.now(UTC)
+        today_start = datetime(now.year, now.month, now.day, tzinfo=UTC)
+
+        repo = SessionsRepository(tenant_session)
+        rows = await repo.find_today_with_clients(today_start, today_start + timedelta(days=1))
+        ids = [r.id for r in rows]
+        assert test_agenda_session.id not in ids
+
+    async def test_find_upcoming_with_clients_returns_client_name(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+        test_client,
+        test_agenda_session: AgendaSession,
+    ) -> None:
+        """find_upcoming_with_clients deve incluir client_name para sessão futura."""
+        repo = SessionsRepository(tenant_session)
+        rows = await repo.find_upcoming_with_clients(limit=50)
+        ids = [r.id for r in rows]
+        assert test_agenda_session.id in ids
+
+        found = next(r for r in rows if r.id == test_agenda_session.id)
+        assert found.client_name == test_client.full_name
+
+    async def test_find_upcoming_with_clients_respects_limit(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+        test_client,
+    ) -> None:
+        """find_upcoming_with_clients deve respeitar o parâmetro limit."""
+        from datetime import UTC, datetime, timedelta
+
+        base = datetime(2031, 1, 1, 10, 0, tzinfo=UTC)
+        for i in range(5):
+            s = AgendaSession(
+                professional_id=test_professional.id,
+                client_id=test_client.id,
+                scheduled_at=base + timedelta(days=i),
+                duration_minutes=60,
+                price=Decimal("150.00"),
+            )
+            tenant_session.add(s)
+        await tenant_session.flush()
+
+        repo = SessionsRepository(tenant_session)
+        rows = await repo.find_upcoming_with_clients(limit=2)
+        assert len(rows) <= 2
