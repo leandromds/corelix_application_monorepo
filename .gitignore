@@ -83,6 +83,8 @@ poetry.lock
 # Frontend (React/Vite)
 apps/web/node_modules/
 apps/web/dist/
+apps/web/coverage/
+apps/web/*.tsbuildinfo
 apps/web/.vite/
 apps/web/.env
 apps/web/.env.local

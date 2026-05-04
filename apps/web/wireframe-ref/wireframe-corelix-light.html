@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Corelix — Wireframe Interativo MVP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg            : #cfddea;
+      --color-surface       : rgba(255,255,255,0.50);
+      --color-surface-card  : #f1f2f3;
+      --color-border        : #e5e7eb;
+      --color-primary       : #000000;
+      --color-primary-fg    : #ffffff;
+      --color-primary-light : #f1f2f3;
+      --color-foreground    : #0f0f0f;
+      --color-muted         : #6b7280;
+      --color-success       : #16a34a;
+      --color-warning       : #d97706;
+      --color-destructive   : #dc2626;
+      --color-info          : #2563eb;
+      --badge-confirmed-bg  : #dcfce7; --badge-confirmed-fg : #16a34a;
+      --badge-pending-bg    : #ffedd5; --badge-pending-fg   : #d97706;
+      --badge-cancelled-bg  : #fee2e2; --badge-cancelled-fg : #dc2626;
+      --badge-noshow-bg     : #f3f4f6; --badge-noshow-fg    : #6b7280;
+      --badge-ai-bg         : #dbeafe; --badge-ai-fg        : #2563eb;
+      --sidebar-width       : 260px;
+      --sidebar-width-icon  : 64px;
+      --topbar-height       : 48px;
+      --radius              : 0.5rem;
+      --radius-lg           : 1rem;
+      --radius-xl           : 1.5rem;
+      --radius-full         : 9999px;
+      --shadow-sm           : 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-card         : 0 2.8px 2.2px rgba(0,0,0,0.034),
+                              0 6.7px 5.3px rgba(0,0,0,0.048),
+                              0 12.5px 10px rgba(0,0,0,0.06),
+                              0 22.3px 17.9px rgba(0,0,0,0.072);
+      --shadow-glass        : rgba(255,255,255,0.1) 0px 1px 1px 0px inset,
+                              rgba(50,50,93,0.25) 0px 50px 100px -20px,
+                              rgba(0,0,0,0.3) 0px 30px 60px -30px;
+      --font-heading        : 'Manrope', sans-serif;
+      --font-body           : 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    @keyframes fadeIn  { to { opacity: 1; } }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+    .animate-fade-in   { animation: fadeIn  0.8s ease-out forwards; opacity: 0; }
+    .animate-slide-up  { animation: slideUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    .animate-delay-200 { animation-delay: 0.2s; }
+    .animate-delay-400 { animation-delay: 0.4s; }
+    .animate-delay-600 { animation-delay: 0.6s; }
+    .animate-delay-800 { animation-delay: 0.8s; }
+
+    html, body { height: 100%; font-family: var(--font-body); }
+    body { background: var(--color-bg); color: var(--color-foreground); line-height: 1.6; }
+
+    /* ── App Shell ── */
+    .app-shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    aside#sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--color-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(255,255,255,0.3);
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-glass);
+      z-index: 40;
+      transition: width 0.25s ease, min-width 0.25s ease;
+      overflow: hidden;
+    }
+    aside#sidebar.collapsed { width: var(--sidebar-width-icon); min-width: var(--sidebar-width-icon); }
+
+    .sidebar-logo {
+      height: var(--topbar-height);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .sidebar-logo-dot { width: 10px; height: 10px; background: var(--color-primary); border-radius: 50%; flex-shrink: 0; }
+    .sidebar-logo-text { font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: var(--color-foreground); white-space: nowrap; }
+
+    .sidebar-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-muted);
+      padding: 16px 16px 6px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      margin: 2px 8px;
+      border-radius: var(--radius);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--color-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      border-left: 3px solid transparent;
+      text-decoration: none;
+      position: relative;
+    }
+    .nav-item:hover { background: rgba(0,0,0,0.04); color: var(--color-foreground); }
+    .nav-item.active {
+      border-left-color: var(--color-primary);
+      background: rgba(0,0,0,0.06);
+      color: var(--color-foreground);
+      font-weight: 700;
+    }
+    .nav-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+
+    .sidebar-badge {
+      margin-left: auto;
+      background: var(--badge-pending-bg);
+      color: var(--badge-pending-fg);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 12px 8px;
+      border-top: 1px solid var(--color-border);
+    }
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .sidebar-user:hover { background: rgba(0,0,0,0.04); }
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      color: var(--color-primary-fg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      flex-shrink: 0;
+    }
+    .avatar.sm { width: 28px; height: 28px; font-size: 10px; }
+    .avatar.md { width: 36px; height: 36px; font-size: 12px; }
+    .avatar.lg { width: 40px; height: 40px; font-size: 13px; }
+    .sidebar-user-info { overflow: hidden; }
+    .sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--color-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-role { font-size: 11px; color: var(--color-muted); white-space: nowrap; }
+
+    /* ── Main ── */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Topbar ── */
+    header#topbar {
+      height: var(--topbar-height);
+      min-height: var(--topbar-height);
+      background: var(--color-surface);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+    }
+    .topbar-breadcrumb { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+    .topbar-date { font-size: 12px; color: var(--color-muted); margin: 0 auto; }
+    .icon-btn {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--color-muted);
+      transition: all 0.15s;
+      font-size: 15px;
+      position: relative;
+      border: none; background: transparent;
+    }
+    .icon-btn:hover { background: rgba(0,0,0,0.06); color: var(--color-foreground); }
+    .notif-badge {
+      position: absolute; top: 4px; right: 4px;
+      width: 8px; height: 8px;
+      background: var(--color-destructive);
+      border-radius: 50%;
+      border: 1.5px solid white;
+    }
+
+    /* ── Screen Area ── */
+    .screen-area { flex: 1; overflow-y: auto; padding: 24px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Toolbar ── */
+    .wireframe-toolbar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+      background: var(--color-primary);
+      border-radius: var(--radius-full);
+      padding: 8px 16px;
+      box-shadow: var(--shadow-card);
+    }
+    .toolbar-btn {
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer; background: none; border: none;
+      padding: 2px 8px; border-radius: var(--radius-full);
+      transition: all 0.15s;
+    }
+    .toolbar-btn.active { color: white; background: rgba(255,255,255,0.15); }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+    }
+    .card-glass {
+      background: var(--color-surface);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,0.3);
+      box-shadow: var(--shadow-glass);
+      padding: 20px;
+    }
+    .card-title {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--color-foreground);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    /* ── KPI Card ── */
+    .kpi-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: 18px 20px;
+    }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 6px; }
+    .kpi-value { font-family: var(--font-heading); font-size: 28px; font-weight: 700; color: var(--color-foreground); line-height: 1; }
+    .kpi-sub   { font-size: 11px; color: var(--color-muted); margin-top: 6px; }
+    .kpi-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: var(--radius-full); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: var(--radius-full);
+    }
+    .badge-confirmed { background: var(--badge-confirmed-bg); color: var(--badge-confirmed-fg); }
+    .badge-pending   { background: var(--badge-pending-bg);   color: var(--badge-pending-fg); }
+    .badge-cancelled { background: var(--badge-cancelled-bg); color: var(--badge-cancelled-fg); }
+    .badge-noshow    { background: var(--badge-noshow-bg);    color: var(--badge-noshow-fg); }
+    .badge-ai        { background: var(--badge-ai-bg);        color: var(--badge-ai-fg); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--color-primary); color: var(--color-primary-fg);
+      border: none; border-radius: var(--radius-full);
+      padding: 8px 20px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-primary:hover { background: #1a1a1a; transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: white; color: var(--color-foreground);
+      border: 1px solid var(--color-border); border-radius: var(--radius-full);
+      padding: 7px 16px; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-secondary:hover { background: var(--color-surface-card); box-shadow: var(--shadow-sm); }
+    .btn-link { background: none; border: none; color: var(--color-info); font-size: 13px; font-weight: 500; cursor: pointer; padding: 0; }
+
+    /* ── Schedule Row ── */
+    .session-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-time { font-size: 12px; font-weight: 600; color: var(--color-muted); width: 40px; flex-shrink: 0; }
+    .session-info { flex: 1; min-width: 0; }
+    .session-name { font-size: 13px; font-weight: 600; color: var(--color-foreground); }
+    .session-desc { font-size: 11px; color: var(--color-muted); margin-top: 1px; }
+
+    /* ── WhatsApp feed ── */
+    .wa-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+    }
+    .wa-item:last-child { border-bottom: none; }
+    .wa-meta { flex: 1; min-width: 0; }
+    .wa-name { font-size: 13px; font-weight: 600; color: var(--color-foreground); display: flex; justify-content: space-between; }
+    .wa-preview { font-size: 11px; color: var(--color-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wa-time { font-size: 10px; color: var(--color-muted); }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--color-muted); border-bottom: 2px solid var(--color-border); }
+    .data-table td { padding: 11px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-foreground); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(0,0,0,0.02); }
+
+    /* ── Bar Chart (CSS) ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 100px; }
+    .bar-group { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .bar { width: 100%; background: var(--color-primary); border-radius: 4px 4px 0 0; transition: opacity 0.2s; }
+    .bar:hover { opacity: 0.75; }
+    .bar-label { font-size: 10px; color: var(--color-muted); }
+
+    /* ── Progress bar ── */
+    .progress-track { background: var(--color-surface-card); border-radius: var(--radius-full); height: 6px; overflow: hidden; }
+    .progress-fill  { height: 100%; border-radius: var(--radius-full); background: var(--color-primary); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius);
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 20px; gap: 12px; text-align: center;
+    }
+    .empty-icon {
+      width: 80px; height: 80px;
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-xl);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .empty-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--color-foreground); }
+    .empty-desc  { font-size: 13px; color: var(--color-muted); }
+
+    /* ── Input / Form ── */
+    .input {
+      width: 100%; padding: 9px 12px;
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+      font-size: 13px; font-family: var(--font-body);
+      background: white; color: var(--color-foreground);
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .input:focus { border-color: var(--color-foreground); }
+    .label { font-size: 12px; font-weight: 600; color: var(--color-foreground); margin-bottom: 5px; display: block; }
+
+    /* ── Toggle ── */
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: var(--color-border); border-radius: var(--radius-full);
+      transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: white; border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--color-primary); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ── Config tabs ── */
+    .config-tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      font-size: 13px; font-weight: 500;
+      color: var(--color-muted); cursor: pointer;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .config-tab.active { border-left-color: var(--color-primary); background: rgba(0,0,0,0.05); color: var(--color-foreground); font-weight: 700; }
+    .config-tab:hover:not(.active) { background: rgba(0,0,0,0.03); color: var(--color-foreground); }
+
+    /* ── Alert Banner ── */
+    .alert-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px;
+      background: rgba(0,0,0,0.04);
+      border-left: 4px solid var(--color-primary);
+      border-radius: var(--radius);
+      font-size: 13px;
+    }
+    .alert-banner.info { background: var(--badge-ai-bg); border-left-color: var(--color-info); }
+
+    /* ── Mobile bottom nav ── */
+    .mobile-nav {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--color-surface);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--color-border);
+      z-index: 50;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+    }
+    .mobile-nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-size: 10px; font-weight: 600; color: var(--color-muted);
+      cursor: pointer; padding: 6px 12px; border-radius: var(--radius);
+      transition: all 0.15s;
+    }
+    .mobile-nav-item.active { color: var(--color-foreground); }
+    .mobile-nav-item span { font-size: 18px; }
+
+    @media (max-width: 767px) {
+      aside#sidebar { display: none !important; }
+      .topbar-date { display: none; }
+      .mobile-nav { display: flex; }
+      .screen-area { padding: 16px; padding-bottom: 80px; }
+      .wireframe-toolbar { bottom: 72px; right: 12px; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      aside#sidebar { width: var(--sidebar-width-icon); min-width: var(--sidebar-width-icon); }
+      .sidebar-logo-text, .nav-item-label, .sidebar-section-label, .sidebar-user-info, .sidebar-badge { display: none; }
+      .sidebar-footer { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── APP SHELL ── -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" data-component="AppSidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-dot"></div>
+      <span class="sidebar-logo-text">Corelix</span>
+    </div>
+
+    <div style="flex:1; overflow-y:auto; overflow-x:hidden;">
+      <div class="sidebar-section-label">Menu</div>
+      <nav>
+        <a class="nav-item active" data-screen="inicio" onclick="navigate('inicio',this)">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-item-label">Início</span>
+        </a>
+        <a class="nav-item" data-screen="agenda" onclick="navigate('agenda',this)">
+          <span class="nav-icon">📅</span>
+          <span class="nav-item-label">Agenda</span>
+        </a>
+        <a class="nav-item" data-screen="clientes" onclick="navigate('clientes',this)">
+          <span class="nav-icon">👥</span>
+          <span class="nav-item-label">Clientes</span>
+        </a>
+        <a class="nav-item" data-screen="whatsapp" onclick="navigate('whatsapp',this)">
+          <span class="nav-icon">💬</span>
+          <span class="nav-item-label">WhatsApp</span>
+          <span class="sidebar-badge">3</span>
+        </a>
+        <a class="nav-item" data-screen="relatorios" onclick="navigate('relatorios',this)">
+          <span class="nav-icon">📊</span>
+          <span class="nav-item-label">Relatórios</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-section-label">Conta</div>
+      <nav>
+        <a class="nav-item" data-screen="configuracoes" onclick="navigate('configuracoes',this)">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-item-label">Configurações</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar">AB</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">Dra. Ana Beatriz</div>
+          <div class="sidebar-user-role">Psicóloga</div>
+        </div>
+        <button style="background:none;border:none;cursor:pointer;color:var(--color-muted);font-size:13px;margin-left:auto;">→</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <header id="topbar" data-component="SiteHeader">
+      <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+      <span class="topbar-breadcrumb" id="breadcrumb">Início</span>
+      <span class="topbar-date">Quinta-feira, 30 de Abril de 2025</span>
+      <button class="icon-btn" title="Buscar">🔍</button>
+      <button class="icon-btn" title="Notificações" style="position:relative;">
+        🔔<span class="notif-badge"></span>
+      </button>
+      <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="navigate('agenda',document.querySelector('[data-screen=agenda]'))">+ Nova Sessão</button>
+      <div class="avatar sm" style="margin-left:4px;">AB</div>
+    </header>
+
+    <!-- SCREENS -->
+    <div class="screen-area">
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 1 — INÍCIO / DASHBOARD
+           ════════════════════════════════════════════════ -->
+      <div id="screen-inicio" class="screen active" data-component="DashboardScreen">
+
+        <!-- State: with data -->
+        <div class="data-state">
+
+          <!-- Alert Banner -->
+          <div class="alert-banner animate-slide-up" data-component="Alert" style="margin-bottom:20px;">
+            <span style="font-size:18px;">👋</span>
+            <div style="flex:1;">
+              <strong>Bom dia, Dra. Ana!</strong> Você tem <strong>6 sessões</strong> hoje.
+              <span style="color:var(--color-warning);"> · 3 mensagens não lidas no WhatsApp.</span>
+            </div>
+            <button class="badge badge-ai" onclick="navigate('whatsapp',document.querySelector('[data-screen=whatsapp]'))">Ver mensagens →</button>
+          </div>
+
+          <!-- KPI Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:20px;">
+            <div class="kpi-card animate-slide-up animate-delay-200" data-component="Card">
+              <div class="kpi-label">📅 Sessões Hoje</div>
+              <div class="kpi-value">6</div>
+              <div class="kpi-sub">5 confirmadas · <span style="color:var(--color-warning)">1 pendente</span></div>
+            </div>
+            <div class="kpi-card animate-slide-up animate-delay-400" data-component="Card">
+              <div class="kpi-label">💬 Msgs Pendentes</div>
+              <div class="kpi-value" style="color:var(--color-warning)">3</div>
+              <div class="kpi-sub" style="color:var(--color-warning)">2 há +1h sem resposta</div>
+            </div>
+            <div class="kpi-card animate-slide-up animate-delay-600" data-component="Card">
+              <div class="kpi-label">💰 Receita Hoje</div>
+              <div class="kpi-value" style="color:var(--color-success)">R$ 780</div>
+              <div style="margin-top:8px;">
+                <div class="progress-track"><div class="progress-fill" style="width:78%;background:var(--color-success);"></div></div>
+                <div class="kpi-sub">Meta: R$ 1.000 · 78%</div>
+              </div>
+            </div>
+            <div class="kpi-card animate-slide-up animate-delay-800" data-component="Card">
+              <div class="kpi-label">🕐 Ocupação</div>
+              <div class="kpi-value" style="color:var(--color-info)">75%</div>
+              <div class="kpi-sub">3 horários ainda livres</div>
+            </div>
+          </div>
+
+          <!-- Main Grid: Agenda + WhatsApp -->
+          <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:20px;" class="animate-slide-up animate-delay-200">
+            <!-- Agenda de Hoje -->
+            <div class="card" data-component="AgendaCard">
+              <div class="card-title">
+                Agenda de Hoje
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <button class="btn-secondary" style="font-size:11px;padding:4px 10px;">‹ Ontem</button>
+                  <button class="btn-primary"   style="font-size:11px;padding:4px 10px;">Hoje</button>
+                  <button class="btn-secondary" style="font-size:11px;padding:4px 10px;">Amanhã ›</button>
+                </div>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">09:00</div>
+                <div class="avatar sm" style="background:#4f46e5;">MC</div>
+                <div class="session-info">
+                  <div class="session-name">Mariana Costa</div>
+                  <div class="session-desc">Sessão de Psicoterapia · 50 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">10:30</div>
+                <div class="avatar sm" style="background:#0891b2;">JL</div>
+                <div class="session-info">
+                  <div class="session-name">João Lima</div>
+                  <div class="session-desc">Nutrição — Retorno · 30 min</div>
+                </div>
+                <span class="badge badge-pending">⏳ Pendente</span>
+              </div>
+
+              <div class="session-row" style="background:repeating-linear-gradient(-45deg,transparent,transparent 6px,rgba(0,0,0,0.02) 6px,rgba(0,0,0,0.02) 12px);border-radius:6px;padding:10px 12px;">
+                <div class="session-time" style="color:var(--color-border)">12:00</div>
+                <div style="flex:1;font-size:12px;color:var(--color-muted);font-weight:600;text-align:center;letter-spacing:0.05em;">── Bloqueado: Almoço ──</div>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">14:00</div>
+                <div class="avatar sm" style="background:#059669;">FS</div>
+                <div class="session-info">
+                  <div class="session-name">Fernanda Silva</div>
+                  <div class="session-desc">Avaliação Inicial · 60 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">15:30</div>
+                <div class="avatar sm" style="background:#dc2626;">CM</div>
+                <div class="session-info">
+                  <div class="session-name">Carlos Mendes</div>
+                  <div class="session-desc">Sessão de Psicoterapia · 50 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">17:00</div>
+                <div class="avatar sm" style="background:#7c3aed;">LP</div>
+                <div class="session-info">
+                  <div class="session-name">Luciana Pereira</div>
+                  <div class="session-desc">Psicoterapia — Retorno · 50 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+
+              <div style="text-align:right;padding-top:12px;">
+                <button class="btn-link" onclick="navigate('agenda',document.querySelector('[data-screen=agenda]'))">Ver agenda completa →</button>
+              </div>
+            </div>
+
+            <!-- WhatsApp Feed -->
+            <div class="card" data-component="WhatsAppFeedCard">
+              <div class="card-title">
+                💬 WhatsApp
+                <span class="badge badge-pending">3 novos</span>
+              </div>
+
+              <div class="wa-item">
+                <div class="avatar sm" style="background:#4f46e5;">MC</div>
+                <div class="wa-meta">
+                  <div class="wa-name">Mariana Costa <span class="wa-time">2h</span></div>
+                  <div class="wa-preview">"Posso reagendar para sexta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai">🤖 IA · ativo</span></div>
+                </div>
+              </div>
+
+              <div class="wa-item">
+                <div class="avatar sm" style="background:#dc2626;">PA</div>
+                <div class="wa-meta">
+                  <div class="wa-name">Pedro Alves <span class="wa-time">5h</span></div>
+                  <div class="wa-preview">"Qual o valor da consulta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-pending">⚠️ Requer atenção</span></div>
+                </div>
+              </div>
+
+              <div class="wa-item">
+                <div class="avatar sm" style="background:var(--color-muted);">?</div>
+                <div class="wa-meta">
+                  <div class="wa-name">+55 11 99999-0001 <span class="wa-time">1d</span></div>
+                  <div class="wa-preview">"Olá, vi seu contato no..."</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai">🤖 IA · novo</span></div>
+                </div>
+              </div>
+
+              <div style="padding-top:12px;border-top:1px solid var(--color-border);margin-top:4px;font-size:11px;color:var(--color-muted);">
+                Painel somente-leitura — sem chat na plataforma.
+              </div>
+              <button class="btn-link" style="margin-top:8px;display:block;" onclick="navigate('whatsapp',document.querySelector('[data-screen=whatsapp]'))">Abrir WhatsApp →</button>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;" class="animate-slide-up animate-delay-400">
+            <div class="card" data-component="SessionsChart">
+              <div class="card-title">
+                Sessões por Período
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-primary" style="font-size:11px;padding:3px 10px;">Semana</button>
+                  <button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Mês</button>
+                  <button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Tri.</button>
+                </div>
+              </div>
+              <div class="bar-chart" style="height:90px;">
+                <div class="bar-group"><div class="bar" style="height:50%;opacity:0.5;"></div><div class="bar-label">Seg</div></div>
+                <div class="bar-group"><div class="bar" style="height:75%;"></div><div class="bar-label">Ter</div></div>
+                <div class="bar-group"><div class="bar" style="height:100%;"></div><div class="bar-label">Qua</div></div>
+                <div class="bar-group"><div class="bar" style="height:80%;"></div><div class="bar-label">Qui</div></div>
+                <div class="bar-group"><div class="bar" style="height:90%;"></div><div class="bar-label">Sex</div></div>
+                <div class="bar-group"><div class="bar" style="height:40%;opacity:0.4;"></div><div class="bar-label">Sáb</div></div>
+                <div class="bar-group"><div class="bar" style="height:10%;opacity:0.2;"></div><div class="bar-label">Dom</div></div>
+              </div>
+            </div>
+            <div class="card" data-component="RevenueCard">
+              <div class="card-title">Receita da Semana</div>
+              <div style="font-family:var(--font-heading);font-size:26px;font-weight:700;">R$ 2.340</div>
+              <div style="font-size:12px;color:var(--color-muted);margin-top:2px;">Meta: R$ 3.000</div>
+              <div style="margin-top:10px;margin-bottom:6px;">
+                <div class="progress-track"><div class="progress-fill" style="width:78%;"></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                  <div style="width:10px;height:10px;border-radius:50%;background:var(--color-primary);flex-shrink:0;"></div>
+                  <span style="flex:1;color:var(--color-muted);">Psicoterapia</span>
+                  <strong>R$ 1.800</strong>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+                  <div style="width:10px;height:10px;border-radius:50%;background:var(--color-muted);flex-shrink:0;"></div>
+                  <span style="flex:1;color:var(--color-muted);">Avaliação</span>
+                  <strong>R$ 540</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- State: empty -->
+        <div class="empty-state-view" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+            <div class="card">
+              <div class="card-title">Agenda de Hoje</div>
+              <div class="empty-state">
+                <div class="empty-icon">📅</div>
+                <div class="empty-title">Nenhuma sessão hoje</div>
+                <div class="empty-desc">Sua agenda está livre. Que tal agendar uma sessão?</div>
+                <button class="btn-primary">+ Agendar sessão</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">💬 WhatsApp</div>
+              <div class="empty-state">
+                <div class="empty-icon">💬</div>
+                <div class="empty-title">Conecte seu WhatsApp para começar</div>
+                <div class="empty-desc">Ative a IA para gerenciar mensagens automaticamente.</div>
+                <button class="btn-primary">Conectar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /screen-inicio -->
+
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 2 — AGENDA
+           ════════════════════════════════════════════════ -->
+      <div id="screen-agenda" class="screen" data-component="AgendaScreen">
+
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;">Agenda</h2>
+              <p style="font-size:12px;color:var(--color-muted);margin-top:2px;">Abril 2025</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="btn-secondary" style="font-size:12px;padding:6px 12px;">‹ Anterior</button>
+              <button class="btn-secondary" style="font-size:12px;padding:6px 12px;">Hoje</button>
+              <button class="btn-secondary" style="font-size:12px;padding:6px 12px;">Próximo ›</button>
+              <button class="btn-primary" style="font-size:12px;padding:6px 14px;">+ Nova Sessão</button>
+            </div>
+          </div>
+
+          <!-- Week header -->
+          <div class="card" style="margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:0;border-bottom:2px solid var(--color-border);padding-bottom:12px;margin-bottom:12px;">
+              <div></div>
+              <div style="text-align:center;font-size:12px;font-weight:600;">
+                <div style="color:var(--color-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Seg</div>
+                <div style="font-size:16px;font-weight:700;">28</div>
+              </div>
+              <div style="text-align:center;font-size:12px;font-weight:600;">
+                <div style="color:var(--color-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Ter</div>
+                <div style="font-size:16px;font-weight:700;">29</div>
+              </div>
+              <div style="text-align:center;font-size:12px;font-weight:600;border:2px solid var(--color-primary);border-radius:8px;padding:4px 0;">
+                <div style="color:var(--color-primary);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Qua</div>
+                <div style="font-size:16px;font-weight:800;color:var(--color-primary);">30</div>
+              </div>
+              <div style="text-align:center;font-size:12px;font-weight:600;">
+                <div style="color:var(--color-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Qui</div>
+                <div style="font-size:16px;font-weight:700;">01</div>
+              </div>
+              <div style="text-align:center;font-size:12px;font-weight:600;">
+                <div style="color:var(--color-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Sex</div>
+                <div style="font-size:16px;font-weight:700;">02</div>
+              </div>
+            </div>
+
+            <!-- Time slots -->
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:4px;min-height:40px;align-items:center;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;">09:00</div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:rgba(79,70,229,0.12);border-left:3px solid #4f46e5;border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:#4f46e5;">Mariana Costa</div>
+                  <div style="font-size:9px;color:#4f46e5;opacity:0.7;">Psicoterapia</div>
+                </div>
+                <div style="background:rgba(79,70,229,0.12);border-left:3px solid #4f46e5;border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:#4f46e5;">Mariana C.</div>
+                  <div style="font-size:9px;color:#4f46e5;opacity:0.7;">· 50 min</div>
+                </div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:4px;min-height:40px;align-items:center;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;">10:30</div>
+                <div style="background:rgba(217,119,6,0.1);border-left:3px solid var(--color-warning);border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--color-warning);">João Lima</div>
+                  <div style="font-size:9px;color:var(--color-warning);opacity:0.7;">Nutrição</div>
+                </div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:rgba(8,145,178,0.1);border-left:3px solid #0891b2;border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:#0891b2;">João Lima</div>
+                  <div style="font-size:9px;color:#0891b2;opacity:0.7;">Nutrição</div>
+                </div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:4px;min-height:32px;align-items:center;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;">12:00</div>
+                <div style="grid-column:span 5;background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(0,0,0,0.03) 4px,rgba(0,0,0,0.03) 8px);border-radius:6px;height:28px;display:flex;align-items:center;justify-content:center;">
+                  <span style="font-size:10px;color:var(--color-muted);font-weight:600;">Almoço — Bloqueado</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:4px;min-height:40px;align-items:center;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;">14:00</div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:rgba(5,150,105,0.1);border-left:3px solid #059669;border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:#059669;">Fernanda S.</div>
+                  <div style="font-size:9px;color:#059669;opacity:0.7;">Avaliação</div>
+                </div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:60px repeat(5,1fr);gap:4px;min-height:40px;align-items:center;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;">15:30</div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:rgba(220,38,38,0.1);border-left:3px solid var(--color-destructive);border-radius:6px;height:36px;padding:4px 8px;">
+                  <div style="font-size:10px;font-weight:700;color:var(--color-destructive);">Carlos M.</div>
+                  <div style="font-size:9px;color:var(--color-destructive);opacity:0.7;">Psicoterapia</div>
+                </div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+                <div style="background:var(--color-surface-card);border-radius:6px;height:36px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming Sessions List -->
+          <div class="card">
+            <div class="card-title">Próximas Sessões</div>
+            <table class="data-table">
+              <thead><tr>
+                <th>Data/Hora</th><th>Cliente</th><th>Tipo</th><th>Duração</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Hoje 09:00</strong></td>
+                  <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar sm" style="background:#4f46e5;">MC</div>Mariana Costa</div></td>
+                  <td>Psicoterapia</td><td>50 min</td>
+                  <td><span class="badge badge-confirmed">Confirmada</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Detalhes</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Hoje 10:30</strong></td>
+                  <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar sm" style="background:#0891b2;">JL</div>João Lima</div></td>
+                  <td>Nutrição</td><td>30 min</td>
+                  <td><span class="badge badge-pending">Pendente</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Detalhes</button></td>
+                </tr>
+                <tr>
+                  <td>Hoje 14:00</td>
+                  <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar sm" style="background:#059669;">FS</div>Fernanda Silva</div></td>
+                  <td>Avaliação Inicial</td><td>60 min</td>
+                  <td><span class="badge badge-confirmed">Confirmada</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Detalhes</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="card">
+            <div class="empty-state">
+              <div class="empty-icon">📅</div>
+              <div class="empty-title">Nenhuma sessão hoje</div>
+              <div class="empty-desc">Sua agenda está vazia. Comece agendando uma sessão.</div>
+              <button class="btn-primary">+ Agendar sessão</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /screen-agenda -->
+
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 3 — CLIENTES
+           ════════════════════════════════════════════════ -->
+      <div id="screen-clientes" class="screen" data-component="ClientesScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;">Clientes</h2>
+              <p style="font-size:12px;color:var(--color-muted);">14 clientes cadastrados</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input class="input" type="text" placeholder="🔍 Buscar cliente..." style="width:200px;"/>
+              <button class="btn-primary">+ Novo cliente</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <table class="data-table">
+              <thead><tr>
+                <th>Nome</th><th>Telefone</th><th>Especialidade</th><th>Sessões</th><th>Valor/sessão</th><th>Última sessão</th><th>Status</th><th></th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar sm" style="background:#4f46e5;">MC</div><strong>Mariana Costa</strong></div></td>
+                  <td style="color:var(--color-muted);">+55 11 91234-5678</td>
+                  <td>Psicoterapia</td>
+                  <td><strong>24</strong></td>
+                  <td>R$ 200</td>
+                  <td>29/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar sm" style="background:#0891b2;">JL</div><strong>João Lima</strong></div></td>
+                  <td style="color:var(--color-muted);">+55 11 98765-4321</td>
+                  <td>Nutrição</td>
+                  <td><strong>12</strong></td>
+                  <td>R$ 180</td>
+                  <td>28/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar sm" style="background:#059669;">FS</div><strong>Fernanda Silva</strong></div></td>
+                  <td style="color:var(--color-muted);">+55 11 94567-8901</td>
+                  <td>Avaliação</td>
+                  <td><strong>3</strong></td>
+                  <td>R$ 250</td>
+                  <td>25/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar sm" style="background:#dc2626;">CM</div><strong>Carlos Mendes</strong></div></td>
+                  <td style="color:var(--color-muted);">+55 11 93456-7890</td>
+                  <td>Psicoterapia</td>
+                  <td><strong>8</strong></td>
+                  <td>R$ 200</td>
+                  <td>22/04/2025</td>
+                  <td><span class="badge badge-noshow">Inativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar sm" style="background:#7c3aed;">LP</div><strong>Luciana Pereira</strong></div></td>
+                  <td style="color:var(--color-muted);">+55 11 92345-6789</td>
+                  <td>Psicoterapia</td>
+                  <td><strong>18</strong></td>
+                  <td>R$ 200</td>
+                  <td>29/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:11px;padding:3px 10px;">Ver</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="card">
+            <div class="empty-state">
+              <div class="empty-icon">👥</div>
+              <div class="empty-title">Comece adicionando seu primeiro cliente</div>
+              <div class="empty-desc">Cadastre seus clientes para organizar a agenda e os relatórios.</div>
+              <button class="btn-primary">+ Novo cliente</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /screen-clientes -->
+
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 4 — WHATSAPP
+           ════════════════════════════════════════════════ -->
+      <div id="screen-whatsapp" class="screen" data-component="WhatsAppScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;">WhatsApp</h2>
+              <p style="font-size:12px;color:var(--color-muted);">Monitoramento de conversas via IA</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-confirmed">● Conectado</span>
+              <button class="btn-secondary" style="font-size:12px;">↗ Abrir WhatsApp</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;">
+            <!-- Conversation list -->
+            <div class="card" style="padding:0;overflow:hidden;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--color-border);">
+                <input class="input" type="text" placeholder="🔍 Buscar conversa..."/>
+              </div>
+
+              <div style="overflow-y:auto;">
+                <div class="wa-item" style="padding:12px 16px;background:rgba(0,0,0,0.04);" data-component="ConversationListItem">
+                  <div class="avatar md" style="background:#dc2626;">PA</div>
+                  <div class="wa-meta">
+                    <div class="wa-name">Pedro Alves <span class="wa-time">5h</span></div>
+                    <div class="wa-preview">"Qual o valor da consulta?"</div>
+                    <div style="margin-top:4px;"><span class="badge badge-pending" style="font-size:10px;">⚠️ Requer atenção</span></div>
+                  </div>
+                </div>
+                <div class="wa-item" style="padding:12px 16px;" data-component="ConversationListItem">
+                  <div class="avatar md" style="background:#4f46e5;">MC</div>
+                  <div class="wa-meta">
+                    <div class="wa-name">Mariana Costa <span class="wa-time">2h</span></div>
+                    <div class="wa-preview">"Posso reagendar para sexta?"</div>
+                    <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:10px;">🤖 IA · ativo</span></div>
+                  </div>
+                </div>
+                <div class="wa-item" style="padding:12px 16px;" data-component="ConversationListItem">
+                  <div class="avatar md" style="background:var(--color-muted);">?</div>
+                  <div class="wa-meta">
+                    <div class="wa-name">+55 11 99999-0001 <span class="wa-time">1d</span></div>
+                    <div class="wa-preview">"Olá, vi seu contato no..."</div>
+                    <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:10px;">🤖 IA · novo</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detail panel -->
+            <div class="card" data-component="ConversationDetail">
+              <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--color-border);margin-bottom:16px;">
+                <div class="avatar lg" style="background:#dc2626;">PA</div>
+                <div>
+                  <div style="font-family:var(--font-heading);font-size:15px;font-weight:700;">Pedro Alves</div>
+                  <div style="font-size:12px;color:var(--color-muted);">+55 11 97654-3210 · Novo contato</div>
+                </div>
+                <span class="badge badge-pending" style="margin-left:auto;">⚠️ Atenção humana</span>
+                <button class="btn-secondary" style="font-size:12px;">↗ Abrir no WhatsApp</button>
+              </div>
+
+              <div class="alert-banner info" style="margin-bottom:16px;" data-component="Alert">
+                <span>🤖</span>
+                <div>
+                  <strong style="color:var(--color-info);">IA detectou pergunta sobre valores</strong> — requer resposta humana.
+                  A IA não responde automaticamente sobre preços sem confirmação do profissional.
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+                <div style="background:var(--color-surface-card);border-radius:12px 12px 12px 4px;padding:10px 14px;max-width:80%;">
+                  <p style="font-size:13px;">Olá! Gostaria de saber sobre suas consultas. Qual o valor?</p>
+                  <p style="font-size:10px;color:var(--color-muted);text-align:right;margin-top:4px;">17:32</p>
+                </div>
+                <div style="background:rgba(37,99,235,0.08);border:1px solid var(--color-badge-ai-bg);border-radius:12px 12px 4px 12px;padding:10px 14px;max-width:80%;align-self:flex-end;">
+                  <p style="font-size:10px;color:var(--color-info);font-weight:700;margin-bottom:4px;">🤖 Resposta automática (IA)</p>
+                  <p style="font-size:13px;">Olá! Fico feliz com o seu interesse. Para informações detalhadas sobre valores e disponibilidade, peço que aguarde um momento. A Dra. Ana retornará em breve!</p>
+                  <p style="font-size:10px;color:var(--color-muted);text-align:right;margin-top:4px;">17:32 · ✓✓</p>
+                </div>
+              </div>
+
+              <div style="background:var(--color-surface-card);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--color-muted);border:1px solid var(--color-border);">
+                🔒 Plataforma somente-leitura — responda diretamente pelo WhatsApp do profissional (celular ou WhatsApp Web).
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="card">
+            <div class="empty-state">
+              <div class="empty-icon">💬</div>
+              <div class="empty-title">Conecte seu WhatsApp para começar</div>
+              <div class="empty-desc">Ative a integração para monitorar conversas com ajuda da IA.</div>
+              <button class="btn-primary">Conectar WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /screen-whatsapp -->
+
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 5 — RELATÓRIOS
+           ════════════════════════════════════════════════ -->
+      <div id="screen-relatorios" class="screen" data-component="RelatoriosScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;">Relatórios</h2>
+              <p style="font-size:12px;color:var(--color-muted);">Resumo de produtividade e receita estimada</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input type="date" class="input" value="2025-04-01" style="width:auto;"/>
+              <span style="font-size:12px;color:var(--color-muted);">até</span>
+              <input type="date" class="input" value="2025-04-30" style="width:auto;"/>
+              <button class="btn-primary">Gerar relatório →</button>
+            </div>
+          </div>
+
+          <!-- Summary KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+            <div class="kpi-card" style="border-left:4px solid var(--color-success);">
+              <div class="kpi-label">Receita Estimada</div>
+              <div class="kpi-value" style="color:var(--color-success);">R$ 9.600</div>
+              <div class="kpi-sub">48 sessões × R$ 200 (média)</div>
+            </div>
+            <div class="kpi-card" style="border-left:4px solid var(--color-primary);">
+              <div class="kpi-label">Sessões Concluídas</div>
+              <div class="kpi-value">48</div>
+              <div class="kpi-sub">+12% vs. março</div>
+            </div>
+            <div class="kpi-card" style="border-left:4px solid var(--color-destructive);">
+              <div class="kpi-label">Cancelamentos</div>
+              <div class="kpi-value" style="color:var(--color-destructive);">3</div>
+              <div class="kpi-sub">Taxa no-show: 6%</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;">
+            <!-- Bar chart -->
+            <div class="card" data-component="RevenueBarChart">
+              <div class="card-title">Receita Estimada por Semana</div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:11px;color:var(--color-muted);">R$ 3.000</span>
+              </div>
+              <div class="bar-chart" style="height:120px;">
+                <div class="bar-group">
+                  <div class="bar" style="height:75%;background:var(--color-success);"></div>
+                  <div class="bar-label">Sem 1<br/><strong style="color:var(--color-success);">R$2.200</strong></div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar" style="height:90%;background:var(--color-success);"></div>
+                  <div class="bar-label">Sem 2<br/><strong style="color:var(--color-success);">R$2.600</strong></div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar" style="height:80%;background:var(--color-success);"></div>
+                  <div class="bar-label">Sem 3<br/><strong style="color:var(--color-success);">R$2.400</strong></div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar" style="height:85%;background:var(--color-success);"></div>
+                  <div class="bar-label">Sem 4<br/><strong style="color:var(--color-success);">R$2.400</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Insights -->
+            <div class="card" style="border-left:4px solid var(--color-info);background:var(--badge-ai-bg);" data-component="AIInsightsCard">
+              <div class="card-title" style="color:var(--color-info);">🤖 Insights da IA <span style="font-size:11px;color:var(--color-muted);font-weight:400;">(MVP — foco em agenda)</span></div>
+              <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;">
+                <li style="font-size:12px;color:var(--color-foreground);">📌 Você tem <strong>4 sessões</strong> sem confirmação esta semana — considere enviar lembretes.</li>
+                <li style="font-size:12px;color:var(--color-foreground);">✨ <strong>2 novos clientes</strong> em abril (+25% vs. março).</li>
+                <li style="font-size:12px;color:var(--color-foreground);">⚠️ Taxa de no-show: <strong>6%</strong> — João Lima faltou 2× sem aviso prévio.</li>
+                <li style="font-size:12px;color:var(--color-foreground);">📅 Sextas-feiras têm <strong>taxa de cancelamento 2× maior</strong>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Per-client table -->
+          <div class="card" data-component="ClientRevenueTable">
+            <div class="card-title">Detalhamento por Cliente</div>
+            <table class="data-table">
+              <thead><tr>
+                <th>Nome</th><th>Sessões</th><th>Estimado</th><th>Valor/sessão</th><th>Última Sessão</th>
+              </tr></thead>
+              <tbody>
+                <tr><td><strong>Mariana Costa</strong></td><td>8</td><td><strong>R$ 1.600</strong></td><td>R$ 200</td><td>29/04/2025</td></tr>
+                <tr><td><strong>João Lima</strong></td><td>6</td><td><strong>R$ 1.200</strong></td><td>R$ 200</td><td>29/04/2025</td></tr>
+                <tr><td><strong>Fernanda Silva</strong></td><td>4</td><td><strong>R$ 1.000</strong></td><td>R$ 250</td><td>25/04/2025</td></tr>
+                <tr><td><strong>Luciana Pereira</strong></td><td>8</td><td><strong>R$ 1.600</strong></td><td>R$ 200</td><td>28/04/2025</td></tr>
+                <tr><td><strong>Carlos Mendes</strong></td><td>5</td><td><strong>R$ 1.000</strong></td><td>R$ 200</td><td>22/04/2025</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="card">
+            <div class="empty-state">
+              <div class="empty-icon">📊</div>
+              <div class="empty-title">Sem sessões no período selecionado</div>
+              <div class="empty-desc">Tente selecionar um período diferente ou adicione sessões à sua agenda.</div>
+              <button class="btn-secondary">Alterar período</button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /screen-relatorios -->
+
+
+      <!-- ════════════════════════════════════════════════
+           SCREEN 6 — CONFIGURAÇÕES
+           ════════════════════════════════════════════════ -->
+      <div id="screen-configuracoes" class="screen" data-component="ConfiguracoesScreen">
+        <div style="margin-bottom:20px;">
+          <h2 style="font-family:var(--font-heading);font-size:20px;font-weight:700;">Configurações</h2>
+          <p style="font-size:12px;color:var(--color-muted);">Gerencie seu perfil e preferências</p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:20px;">
+          <!-- Tabs column -->
+          <div class="card" style="padding:8px;align-self:start;">
+            <div class="config-tab active" onclick="switchConfigTab('perfil',this)">👤 Perfil</div>
+            <div class="config-tab" onclick="switchConfigTab('disponibilidade',this)">🕐 Disponibilidade</div>
+            <div class="config-tab" onclick="switchConfigTab('valores',this)">💰 Valores</div>
+            <div class="config-tab" onclick="switchConfigTab('whatsapp-config',this)">💬 WhatsApp</div>
+            <div class="config-tab" onclick="switchConfigTab('notificacoes',this)">🔔 Notificações</div>
+            <div class="config-tab" onclick="switchConfigTab('seguranca',this)">🔑 Segurança</div>
+          </div>
+
+          <!-- Content area -->
+          <div class="card" id="config-content">
+
+            <!-- Perfil -->
+            <div id="config-perfil">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Meu Perfil</h3>
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--color-border);">
+                <div class="avatar" style="width:64px;height:64px;font-size:20px;cursor:pointer;" title="Alterar foto">AB</div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;">Dra. Ana Beatriz</div>
+                  <div style="font-size:12px;color:var(--color-muted);">Clique no avatar para alterar a foto</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div><label class="label">Nome completo</label><input class="input" value="Ana Beatriz Souza"/></div>
+                <div><label class="label">Especialidade</label><input class="input" value="Psicóloga CRP 06/12345"/></div>
+                <div style="grid-column:span 2;"><label class="label">Bio</label><textarea class="input" rows="3" style="resize:vertical;">Psicóloga clínica com 10 anos de experiência em terapia cognitivo-comportamental.</textarea></div>
+                <div><label class="label">Telefone</label><input class="input" value="+55 11 99999-8888"/></div>
+                <div><label class="label">E-mail</label><input class="input" value="ana@exemplo.com" readonly style="background:var(--color-surface-card);cursor:not-allowed;"/></div>
+              </div>
+              <div style="margin-top:20px;">
+                <button class="btn-primary">Salvar alterações</button>
+              </div>
+            </div>
+
+            <!-- Disponibilidade (hidden initially) -->
+            <div id="config-disponibilidade" style="display:none;">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Disponibilidade Semanal</h3>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="font-size:11px;color:var(--color-muted);font-weight:600;display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;padding:0 8px;text-transform:uppercase;letter-spacing:0.07em;">
+                  <span>Dia</span><span>Início</span><span>Fim</span><span>Ativo</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);">
+                    <span style="font-size:13px;font-weight:600;">Segunda</span>
+                    <input class="input" type="time" value="09:00"/>
+                    <input class="input" type="time" value="18:00"/>
+                    <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);">
+                    <span style="font-size:13px;font-weight:600;">Terça</span>
+                    <input class="input" type="time" value="09:00"/>
+                    <input class="input" type="time" value="18:00"/>
+                    <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);">
+                    <span style="font-size:13px;font-weight:600;">Quarta</span>
+                    <input class="input" type="time" value="09:00"/>
+                    <input class="input" type="time" value="18:00"/>
+                    <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);">
+                    <span style="font-size:13px;font-weight:600;">Quinta</span>
+                    <input class="input" type="time" value="09:00"/>
+                    <input class="input" type="time" value="18:00"/>
+                    <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);">
+                    <span style="font-size:13px;font-weight:600;">Sexta</span>
+                    <input class="input" type="time" value="09:00"/>
+                    <input class="input" type="time" value="17:00"/>
+                    <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);opacity:0.5;">
+                    <span style="font-size:13px;font-weight:600;">Sábado</span>
+                    <input class="input" type="time" value="09:00" disabled style="cursor:not-allowed;"/>
+                    <input class="input" type="time" value="13:00" disabled style="cursor:not-allowed;"/>
+                    <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+                  </div>
+                  <div style="display:grid;grid-template-columns:100px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--color-surface-card);border-radius:var(--radius);opacity:0.5;">
+                    <span style="font-size:13px;font-weight:600;">Domingo</span>
+                    <input class="input" type="time" value="09:00" disabled style="cursor:not-allowed;"/>
+                    <input class="input" type="time" value="13:00" disabled style="cursor:not-allowed;"/>
+                    <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:20px;">
+                <button class="btn-primary">Salvar disponibilidade</button>
+              </div>
+            </div>
+
+            <!-- Valores (hidden) -->
+            <div id="config-valores" style="display:none;">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Valores e Duração Padrão</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <label class="label">Valor da sessão (R$)</label>
+                  <input class="input" type="number" value="200" step="10"/>
+                  <p style="font-size:11px;color:var(--color-muted);margin-top:4px;">Usado para calcular receita estimada nos relatórios.</p>
+                </div>
+                <div>
+                  <label class="label">Duração da sessão</label>
+                  <select class="input">
+                    <option>30 min</option>
+                    <option>45 min</option>
+                    <option selected>50 min</option>
+                    <option>60 min</option>
+                    <option>90 min</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:20px;">
+                <button class="btn-primary">Salvar valores padrão</button>
+              </div>
+            </div>
+
+            <!-- WhatsApp config (hidden) -->
+            <div id="config-whatsapp-config" style="display:none;">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Integração WhatsApp</h3>
+              <div style="background:var(--badge-confirmed-bg);border:1px solid var(--color-success);border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">✅</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--color-success);">WhatsApp Conectado</div>
+                  <div style="font-size:12px;color:var(--color-muted);">+55 11 99999-8888 · Conectado em 01/03/2025</div>
+                </div>
+                <button class="btn-secondary" style="margin-left:auto;font-size:12px;color:var(--color-destructive);border-color:var(--color-destructive);">Desconectar</button>
+              </div>
+              <div style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                  <div><label class="label" style="margin-bottom:2px;">Modo IA ativo</label><p style="font-size:11px;color:var(--color-muted);">A IA responde automaticamente às mensagens de acordo com suas instruções.</p></div>
+                  <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+              <div>
+                <label class="label">Instruções para a IA</label>
+                <textarea class="input" rows="5" style="resize:vertical;">Responda sempre em português de forma educada e profissional. Para perguntas sobre valores e agendamentos, diga que a profissional retornará em breve. Não confirme horários sem aprovação.</textarea>
+                <p style="font-size:11px;color:var(--color-muted);margin-top:4px;">Estas instruções guiam o comportamento da IA nas conversas do WhatsApp.</p>
+              </div>
+              <div style="margin-top:20px;">
+                <button class="btn-primary">Salvar configurações</button>
+              </div>
+            </div>
+
+            <!-- Notificações (hidden) -->
+            <div id="config-notificacoes" style="display:none;">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Notificações</h3>
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-border);">
+                  <div><div style="font-size:13px;font-weight:600;">Lembrete de sessão (1h antes)</div><div style="font-size:12px;color:var(--color-muted);">Receba um alerta antes de cada sessão</div></div>
+                  <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-border);">
+                  <div><div style="font-size:13px;font-weight:600;">Mensagem no WhatsApp</div><div style="font-size:12px;color:var(--color-muted);">Notificação quando a IA detectar intervenção necessária</div></div>
+                  <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-border);">
+                  <div><div style="font-size:13px;font-weight:600;">Confirmação de sessão</div><div style="font-size:12px;color:var(--color-muted);">Alertar quando cliente confirmar ou cancelar</div></div>
+                  <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;">
+                  <div><div style="font-size:13px;font-weight:600;">Resumo diário</div><div style="font-size:12px;color:var(--color-muted);">Resumo da agenda às 8h todos os dias</div></div>
+                  <label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Segurança (hidden) -->
+            <div id="config-seguranca" style="display:none;">
+              <h3 style="font-family:var(--font-heading);font-size:16px;font-weight:700;margin-bottom:20px;">Segurança — Alterar Senha</h3>
+              <div style="display:flex;flex-direction:column;gap:14px;max-width:400px;">
+                <div><label class="label">Senha atual</label><input class="input" type="password" placeholder="••••••••"/></div>
+                <div><label class="label">Nova senha</label><input class="input" type="password" placeholder="••••••••"/></div>
+                <div><label class="label">Confirmar nova senha</label><input class="input" type="password" placeholder="••••••••"/></div>
+              </div>
+              <div style="margin-top:20px;">
+                <button class="btn-primary">Alterar senha</button>
+              </div>
+            </div>
+
+          </div><!-- /config-content -->
+        </div>
+      </div><!-- /screen-configuracoes -->
+
+    </div><!-- /screen-area -->
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- Mobile Bottom Nav -->
+<nav class="mobile-nav" data-component="MobileBottomNav">
+  <div class="mobile-nav-item active" onclick="navigate('inicio',this)"><span>🏠</span>Início</div>
+  <div class="mobile-nav-item" onclick="navigate('agenda',this)"><span>📅</span>Agenda</div>
+  <div class="mobile-nav-item" onclick="navigate('clientes',this)"><span>👥</span>Clientes</div>
+  <div class="mobile-nav-item" onclick="navigate('whatsapp',this)" style="position:relative;">
+    <span>💬</span>WhatsApp
+    <span style="position:absolute;top:6px;right:10px;background:var(--color-destructive);color:white;font-size:9px;font-weight:700;border-radius:999px;padding:0 5px;">3</span>
+  </div>
+  <div class="mobile-nav-item" onclick="navigate('configuracoes',this)"><span>⚙️</span>Config</div>
+</nav>
+
+<!-- Wireframe Toolbar (Toggle data/empty) -->
+<div class="wireframe-toolbar" data-component="WireframeToolbar">
+  <span style="font-size:11px;color:rgba(255,255,255,0.5);margin-right:4px;">Modo:</span>
+  <button class="toolbar-btn active" id="btn-data"  onclick="toggleMode('data')">Com dados</button>
+  <button class="toolbar-btn"        id="btn-empty" onclick="toggleMode('empty')">Vazio</button>
+</div>
+
+<script>
+  // ── Navigation ──
+  const screenNames = {
+    inicio:'Início', agenda:'Agenda', clientes:'Clientes',
+    whatsapp:'WhatsApp', relatorios:'Relatórios', configuracoes:'Configurações'
+  };
+
+  function navigate(screenId, el) {
+    // Hide all screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Show target
+    const target = document.getElementById('screen-' + screenId);
+    if (target) { target.classList.add('active'); }
+    // Update breadcrumb
+    document.getElementById('breadcrumb').textContent = screenNames[screenId] || screenId;
+    // Update sidebar nav items
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    const sidebarItem = document.querySelector('.nav-item[data-screen="' + screenId + '"]');
+    if (sidebarItem) { sidebarItem.classList.add('active'); }
+    // Update mobile nav
+    document.querySelectorAll('.mobile-nav-item').forEach(i => i.classList.remove('active'));
+    if (el && el.classList && el.classList.contains('mobile-nav-item')) {
+      el.classList.add('active');
+    }
+  }
+
+  // ── Sidebar toggle ──
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  // ── Mode toggle (com dados / vazio) ──
+  function toggleMode(mode) {
+    const isData = mode === 'data';
+    document.querySelectorAll('.data-state').forEach(el => el.style.display = isData ? '' : 'none');
+    document.querySelectorAll('.empty-state-view').forEach(el => el.style.display = isData ? 'none' : '');
+    document.getElementById('btn-data').classList.toggle('active', isData);
+    document.getElementById('btn-empty').classList.toggle('active', !isData);
+  }
+
+  // ── Config tabs ──
+  function switchConfigTab(tabId, el) {
+    document.querySelectorAll('#config-content > div').forEach(d => d.style.display = 'none');
+    const tab = document.getElementById('config-' + tabId);
+    if (tab) tab.style.display = '';
+    document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+  }
+
+  // ── Init ──
+  navigate('inicio', null);
+</script>
+</body>
+</html>
