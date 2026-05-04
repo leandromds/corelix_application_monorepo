@@ -9,7 +9,6 @@
  */
 
 import { renderWithProviders, screen, fireEvent } from "@/test/utils";
-import userEvent from "@testing-library/user-event";
 import { WeekView } from "./WeekView";
 import type { Session } from "../types";
 
