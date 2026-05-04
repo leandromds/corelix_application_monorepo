@@ -1,10 +1,16 @@
-name: CI
+name: Backend — Tests + Type Check + Lint
 
 on:
   pull_request:
     branches: [develop, main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/backend.yml'
   push:
     branches: [develop]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/backend.yml'
 
 jobs:
   test:
@@ -63,7 +69,7 @@ jobs:
         run: |
           # Cria o role test_rls_user sem BYPASSRLS para testes de isolamento RLS (ADR-021).
           #
-          # NOTA sobre RLS policies no banco de teste:
+          # NOTA sobre RLS policies no banco de testes:
           # As tabelas são criadas via Base.metadata.create_all() no conftest.py (não via
           # Alembic), portanto as RLS policies da migration NÃO são aplicadas automaticamente.
           # O conftest.py deve aplicar as policies programaticamente após create_all(), ex:
@@ -73,9 +79,6 @@ jobs:
           #     CREATE POLICY tenant_isolation ON clients
           #       USING (professional_id = current_setting('app.current_tenant', TRUE)::uuid);
           #   """))
-          #
-          # Sem isso, os testes de isolamento (test_rls_user) passam trivialmente porque
-          # não há policy para bloquear. Ver ADR-021 para o setup completo.
           #
           # GRANT ALL ON ALL TABLES é omitido intencionalmente: as tabelas ainda não
           # existem neste ponto (são criadas pelo conftest). O ALTER DEFAULT PRIVILEGES

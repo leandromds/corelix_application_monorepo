@@ -1,0 +1,57 @@
+name: Frontend — Tests + Type Check + Lint
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "apps/web/**"
+      - ".github/workflows/frontend.yml"
+
+defaults:
+  run:
+    working-directory: apps/web
+
+jobs:
+  ci:
+    name: Tests + Type Check + Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check (tsc)
+        run: npm run type-check
+
+      - name: Lint (eslint)
+        # ESLint v9 flat config — --ext foi removido; o escopo é definido no eslint.config.js.
+        # --max-warnings 0 garante que avisos também quebrem o CI.
+        run: npm run lint -- --max-warnings 0
+
+      - name: Tests + Coverage
+        # Roda vitest com coverage e aplica os thresholds configurados em vite.config.ts:
+        # lines ≥ 80% | functions ≥ 80% | branches ≥ 75%
+        run: npm run coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: apps/web/coverage/
+          retention-days: 7
