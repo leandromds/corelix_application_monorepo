@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Backgrounds */
+  --bg-page: #cfddea;
+  --bg-surface: rgba(255, 255, 255, 0.50);
+  --bg-surface-card: #f1f2f3;
+
+  /* Borders */
+  --border-default: #e5e7eb;
+
+  /* Text */
+  --text-primary: #0f0f0f;
+  --text-muted: #6b7280;
+
+  /* Accent / Primary */
+  --color-primary: #000000;
+  --color-primary-fg: #ffffff;
+  --color-primary-light: #f1f2f3;
+
+  /* Semantic */
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #2563eb;
+
+  /* Badges */
+  --badge-confirmed-bg: #dcfce7; --badge-confirmed-fg: #16a34a;
+  --badge-pending-bg: #ffedd5;   --badge-pending-fg: #d97706;
+  --badge-cancelled-bg: #fee2e2; --badge-cancelled-fg: #dc2626;
+  --badge-noshow-bg: #f3f4f6;    --badge-noshow-fg: #6b7280;
+  --badge-ai-bg: #dbeafe;        --badge-ai-fg: #2563eb;
+
+  /* Typography */
+  --font-heading: 'Manrope', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Radii */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 2.8px 2.2px rgba(0,0,0,0.034),
+                 0 6.7px 5.3px rgba(0,0,0,0.048),
+                 0 12.5px 10px rgba(0,0,0,0.06),
+                 0 22.3px 17.9px rgba(0,0,0,0.072);
+  --shadow-glass: rgba(255,255,255,0.1) 0px 1px 1px 0px inset,
+                  rgba(50,50,93,0.25) 0px 50px 100px -20px,
+                  rgba(0,0,0,0.3) 0px 30px 60px -30px;
+
+  /* Layout */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 64px;
+  --topbar-height: 48px;
+}
+
+[data-theme="dark"] {
+  --bg-page: hsl(225, 20%, 9%);
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --bg-elevated: rgba(255, 255, 255, 0.08);
+  --bg-selected: rgba(139, 92, 246, 0.15);
+  --bg-surface-card: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-accent: rgba(139, 92, 246, 0.45);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-muted: rgba(255, 255, 255, 0.50);
+  --text-subtle: rgba(255, 255, 255, 0.30);
+  --color-primary: hsl(260, 95%, 63%);
+  --color-primary-fg: #ffffff;
+  --color-primary-light: rgba(139, 92, 246, 0.15);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --badge-confirmed-bg: rgba(52, 211, 153, 0.15);  --badge-confirmed-fg: #34d399;
+  --badge-pending-bg: rgba(251, 191, 36, 0.15);    --badge-pending-fg: #fbbf24;
+  --badge-cancelled-bg: rgba(248, 113, 113, 0.15); --badge-cancelled-fg: #f87171;
+  --badge-noshow-bg: rgba(255, 255, 255, 0.08);    --badge-noshow-fg: rgba(255,255,255,0.50);
+  --badge-ai-bg: rgba(96, 165, 250, 0.15);         --badge-ai-fg: #60a5fa;
+  --shadow-sm: none;
+  --shadow-card: none;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--bg-page);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }

@@ -93,36 +93,77 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - RLS ativo em 4 tabelas: availability_slots, blocked_periods, recurrences, sessions
 
 ## web/ — implementado (parcial)
-- src/types/auth.ts → ProfessionalResponse, LoginRequest, RegisterRequest, AccessTokenResponse
-- src/services/api.ts → instância axios: baseURL=VITE_API_URL, withCredentials=true, _accessToken como variável de módulo (não React state), interceptor de request (Bearer), interceptor de response (401 → refresh → retry com fila), SKIP_REFRESH_PATHS
-- src/contexts/AuthContext.tsx → AuthProvider: professional, isLoading, login(), register(), logout(); useRef guard contra StrictMode double-invocation
-- src/hooks/useAuth.ts → useAuth(): wrapper com null-check
-- src/components/ProtectedRoute.tsx, PublicRoute.tsx → guards de rota
-- src/pages/LoginPage.tsx, RegisterPage.tsx → formulários com error display
-- src/pages/DashboardPage.tsx → placeholder ("Dashboard em construção")
-- src/App.tsx → BrowserRouter + AuthProvider + Routes
 
-**Pendente (4 domínios):** Clients, Agenda, Reports, WhatsApp pages
+### Stack instalada
+- tailwindcss@4 + @tailwindcss/vite (vite.config.ts: plugins: [react(), tailwindcss()])
+- @tanstack/react-query v5 + devtools
+- react-hook-form + zod + @hookform/resolvers
+- date-fns v3 + date-fns-tz
+- sonner (toasts)
+- lucide-react (icons)
+- Radix UI: dialog, alert-dialog, checkbox, label, select, slot, separator
+- class-variance-authority + clsx + tailwind-merge
+- zustand (instalado, não usado ainda)
 
-**Fluxo de trabalho frontend (para cada nova tela):**
-1. Spec textual com Claude (contexto de produto + endpoints + componentes shadcn/ui)
-2. Gerar componente no v0.dev (shadcn/ui nativo — output é TSX direto)
-3. Adaptar ao codebase: imports, tokens semânticos (sem hex hardcoded), sem mock data
-4. Hook TanStack Query em `features/[módulo]/hooks/` com query keys centralizados
-5. Formulário RHF + Zod schema em `features/[módulo]/schemas/`
-6. Gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px
+### Design system
+- src/index.css — @import "tailwindcss" + CSS variables em :root e [data-theme="dark"]
+- Tokens: --bg-page, --bg-surface, --bg-surface-card, --border-default, --text-primary, --text-muted, --color-primary, --color-primary-fg, --success, --warning, --danger, --info, --badge-*-bg/fg, --font-heading, --font-body, --radius-*, --shadow-*, --sidebar-width, --topbar-height
+- Regra: Tailwind para layout/espaçamento; CSS vars para cores/sombras via bg-[var(--...)] ou inline style
 
-**Estrutura de pastas frontend:**
-```
-src/
-  components/ui/      ← shadcn CLI (não editar)
-  components/shared/  ← componentes customizados reutilizáveis
-  features/[módulo]/
-    components/       ← componentes do módulo
-    hooks/            ← useClients, useCreateClient, etc.
-    schemas/          ← zod schemas
-  pages/              ← só composição, sem lógica
-```
+### Contexts e Providers
+- ThemeContext.tsx → ThemeProvider, useTheme() — light/dark/system, localStorage key 'corelix-theme', data-theme no <html>
+- main.tsx → QueryClientProvider (staleTime 5min) + ThemeProvider + Toaster(Sonner) + ReactQueryDevtools(dev-only)
+- App.tsx → nested routes: ProtectedRoute > AppShell (Outlet) > {/dashboard, /clients, /agenda}
+
+### UI Components (src/components/ui/ — não editar via shadcn CLI)
+- button.tsx → Button (variant: default/secondary/destructive/ghost/link/outline; size: default/sm/lg/icon; asChild)
+- input.tsx → Input
+- label.tsx → Label (Radix)
+- checkbox.tsx → Checkbox (Radix + lucide Check)
+- textarea.tsx → Textarea
+- select.tsx → Select, SelectTrigger, SelectContent, SelectItem, SelectValue, SelectGroup, SelectLabel, SelectSeparator
+- dialog.tsx → Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose
+- alert-dialog.tsx → AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel, AlertDialogTrigger
+- badge.tsx → Badge (variant: default/secondary/destructive/outline/confirmed/pending/cancelled/noshow/ai)
+- form.tsx → Form (FormProvider), FormField (Controller), FormItem, FormLabel, FormControl, FormMessage, FormDescription, useFormField
+
+### Shared Components (src/components/shared/)
+- Avatar.tsx → Avatar (initials, color?, size: sm/md/default/lg) + getInitials(name)
+- StatusBadge.tsx → StatusBadge (status: scheduled|completed|cancelled|no_show|active|inactive)
+
+### Layout (src/components/layout/)
+- AppShell.tsx → Sidebar + Topbar + <Outlet /> — lê useAuth para professional data; ROUTE_TITLES map; collapsed state
+- Sidebar.tsx → NavLink active state via callback; collapsed (icon-only) mode; footer user card
+- Topbar.tsx → theme toggle (resolvedTheme + setTheme); "Nova Sessão" button → navigate('/agenda'); breadcrumb title
+
+### Features
+
+**clients (src/features/clients/):**
+- types/index.ts → Client, ClientsListParams, CreateClientPayload, UpdateClientPayload
+- schemas/clientSchema.ts → clientSchema (Zod), ClientFormValues — whatsapp_opt_in/email_opt_in sem .default() (evita zodResolver type mismatch)
+- hooks: useClients, useCreateClient, useUpdateClient, useDeleteClient — queryKey: ['clients', params]
+- components/ClientForm.tsx → Dialog modal; create/edit mode; computeDiff para PATCH semântico (ADR-024); buildDefaultValues; re-populate via useEffect([client])
+- components/ClientList.tsx → tabela com skeleton (animate-pulse), empty state, AlertDialog para desativar, botão reativar
+- ClientsPage.tsx → debounced search (300ms), showInactive toggle, mount animation
+
+**agenda (src/features/agenda/):**
+- types/index.ts → Session, SessionStatus, SessionsListParams, CreateSessionPayload, UpdateSessionPayload, STATUS_LABELS
+- schemas/sessionSchema.ts → sessionSchema (Zod com z.coerce.number() para duration_minutes), SessionFormValues — sem .default() em campos obrigatórios
+- hooks: useSessions, useTodaySessions (staleTime 5min), useUpcomingSessions, useCreateSession, useUpdateSession — queryKey: ['sessions', ...]
+- components/SessionForm.tsx → toISOWithOffset() para timezone; zodResolver cast (z.coerce.number() input type unknown); PATCH via dirtyFields
+- components/WeekView.tsx → CSS Grid 60px+5cols; sessões absolutamente posicionadas; getSessionTop/Height (48px/30min); click em slot → onNewSession
+- components/DayList.tsx → expandable rows com quick status change; getAvatarColor por hash do nome
+- AgendaPage.tsx → single fetch mês completo (limit 100); week/day toggle; UpcomingSessionsTable (co-located, não exportado)
+
+**Pendente (4 domínios):** Reports, WhatsApp, Settings pages
+
+### Gotchas frontend (registrar)
+- z.coerce.number() em sessionSchema: input type = unknown, causa incompatibilidade de tipos com zodResolver. Fix: cast explícito `zodResolver(schema) as Resolver<FormValues>`
+- z.boolean().default(false): torna o campo opcional no input type do zodResolver, causando mismatch. Fix: remover .default() do schema e usar defaultValues no useForm
+- Topbar usa resolvedTheme (não theme) para o ícone Sun/Moon e para o onClick do toggle
+- AppShell não tem padding no <main> — cada page define seu próprio padding/layout
+- Avatar prop é initials (string), não name — DayList gerava initials via .split(' ').map(w => w[0]).join('').slice(0,2)
+- Form.tsx TTransformedValues: FormField precisava do terceiro generic TTransformedValues extends FieldValues | undefined = undefined para compatibilidade com RHF v7
 
 ## models/ — implementado (todos UUID pk, TIMESTAMPTZ, sem relationship())
 - professionals/models.py → Professional (TimestampMixin)

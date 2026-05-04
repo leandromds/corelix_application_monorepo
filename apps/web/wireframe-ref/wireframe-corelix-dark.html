@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Corelix — Wireframe Dark Glass MVP</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              300: 'hsl(270, 95%, 80%)',
+              500: 'hsl(260, 95%, 63%)',
+              600: 'hsl(250, 95%, 58%)',
+              700: 'hsl(270, 95%, 68%)',
+            },
+            darkGray: {
+              50:  'hsl(225, 20%, 10%)',
+              100: 'hsl(225, 15%, 15%)',
+            }
+          },
+          fontFamily: {
+            jakarta: ['"Plus Jakarta Sans"', 'sans-serif'],
+            inter:   ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-page       : hsl(225, 20%, 9%);
+      --bg-surface    : rgba(255,255,255,0.05);
+      --bg-elevated   : rgba(255,255,255,0.08);
+      --bg-selected   : rgba(139,92,246,0.15);
+      --border-default: rgba(255,255,255,0.10);
+      --border-strong : rgba(255,255,255,0.18);
+      --border-purple : rgba(139,92,246,0.45);
+      --text-primary  : rgba(255,255,255,0.95);
+      --text-muted    : rgba(255,255,255,0.50);
+      --text-subtle   : rgba(255,255,255,0.30);
+      --purple-500    : hsl(260,95%,63%);
+      --purple-glow   : rgba(139,92,246,0.35);
+      --success       : #34d399;
+      --success-bg    : rgba(52,211,153,0.15);
+      --success-border: rgba(52,211,153,0.30);
+      --warning       : #fbbf24;
+      --warning-bg    : rgba(251,191,36,0.15);
+      --warning-border: rgba(251,191,36,0.30);
+      --danger        : #f87171;
+      --danger-bg     : rgba(248,113,113,0.15);
+      --danger-border : rgba(248,113,113,0.30);
+      --info          : #60a5fa;
+      --info-bg       : rgba(96,165,250,0.15);
+      --info-border   : rgba(96,165,250,0.30);
+      --sidebar-width : 256px;
+      --topbar-height : 52px;
+      --radius-sm     : 0.5rem;
+      --radius-md     : 0.75rem;
+      --radius-lg     : 1rem;
+      --radius-xl     : 1.5rem;
+      --radius-full   : 9999px;
+    }
+
+    @keyframes fadeIn  { to { opacity: 1; } }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+    @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px var(--purple-glow)} 50%{box-shadow:0 0 40px rgba(139,92,246,0.6)} }
+
+    .animate-fade-in   { animation: fadeIn  0.7s ease-out forwards; opacity: 0; }
+    .animate-slide-up  { animation: slideUp 0.7s ease-out forwards; opacity: 0; transform: translateY(16px); }
+    .animate-delay-1   { animation-delay: 0.1s; }
+    .animate-delay-2   { animation-delay: 0.2s; }
+    .animate-delay-3   { animation-delay: 0.3s; }
+    .animate-delay-4   { animation-delay: 0.4s; }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    /* Ambient background blobs */
+    .bg-blobs {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .blob {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25;
+    }
+    .blob-1 { width: 600px; height: 600px; top: -10%; left: -10%; background: hsl(260,90%,55%); }
+    .blob-2 { width: 500px; height: 500px; bottom: -10%; right: -5%; background: hsl(220,90%,45%); opacity:0.15; }
+
+    /* ── App Shell ── */
+    .app-shell { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+    /* ── Sidebar ── */
+    aside#sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: rgba(15,15,25,0.80);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      z-index: 40;
+      transition: width 0.25s ease, min-width 0.25s ease;
+      overflow: hidden;
+    }
+    aside#sidebar.collapsed { width: 64px; min-width: 64px; }
+
+    .sidebar-logo {
+      height: var(--topbar-height);
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .logo-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: rgba(139,92,246,0.25);
+      border: 1px solid rgba(139,92,246,0.4);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(139,92,246,0.3);
+    }
+    .logo-text {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 800;
+      color: var(--text-primary); white-space: nowrap;
+    }
+
+    .sidebar-section-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--text-subtle);
+      padding: 18px 18px 6px;
+      white-space: nowrap; overflow: hidden;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; margin: 2px 8px;
+      border-radius: var(--radius-md);
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap; border: 1px solid transparent;
+      text-decoration: none; position: relative;
+    }
+    .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .nav-item.active {
+      background: var(--bg-selected);
+      border-color: var(--border-purple);
+      color: var(--text-primary); font-weight: 700;
+      box-shadow: 0 0 12px rgba(139,92,246,0.2);
+    }
+    .nav-item.active .nav-icon { color: hsl(270,95%,75%); }
+    .nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+
+    .sidebar-badge {
+      margin-left: auto;
+      background: var(--warning-bg); color: var(--warning);
+      border: 1px solid var(--warning-border);
+      font-size: 10px; font-weight: 700;
+      padding: 1px 7px; border-radius: var(--radius-full);
+    }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 12px 8px;
+      border-top: 1px solid var(--border-default);
+    }
+    .sidebar-user {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: var(--radius-md);
+      cursor: pointer; transition: background 0.2s;
+    }
+    .sidebar-user:hover { background: var(--bg-elevated); }
+
+    .avatar {
+      border-radius: 50%; background: rgba(139,92,246,0.25);
+      border: 1px solid rgba(139,92,246,0.4);
+      color: hsl(270,95%,85%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+    .avatar-sm { width: 28px; height: 28px; font-size: 10px; }
+    .avatar-md { width: 34px; height: 34px; font-size: 12px; }
+    .avatar-lg { width: 40px; height: 40px; font-size: 13px; }
+
+    /* ── Main ── */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+    /* ── Topbar ── */
+    header#topbar {
+      height: var(--topbar-height); min-height: var(--topbar-height);
+      background: rgba(15,15,25,0.80);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-default);
+      display: flex; align-items: center; padding: 0 20px; gap: 12px;
+      z-index: 30; flex-shrink: 0;
+    }
+    .topbar-breadcrumb {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--text-primary);
+    }
+    .topbar-date { font-size: 12px; color: var(--text-muted); margin: 0 auto; }
+    .icon-btn {
+      width: 34px; height: 34px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-muted);
+      transition: all 0.2s; font-size: 13px;
+      border: 1px solid transparent; background: transparent;
+    }
+    .icon-btn:hover { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-default); }
+    .notif-badge {
+      position: absolute; top: 5px; right: 5px;
+      width: 7px; height: 7px;
+      background: var(--danger); border-radius: 50%;
+      border: 1.5px solid var(--bg-page);
+    }
+
+    /* ── Screen Area ── */
+    .screen-area { flex: 1; overflow-y: auto; padding: 24px; scrollbar-width: thin; scrollbar-color: rgba(139,92,246,0.4) transparent; }
+    .screen-area::-webkit-scrollbar { width: 5px; }
+    .screen-area::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.4); border-radius: 3px; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ── Glass Card ── */
+    .glass-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      position: relative;
+    }
+    .glass-card.glow { box-shadow: 0 0 30px var(--purple-glow); }
+    .glass-card.elevated { background: var(--bg-elevated); }
+
+    /* Gradient border overlay (dual mask) */
+    .glass-card.bordered::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255,255,255,0.4);
+      -webkit-mask-image: linear-gradient(135deg, white, transparent 55%);
+      mask-image: linear-gradient(135deg, white, transparent 55%);
+      pointer-events: none;
+    }
+    .glass-card.bordered::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(139,92,246,0.5);
+      -webkit-mask-image: linear-gradient(135deg, transparent 45%, white);
+      mask-image: linear-gradient(135deg, transparent 45%, white);
+      pointer-events: none;
+    }
+
+    .card-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px; font-weight: 700; color: var(--text-primary);
+      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .card-divider {
+      height: 1px; margin: 16px 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2) 30%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.2) 70%, transparent);
+    }
+
+    /* ── KPI Card ── */
+    .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px; }
+    .kpi-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 30px; font-weight: 700; line-height: 1; }
+    .kpi-sub   { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 9px; border-radius: var(--radius-full);
+      border: 1px solid;
+    }
+    .badge-confirmed { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .badge-pending   { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+    .badge-cancelled { background: var(--danger-bg);  color: var(--danger);  border-color: var(--danger-border);  }
+    .badge-noshow    { background: var(--bg-elevated); color: var(--text-muted); border-color: var(--border-default); }
+    .badge-ai        { background: var(--info-bg);    color: var(--info);    border-color: var(--info-border);    }
+    .badge-purple    { background: var(--bg-selected); color: hsl(270,95%,80%); border-color: var(--border-purple); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: rgba(139,92,246,0.30);
+      border: 1px solid rgba(139,92,246,0.55);
+      color: var(--text-primary);
+      border-radius: var(--radius-lg);
+      padding: 7px 18px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.25s;
+      backdrop-filter: blur(8px);
+    }
+    .btn-primary:hover { background: rgba(139,92,246,0.45); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(139,92,246,0.35); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      border-radius: var(--radius-lg);
+      padding: 6px 14px; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: var(--bg-elevated); color: var(--text-primary); }
+    .btn-link { background: none; border: none; color: hsl(270,95%,75%); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+
+    /* ── Session row ── */
+    .session-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0; border-bottom: 1px solid var(--border-default);
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-time { font-size: 11px; font-weight: 600; color: var(--text-muted); width: 38px; flex-shrink: 0; }
+    .session-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .session-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── WA item ── */
+    .wa-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid var(--border-default);
+      cursor: pointer; transition: background 0.2s;
+    }
+    .wa-item:last-child { border-bottom: none; }
+    .wa-name { font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; justify-content: space-between; }
+    .wa-preview { font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .wa-time { font-size: 10px; color: var(--text-subtle); }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th { text-align: left; padding: 10px 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-subtle); border-bottom: 1px solid var(--border-default); }
+    .data-table td { padding: 11px 14px; border-bottom: 1px solid var(--border-default); color: var(--text-primary); vertical-align: middle; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: var(--bg-elevated); }
+
+    /* ── Bar Chart ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; }
+    .bar-group { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+    .bar { width: 100%; background: rgba(139,92,246,0.5); border-radius: 4px 4px 0 0; border: 1px solid rgba(139,92,246,0.6); transition: opacity 0.2s; }
+    .bar:hover { opacity: 0.8; }
+    .bar-label { font-size: 10px; color: var(--text-muted); }
+
+    /* ── Progress ── */
+    .progress-track { background: rgba(255,255,255,0.08); border-radius: var(--radius-full); height: 5px; overflow: hidden; }
+    .progress-fill  { height: 100%; border-radius: var(--radius-full); background: linear-gradient(90deg, hsl(260,95%,63%), hsl(280,90%,75%)); }
+
+    /* ── Skeleton ── */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.05) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius-sm);
+    }
+
+    /* ── Empty State ── */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; gap: 12px; text-align: center; }
+    .empty-icon { width: 72px; height: 72px; border: 2px dashed var(--border-strong); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-subtle); }
+    .empty-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .empty-desc  { font-size: 12px; color: var(--text-muted); }
+
+    /* ── Input ── */
+    .input {
+      width: 100%; padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 12px; font-family: 'Inter', sans-serif;
+      color: var(--text-primary); outline: none;
+      transition: border-color 0.2s;
+    }
+    .input:focus { border-color: rgba(139,92,246,0.6); box-shadow: 0 0 0 3px rgba(139,92,246,0.1); }
+    .input::placeholder { color: var(--text-subtle); }
+    .label { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── Toggle ── */
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; inset: 0; background: rgba(255,255,255,0.1); border: 1px solid var(--border-default); border-radius: var(--radius-full); transition: 0.2s; }
+    .toggle-slider::before { content: ''; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px; background: rgba(255,255,255,0.6); border-radius: 50%; transition: 0.2s; }
+    .toggle input:checked + .toggle-slider { background: rgba(139,92,246,0.5); border-color: rgba(139,92,246,0.6); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: white; }
+
+    /* ── Config tab ── */
+    .config-tab {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px; border-radius: var(--radius-md);
+      font-size: 12px; font-weight: 500; color: var(--text-muted);
+      cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .config-tab.active { background: var(--bg-selected); border-color: var(--border-purple); color: var(--text-primary); font-weight: 700; }
+    .config-tab:hover:not(.active) { background: var(--bg-elevated); color: var(--text-primary); }
+
+    /* ── Alert ── */
+    .alert {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: var(--radius-md);
+      font-size: 12px; border: 1px solid;
+    }
+    .alert-purple { background: rgba(139,92,246,0.10); border-color: rgba(139,92,246,0.35); }
+    .alert-info   { background: var(--info-bg); border-color: var(--info-border); color: var(--info); }
+    .alert-success{ background: var(--success-bg); border-color: var(--success-border); }
+
+    /* ── Toolbar ── */
+    .wireframe-toolbar {
+      position: fixed; bottom: 20px; right: 20px; z-index: 100;
+      display: flex; gap: 4px; align-items: center;
+      background: rgba(15,15,25,0.90);
+      border: 1px solid var(--border-default);
+      backdrop-filter: blur(16px);
+      border-radius: var(--radius-full); padding: 6px 14px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4), 0 0 40px rgba(139,92,246,0.1);
+    }
+    .toolbar-label { font-size: 10px; color: var(--text-subtle); margin-right: 4px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .toolbar-btn { font-size: 11px; font-weight: 700; color: var(--text-subtle); cursor: pointer; background: none; border: 1px solid transparent; padding: 3px 10px; border-radius: var(--radius-full); transition: all 0.2s; }
+    .toolbar-btn.active { color: var(--text-primary); background: var(--bg-selected); border-color: var(--border-purple); }
+
+    /* Mobile */
+    .mobile-nav {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      height: 58px; background: rgba(15,15,25,0.90); backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-default);
+      z-index: 50; align-items: center; justify-content: space-around; padding: 0 8px;
+    }
+    .mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 600; color: var(--text-subtle); cursor: pointer; padding: 5px 14px; border-radius: var(--radius-md); }
+    .mobile-nav-item.active { color: hsl(270,95%,78%); }
+    .mobile-nav-item i { font-size: 16px; }
+
+    @media (max-width: 767px) {
+      aside#sidebar { display: none !important; }
+      .topbar-date  { display: none; }
+      .mobile-nav   { display: flex; }
+      .screen-area  { padding: 16px; padding-bottom: 80px; }
+      .wireframe-toolbar { bottom: 72px; right: 12px; }
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      aside#sidebar { width: 64px; min-width: 64px; }
+      .logo-text, .nav-item-label, .sidebar-section-label, .sidebar-user-info, .sidebar-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+</div>
+
+<div class="app-shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside id="sidebar" data-component="AppSidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <i class="fas fa-stethoscope" style="font-size:13px;color:hsl(270,95%,75%);"></i>
+      </div>
+      <span class="logo-text">Corelix</span>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;">
+      <div class="sidebar-section-label">Menu</div>
+      <nav>
+        <a class="nav-item active" data-screen="inicio" onclick="navigate('inicio',this)">
+          <i class="nav-icon fas fa-home"></i>
+          <span class="nav-item-label">Início</span>
+        </a>
+        <a class="nav-item" data-screen="agenda" onclick="navigate('agenda',this)">
+          <i class="nav-icon fas fa-calendar-alt"></i>
+          <span class="nav-item-label">Agenda</span>
+        </a>
+        <a class="nav-item" data-screen="clientes" onclick="navigate('clientes',this)">
+          <i class="nav-icon fas fa-users"></i>
+          <span class="nav-item-label">Clientes</span>
+        </a>
+        <a class="nav-item" data-screen="whatsapp" onclick="navigate('whatsapp',this)">
+          <i class="nav-icon fab fa-whatsapp"></i>
+          <span class="nav-item-label">WhatsApp</span>
+          <span class="sidebar-badge">3</span>
+        </a>
+        <a class="nav-item" data-screen="relatorios" onclick="navigate('relatorios',this)">
+          <i class="nav-icon fas fa-chart-line"></i>
+          <span class="nav-item-label">Relatórios</span>
+        </a>
+      </nav>
+      <div class="sidebar-section-label">Conta</div>
+      <nav>
+        <a class="nav-item" data-screen="configuracoes" onclick="navigate('configuracoes',this)">
+          <i class="nav-icon fas fa-cog"></i>
+          <span class="nav-item-label">Configurações</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="avatar avatar-md">AB</div>
+        <div class="sidebar-user-info" style="overflow:hidden;">
+          <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dra. Ana Beatriz</div>
+          <div style="font-size:10px;color:var(--text-muted);">Psicóloga</div>
+        </div>
+        <i class="fas fa-arrow-right-from-bracket" style="margin-left:auto;font-size:11px;color:var(--text-subtle);"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main-content">
+
+    <header id="topbar" data-component="SiteHeader">
+      <button class="icon-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <span class="topbar-breadcrumb" id="breadcrumb">Início</span>
+      <span class="topbar-date">Quinta-feira, 30 de Abril de 2025</span>
+      <button class="icon-btn"><i class="fas fa-magnifying-glass"></i></button>
+      <button class="icon-btn" style="position:relative;">
+        <i class="fas fa-bell"></i><span class="notif-badge"></span>
+      </button>
+      <button class="btn-primary" style="font-size:11px;padding:6px 14px;" onclick="navigate('agenda',document.querySelector('[data-screen=agenda]'))">
+        <i class="fas fa-plus"></i> Nova Sessão
+      </button>
+      <div class="avatar avatar-sm" style="margin-left:4px;font-size:10px;">AB</div>
+    </header>
+
+    <div class="screen-area">
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 1 — INÍCIO
+           ══════════════════════════════════════════ -->
+      <div id="screen-inicio" class="screen active" data-component="DashboardScreen">
+        <div class="data-state">
+
+          <!-- Alert -->
+          <div class="alert alert-purple animate-slide-up" data-component="Alert" style="margin-bottom:20px;">
+            <i class="fas fa-hand-wave" style="font-size:16px;color:hsl(270,95%,75%);flex-shrink:0;"></i>
+            <div style="flex:1;color:var(--text-primary);">
+              <strong>Bom dia, Dra. Ana!</strong> Você tem <strong>6 sessões</strong> hoje.
+              <span style="color:var(--warning);"> · 3 mensagens não lidas no WhatsApp.</span>
+            </div>
+            <button class="badge badge-ai" onclick="navigate('whatsapp',document.querySelector('[data-screen=whatsapp]'))">Ver →</button>
+          </div>
+
+          <!-- KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;">
+            <div class="glass-card bordered animate-slide-up animate-delay-1" data-component="KPICard">
+              <div class="kpi-label"><i class="fas fa-calendar-day"></i> Sessões Hoje</div>
+              <div class="kpi-value" style="background:linear-gradient(90deg,hsl(270,95%,80%),white);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">6</div>
+              <div class="kpi-sub">5 confirmadas · <span style="color:var(--warning);">1 pendente</span></div>
+            </div>
+            <div class="glass-card bordered animate-slide-up animate-delay-2" data-component="KPICard">
+              <div class="kpi-label"><i class="fab fa-whatsapp"></i> Msgs Pendentes</div>
+              <div class="kpi-value" style="color:var(--warning);">3</div>
+              <div class="kpi-sub" style="color:var(--warning);">2 há +1h sem resposta</div>
+            </div>
+            <div class="glass-card bordered animate-slide-up animate-delay-3" data-component="KPICard">
+              <div class="kpi-label"><i class="fas fa-circle-dollar-to-slot"></i> Receita Hoje</div>
+              <div class="kpi-value" style="color:var(--success);">R$ 780</div>
+              <div style="margin-top:8px;"><div class="progress-track"><div class="progress-fill" style="width:78%;background:linear-gradient(90deg,var(--success),hsl(160,80%,55%));"></div></div></div>
+              <div class="kpi-sub">Meta: R$ 1.000 · 78%</div>
+            </div>
+            <div class="glass-card bordered animate-slide-up animate-delay-4" data-component="KPICard">
+              <div class="kpi-label"><i class="fas fa-clock"></i> Ocupação</div>
+              <div class="kpi-value" style="color:var(--info);">75%</div>
+              <div class="kpi-sub">3 horários livres</div>
+            </div>
+          </div>
+
+          <!-- Main grid -->
+          <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;margin-bottom:20px;" class="animate-slide-up animate-delay-2">
+            <!-- Agenda -->
+            <div class="glass-card bordered" data-component="AgendaCard">
+              <div class="card-title">
+                Agenda de Hoje
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-secondary" style="font-size:10px;padding:3px 10px;">‹ Ontem</button>
+                  <button class="btn-primary" style="font-size:10px;padding:3px 10px;">Hoje</button>
+                  <button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Amanhã ›</button>
+                </div>
+              </div>
+
+              <div class="session-row">
+                <div class="session-time">09:00</div>
+                <div class="avatar avatar-sm" style="background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;">MC</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="session-name">Mariana Costa</div>
+                  <div class="session-desc">Sessão de Psicoterapia · 50 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+              <div class="session-row">
+                <div class="session-time">10:30</div>
+                <div class="avatar avatar-sm" style="background:rgba(6,182,212,0.2);border-color:rgba(6,182,212,0.4);color:#67e8f9;">JL</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="session-name">João Lima</div>
+                  <div class="session-desc">Nutrição — Retorno · 30 min</div>
+                </div>
+                <span class="badge badge-pending">⏳ Pendente</span>
+              </div>
+              <div class="session-row" style="opacity:0.4;">
+                <div class="session-time">12:00</div>
+                <div style="flex:1;text-align:center;font-size:11px;color:var(--text-subtle);font-weight:600;letter-spacing:0.04em;">── Bloqueado: Almoço ──</div>
+              </div>
+              <div class="session-row">
+                <div class="session-time">14:00</div>
+                <div class="avatar avatar-sm" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.4);color:#6ee7b7;">FS</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="session-name">Fernanda Silva</div>
+                  <div class="session-desc">Avaliação Inicial · 60 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+              <div class="session-row">
+                <div class="session-time">15:30</div>
+                <div class="avatar avatar-sm" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:#fca5a5;">CM</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="session-name">Carlos Mendes</div>
+                  <div class="session-desc">Sessão de Psicoterapia · 50 min</div>
+                </div>
+                <span class="badge badge-confirmed">● Confirmada</span>
+              </div>
+              <div style="text-align:right;padding-top:12px;">
+                <button class="btn-link" onclick="navigate('agenda',document.querySelector('[data-screen=agenda]'))">Ver agenda completa →</button>
+              </div>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="glass-card bordered" data-component="WhatsAppFeedCard">
+              <div class="card-title">
+                <span><i class="fab fa-whatsapp" style="color:var(--success);margin-right:6px;"></i>WhatsApp</span>
+                <span class="badge badge-pending">3 novos</span>
+              </div>
+              <div class="wa-item">
+                <div class="avatar avatar-sm" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:#fca5a5;">PA</div>
+                <div class="wa-meta" style="flex:1;min-width:0;">
+                  <div class="wa-name">Pedro Alves <span class="wa-time">5h</span></div>
+                  <div class="wa-preview">"Qual o valor da consulta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-pending" style="font-size:9px;">⚠️ Atenção</span></div>
+                </div>
+              </div>
+              <div class="wa-item">
+                <div class="avatar avatar-sm" style="background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;">MC</div>
+                <div class="wa-meta" style="flex:1;min-width:0;">
+                  <div class="wa-name">Mariana Costa <span class="wa-time">2h</span></div>
+                  <div class="wa-preview">"Posso reagendar para sexta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:9px;">🤖 IA · ativo</span></div>
+                </div>
+              </div>
+              <div class="wa-item">
+                <div class="avatar avatar-sm">?</div>
+                <div class="wa-meta" style="flex:1;min-width:0;">
+                  <div class="wa-name">+55 11 9999-0001 <span class="wa-time">1d</span></div>
+                  <div class="wa-preview">"Olá, vi seu contato no..."</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:9px;">🤖 IA · novo</span></div>
+                </div>
+              </div>
+              <div class="card-divider"></div>
+              <p style="font-size:10px;color:var(--text-subtle);">Painel somente-leitura — sem chat interno.</p>
+              <button class="btn-link" style="margin-top:8px;display:block;" onclick="navigate('whatsapp',document.querySelector('[data-screen=whatsapp]'))">Abrir WhatsApp →</button>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;" class="animate-slide-up animate-delay-3">
+            <div class="glass-card" data-component="SessionsChart">
+              <div class="card-title">
+                Sessões por Período
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-primary" style="font-size:10px;padding:3px 10px;">Semana</button>
+                  <button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Mês</button>
+                  <button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Tri.</button>
+                </div>
+              </div>
+              <div class="bar-chart" style="height:90px;">
+                <div class="bar-group"><div class="bar" style="height:50%;opacity:0.4;"></div><div class="bar-label">Seg</div></div>
+                <div class="bar-group"><div class="bar" style="height:75%;"></div><div class="bar-label">Ter</div></div>
+                <div class="bar-group"><div class="bar" style="height:100%;box-shadow:0 0 10px rgba(139,92,246,0.5);"></div><div class="bar-label">Qua</div></div>
+                <div class="bar-group"><div class="bar" style="height:80%;"></div><div class="bar-label">Qui</div></div>
+                <div class="bar-group"><div class="bar" style="height:90%;"></div><div class="bar-label">Sex</div></div>
+                <div class="bar-group"><div class="bar" style="height:35%;opacity:0.3;"></div><div class="bar-label">Sáb</div></div>
+                <div class="bar-group"><div class="bar" style="height:10%;opacity:0.2;"></div><div class="bar-label">Dom</div></div>
+              </div>
+            </div>
+            <div class="glass-card bordered glow" data-component="RevenueCard">
+              <div class="card-title">Receita da Semana</div>
+              <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:700;background:linear-gradient(90deg,white 60%,hsl(270,95%,80%));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">R$ 2.340</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Meta: R$ 3.000</div>
+              <div style="margin-top:10px;"><div class="progress-track"><div class="progress-fill" style="width:78%;"></div></div></div>
+              <div class="card-divider"></div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:11px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:hsl(260,95%,63%);box-shadow:0 0 6px hsl(260,95%,63%);flex-shrink:0;"></div>
+                  <span style="flex:1;color:var(--text-muted);">Psicoterapia</span><strong>R$ 1.800</strong>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:11px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--text-subtle);flex-shrink:0;"></div>
+                  <span style="flex:1;color:var(--text-muted);">Avaliação</span><strong>R$ 540</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="glass-card bordered">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-calendar-xmark"></i></div>
+              <div class="empty-title">Nenhuma sessão hoje</div>
+              <div class="empty-desc">Sua agenda está livre.</div>
+              <button class="btn-primary"><i class="fas fa-plus"></i> Agendar sessão</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 2 — AGENDA
+           ══════════════════════════════════════════ -->
+      <div id="screen-agenda" class="screen" data-component="AgendaScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;">Agenda</h2>
+              <p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Abril 2025</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn-secondary" style="font-size:11px;">‹ Anterior</button>
+              <button class="btn-secondary" style="font-size:11px;">Hoje</button>
+              <button class="btn-secondary" style="font-size:11px;">Próximo ›</button>
+              <button class="btn-primary"><i class="fas fa-plus"></i> Nova Sessão</button>
+            </div>
+          </div>
+
+          <div class="glass-card bordered" style="margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:52px repeat(5,1fr);gap:4px;border-bottom:1px solid var(--border-default);padding-bottom:12px;margin-bottom:12px;">
+              <div></div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-subtle);">Seg</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text-muted);">28</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-subtle);">Ter</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text-muted);">29</div>
+              </div>
+              <div style="text-align:center;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);border-radius:var(--radius-md);padding:4px 0;box-shadow:0 0 12px rgba(139,92,246,0.2);">
+                <div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:hsl(270,95%,75%);">Qua</div>
+                <div style="font-size:16px;font-weight:800;color:hsl(270,95%,80%);">30</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-subtle);">Qui</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text-muted);">01</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-subtle);">Sex</div>
+                <div style="font-size:16px;font-weight:700;color:var(--text-muted);">02</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="display:grid;grid-template-columns:52px repeat(5,1fr);gap:4px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-subtle);font-weight:600;">09:00</div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:rgba(99,102,241,0.12);border-left:2px solid rgba(99,102,241,0.8);border-radius:0 6px 6px 0;height:32px;padding:4px 8px;"><div style="font-size:10px;font-weight:700;color:#a5b4fc;">Mariana C.</div></div>
+                <div style="background:rgba(99,102,241,0.12);border-left:2px solid rgba(99,102,241,0.8);border-radius:0 6px 6px 0;height:32px;padding:4px 8px;"><div style="font-size:10px;font-weight:700;color:#a5b4fc;">Mariana C.</div></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:52px repeat(5,1fr);gap:4px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-subtle);font-weight:600;">10:30</div>
+                <div style="background:rgba(251,191,36,0.10);border-left:2px solid rgba(251,191,36,0.7);border-radius:0 6px 6px 0;height:32px;padding:4px 8px;"><div style="font-size:10px;font-weight:700;color:#fcd34d;">João L.</div></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:rgba(6,182,212,0.10);border-left:2px solid rgba(6,182,212,0.7);border-radius:0 6px 6px 0;height:32px;padding:4px 8px;"><div style="font-size:10px;font-weight:700;color:#67e8f9;">João L.</div></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:52px repeat(5,1fr);gap:4px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-subtle);font-weight:600;">12:00</div>
+                <div style="grid-column:span 5;background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(255,255,255,0.02) 4px,rgba(255,255,255,0.02) 8px);border-radius:6px;height:24px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border-default);">
+                  <span style="font-size:10px;color:var(--text-subtle);">Almoço</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:52px repeat(5,1fr);gap:4px;align-items:center;">
+                <div style="font-size:10px;color:var(--text-subtle);font-weight:600;">14:00</div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:rgba(52,211,153,0.10);border-left:2px solid rgba(52,211,153,0.7);border-radius:0 6px 6px 0;height:32px;padding:4px 8px;"><div style="font-size:10px;font-weight:700;color:#6ee7b7;">Fernanda S.</div></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+                <div style="background:var(--bg-elevated);border-radius:6px;height:32px;border:1px solid var(--border-default);"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-title">Próximas Sessões</div>
+            <table class="data-table">
+              <thead><tr><th>Data/Hora</th><th>Cliente</th><th>Tipo</th><th>Duração</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><strong>Hoje 09:00</strong></td>
+                  <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar avatar-sm" style="background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;">MC</div>Mariana Costa</div></td>
+                  <td style="color:var(--text-muted);">Psicoterapia</td>
+                  <td style="color:var(--text-muted);">50 min</td>
+                  <td><span class="badge badge-confirmed">Confirmada</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Detalhes</button></td>
+                </tr>
+                <tr>
+                  <td><strong>Hoje 10:30</strong></td>
+                  <td><div style="display:flex;align-items:center;gap:8px;"><div class="avatar avatar-sm" style="background:rgba(6,182,212,0.2);border-color:rgba(6,182,212,0.4);color:#67e8f9;">JL</div>João Lima</div></td>
+                  <td style="color:var(--text-muted);">Nutrição</td>
+                  <td style="color:var(--text-muted);">30 min</td>
+                  <td><span class="badge badge-pending">Pendente</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Detalhes</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="glass-card bordered">
+            <div class="empty-state">
+              <div class="empty-icon"><i class="fas fa-calendar-xmark"></i></div>
+              <div class="empty-title">Nenhuma sessão hoje</div>
+              <div class="empty-desc">Comece agendando uma sessão.</div>
+              <button class="btn-primary"><i class="fas fa-plus"></i> Agendar sessão</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 3 — CLIENTES
+           ══════════════════════════════════════════ -->
+      <div id="screen-clientes" class="screen" data-component="ClientesScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;">Clientes</h2>
+              <p style="font-size:11px;color:var(--text-muted);">14 clientes cadastrados</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <input class="input" type="text" placeholder="🔍 Buscar cliente..." style="width:200px;"/>
+              <button class="btn-primary"><i class="fas fa-plus"></i> Novo cliente</button>
+            </div>
+          </div>
+          <div class="glass-card bordered">
+            <table class="data-table">
+              <thead><tr><th>Nome</th><th>Telefone</th><th>Especialidade</th><th>Sessões</th><th>Valor/sessão</th><th>Última sessão</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar avatar-sm" style="background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;">MC</div><strong>Mariana Costa</strong></div></td>
+                  <td style="color:var(--text-muted);">+55 11 91234-5678</td>
+                  <td style="color:var(--text-muted);">Psicoterapia</td>
+                  <td><strong>24</strong></td>
+                  <td style="color:var(--text-muted);">R$ 200</td>
+                  <td style="color:var(--text-muted);">29/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar avatar-sm" style="background:rgba(6,182,212,0.2);border-color:rgba(6,182,212,0.4);color:#67e8f9;">JL</div><strong>João Lima</strong></div></td>
+                  <td style="color:var(--text-muted);">+55 11 98765-4321</td>
+                  <td style="color:var(--text-muted);">Nutrição</td>
+                  <td><strong>12</strong></td>
+                  <td style="color:var(--text-muted);">R$ 180</td>
+                  <td style="color:var(--text-muted);">28/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar avatar-sm" style="background:rgba(52,211,153,0.2);border-color:rgba(52,211,153,0.4);color:#6ee7b7;">FS</div><strong>Fernanda Silva</strong></div></td>
+                  <td style="color:var(--text-muted);">+55 11 94567-8901</td>
+                  <td style="color:var(--text-muted);">Avaliação</td>
+                  <td><strong>3</strong></td>
+                  <td style="color:var(--text-muted);">R$ 250</td>
+                  <td style="color:var(--text-muted);">25/04/2025</td>
+                  <td><span class="badge badge-confirmed">Ativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Ver</button></td>
+                </tr>
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:10px;"><div class="avatar avatar-sm" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:#fca5a5;">CM</div><strong>Carlos Mendes</strong></div></td>
+                  <td style="color:var(--text-muted);">+55 11 93456-7890</td>
+                  <td style="color:var(--text-muted);">Psicoterapia</td>
+                  <td><strong>8</strong></td>
+                  <td style="color:var(--text-muted);">R$ 200</td>
+                  <td style="color:var(--text-muted);">22/04/2025</td>
+                  <td><span class="badge badge-noshow">Inativo</span></td>
+                  <td><button class="btn-secondary" style="font-size:10px;padding:3px 10px;">Ver</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="empty-state-view" style="display:none;">
+          <div class="glass-card bordered"><div class="empty-state"><div class="empty-icon"><i class="fas fa-users"></i></div><div class="empty-title">Adicione seu primeiro cliente</div><div class="empty-desc">Cadastre clientes para organizar sua agenda.</div><button class="btn-primary"><i class="fas fa-plus"></i> Novo cliente</button></div></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 4 — WHATSAPP
+           ══════════════════════════════════════════ -->
+      <div id="screen-whatsapp" class="screen" data-component="WhatsAppScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div>
+              <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;">WhatsApp</h2>
+              <p style="font-size:11px;color:var(--text-muted);">Monitoramento de conversas via IA</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="badge badge-confirmed">● Conectado</span>
+              <button class="btn-secondary" style="font-size:11px;"><i class="fas fa-arrow-up-right-from-square"></i> Abrir WhatsApp</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;">
+            <div class="glass-card" style="padding:0;overflow:hidden;">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border-default);">
+                <input class="input" type="text" placeholder="🔍 Buscar conversa..."/>
+              </div>
+
+              <div class="wa-item" style="padding:12px 16px;background:rgba(139,92,246,0.08);border-left:2px solid rgba(139,92,246,0.6);">
+                <div class="avatar avatar-md" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:#fca5a5;">PA</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="wa-name">Pedro Alves <span class="wa-time">5h</span></div>
+                  <div class="wa-preview">"Qual o valor da consulta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-pending" style="font-size:9px;">⚠️ Requer atenção</span></div>
+                </div>
+              </div>
+              <div class="wa-item" style="padding:12px 16px;">
+                <div class="avatar avatar-md" style="background:rgba(99,102,241,0.25);border-color:rgba(99,102,241,0.5);color:#a5b4fc;">MC</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="wa-name">Mariana Costa <span class="wa-time">2h</span></div>
+                  <div class="wa-preview">"Posso reagendar para sexta?"</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:9px;">🤖 IA · ativo</span></div>
+                </div>
+              </div>
+              <div class="wa-item" style="padding:12px 16px;">
+                <div class="avatar avatar-md">?</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="wa-name">+55 11 99999-0001 <span class="wa-time">1d</span></div>
+                  <div class="wa-preview">"Olá, vi seu contato no..."</div>
+                  <div style="margin-top:4px;"><span class="badge badge-ai" style="font-size:9px;">🤖 IA · novo</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="glass-card bordered" data-component="ConversationDetail">
+              <div style="display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--border-default);margin-bottom:14px;">
+                <div class="avatar avatar-lg" style="background:rgba(248,113,113,0.2);border-color:rgba(248,113,113,0.4);color:#fca5a5;">PA</div>
+                <div>
+                  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;">Pedro Alves</div>
+                  <div style="font-size:11px;color:var(--text-muted);">+55 11 97654-3210 · Novo contato</div>
+                </div>
+                <span class="badge badge-pending" style="margin-left:auto;">⚠️ Atenção humana</span>
+                <button class="btn-secondary" style="font-size:11px;"><i class="fas fa-arrow-up-right-from-square"></i> Abrir no WhatsApp</button>
+              </div>
+
+              <div class="alert alert-info" style="margin-bottom:14px;">
+                <i class="fas fa-robot" style="font-size:14px;flex-shrink:0;"></i>
+                <div><strong>IA detectou pergunta sobre valores</strong> — requer resposta humana antes de continuar.</div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+                <div style="background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:12px 12px 12px 4px;padding:10px 14px;max-width:75%;">
+                  <p style="font-size:12px;">Olá! Gostaria de saber sobre suas consultas. Qual o valor?</p>
+                  <p style="font-size:9px;color:var(--text-subtle);text-align:right;margin-top:4px;">17:32</p>
+                </div>
+                <div style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);border-radius:12px 12px 4px 12px;padding:10px 14px;max-width:75%;align-self:flex-end;">
+                  <p style="font-size:9px;color:hsl(270,95%,75%);font-weight:700;margin-bottom:4px;"><i class="fas fa-robot"></i> Resposta automática (IA)</p>
+                  <p style="font-size:12px;">Olá! Fico feliz com o seu interesse. Para informações detalhadas, peço que aguarde um momento. A Dra. Ana retornará em breve!</p>
+                  <p style="font-size:9px;color:var(--text-subtle);text-align:right;margin-top:4px;">17:32 · ✓✓</p>
+                </div>
+              </div>
+
+              <div style="background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);padding:10px 14px;font-size:11px;color:var(--text-muted);">
+                <i class="fas fa-lock" style="margin-right:6px;color:var(--text-subtle);"></i>Plataforma somente-leitura — responda pelo WhatsApp do profissional.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="glass-card bordered"><div class="empty-state"><div class="empty-icon"><i class="fab fa-whatsapp"></i></div><div class="empty-title">Conecte seu WhatsApp para começar</div><div class="empty-desc">Ative a integração para monitorar conversas com IA.</div><button class="btn-primary">Conectar WhatsApp</button></div></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 5 — RELATÓRIOS
+           ══════════════════════════════════════════ -->
+      <div id="screen-relatorios" class="screen" data-component="RelatoriosScreen">
+        <div class="data-state">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;">Relatórios</h2>
+              <p style="font-size:11px;color:var(--text-muted);">Receita estimada e produtividade</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input type="date" class="input" value="2025-04-01" style="width:auto;"/>
+              <span style="font-size:11px;color:var(--text-muted);">até</span>
+              <input type="date" class="input" value="2025-04-30" style="width:auto;"/>
+              <button class="btn-primary"><i class="fas fa-file-chart-column"></i> Gerar relatório</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+            <div class="glass-card bordered glow">
+              <div class="kpi-label"><i class="fas fa-sack-dollar"></i> Receita Estimada</div>
+              <div class="kpi-value" style="color:var(--success);">R$ 9.600</div>
+              <div class="kpi-sub">48 sessões × R$ 200 (média)</div>
+            </div>
+            <div class="glass-card bordered">
+              <div class="kpi-label"><i class="fas fa-calendar-check"></i> Sessões Concluídas</div>
+              <div class="kpi-value" style="background:linear-gradient(90deg,white,hsl(270,95%,80%));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">48</div>
+              <div class="kpi-sub">+12% vs. março</div>
+            </div>
+            <div class="glass-card bordered">
+              <div class="kpi-label"><i class="fas fa-calendar-xmark"></i> Cancelamentos</div>
+              <div class="kpi-value" style="color:var(--danger);">3</div>
+              <div class="kpi-sub">Taxa no-show: 6%</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+            <div class="glass-card bordered" data-component="RevenueBarChart">
+              <div class="card-title">Receita Estimada por Semana</div>
+              <div class="bar-chart" style="height:110px;">
+                <div class="bar-group"><div class="bar" style="height:73%;"></div><div class="bar-label">Sem 1<br/><strong style="color:var(--success);">R$2.200</strong></div></div>
+                <div class="bar-group"><div class="bar" style="height:87%;box-shadow:0 0 12px rgba(139,92,246,0.4);"></div><div class="bar-label">Sem 2<br/><strong style="color:var(--success);">R$2.600</strong></div></div>
+                <div class="bar-group"><div class="bar" style="height:80%;"></div><div class="bar-label">Sem 3<br/><strong style="color:var(--success);">R$2.400</strong></div></div>
+                <div class="bar-group"><div class="bar" style="height:80%;"></div><div class="bar-label">Sem 4<br/><strong style="color:var(--success);">R$2.400</strong></div></div>
+              </div>
+            </div>
+
+            <div class="glass-card bordered" style="background:rgba(139,92,246,0.08);border-color:rgba(139,92,246,0.25);" data-component="AIInsightsCard">
+              <div class="card-title" style="color:hsl(270,95%,75%);">
+                <span><i class="fas fa-robot"></i> Insights da IA</span>
+                <span style="font-size:10px;color:var(--text-subtle);font-weight:400;">MVP — agenda</span>
+              </div>
+              <ul style="display:flex;flex-direction:column;gap:10px;list-style:none;">
+                <li style="font-size:11px;color:var(--text-primary);display:flex;align-items:flex-start;gap:8px;"><i class="fas fa-thumbtack" style="color:hsl(270,95%,75%);margin-top:2px;flex-shrink:0;"></i><span>Você tem <strong>4 sessões</strong> sem confirmação esta semana.</span></li>
+                <li style="font-size:11px;color:var(--text-primary);display:flex;align-items:flex-start;gap:8px;"><i class="fas fa-star" style="color:var(--warning);margin-top:2px;flex-shrink:0;"></i><span><strong>2 novos clientes</strong> em abril (+25% vs. março).</span></li>
+                <li style="font-size:11px;color:var(--text-primary);display:flex;align-items:flex-start;gap:8px;"><i class="fas fa-triangle-exclamation" style="color:var(--warning);margin-top:2px;flex-shrink:0;"></i><span>João Lima faltou <strong>2× sem aviso</strong> prévio.</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-title">Detalhamento por Cliente</div>
+            <table class="data-table">
+              <thead><tr><th>Nome</th><th>Sessões</th><th>Estimado</th><th>Valor/sessão</th><th>Última Sessão</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Mariana Costa</strong></td><td>8</td><td><strong style="color:var(--success);">R$ 1.600</strong></td><td style="color:var(--text-muted);">R$ 200</td><td style="color:var(--text-muted);">29/04/2025</td></tr>
+                <tr><td><strong>João Lima</strong></td><td>6</td><td><strong style="color:var(--success);">R$ 1.200</strong></td><td style="color:var(--text-muted);">R$ 200</td><td style="color:var(--text-muted);">29/04/2025</td></tr>
+                <tr><td><strong>Fernanda Silva</strong></td><td>4</td><td><strong style="color:var(--success);">R$ 1.000</strong></td><td style="color:var(--text-muted);">R$ 250</td><td style="color:var(--text-muted);">25/04/2025</td></tr>
+                <tr><td><strong>Luciana Pereira</strong></td><td>8</td><td><strong style="color:var(--success);">R$ 1.600</strong></td><td style="color:var(--text-muted);">R$ 200</td><td style="color:var(--text-muted);">28/04/2025</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="empty-state-view" style="display:none;">
+          <div class="glass-card bordered"><div class="empty-state"><div class="empty-icon"><i class="fas fa-chart-line"></i></div><div class="empty-title">Sem sessões no período selecionado</div><div class="empty-desc">Tente selecionar um período diferente.</div><button class="btn-secondary">Alterar período</button></div></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           SCREEN 6 — CONFIGURAÇÕES
+           ══════════════════════════════════════════ -->
+      <div id="screen-configuracoes" class="screen" data-component="ConfiguracoesScreen">
+        <div style="margin-bottom:20px;">
+          <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;">Configurações</h2>
+          <p style="font-size:11px;color:var(--text-muted);">Gerencie perfil e preferências</p>
+        </div>
+        <div style="display:grid;grid-template-columns:196px 1fr;gap:16px;">
+          <div class="glass-card" style="padding:8px;align-self:start;">
+            <div class="config-tab active" onclick="switchConfigTab('perfil',this)"><i class="fas fa-user-tie" style="width:14px;"></i> Perfil</div>
+            <div class="config-tab" onclick="switchConfigTab('disponibilidade',this)"><i class="fas fa-clock" style="width:14px;"></i> Disponibilidade</div>
+            <div class="config-tab" onclick="switchConfigTab('valores',this)"><i class="fas fa-coins" style="width:14px;"></i> Valores</div>
+            <div class="config-tab" onclick="switchConfigTab('whatsapp-config',this)"><i class="fab fa-whatsapp" style="width:14px;"></i> WhatsApp</div>
+            <div class="config-tab" onclick="switchConfigTab('notificacoes',this)"><i class="fas fa-bell" style="width:14px;"></i> Notificações</div>
+            <div class="config-tab" onclick="switchConfigTab('seguranca',this)"><i class="fas fa-key" style="width:14px;"></i> Segurança</div>
+          </div>
+
+          <div class="glass-card bordered" id="config-content">
+            <!-- Perfil -->
+            <div id="config-perfil">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Meu Perfil</h3>
+              <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--border-default);">
+                <div class="avatar" style="width:56px;height:56px;font-size:18px;cursor:pointer;box-shadow:0 0 20px rgba(139,92,246,0.3);">AB</div>
+                <div>
+                  <div style="font-size:13px;font-weight:700;">Dra. Ana Beatriz</div>
+                  <div style="font-size:11px;color:var(--text-muted);">Clique no avatar para alterar a foto</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div><label class="label">Nome completo</label><input class="input" value="Ana Beatriz Souza"/></div>
+                <div><label class="label">Especialidade</label><input class="input" value="Psicóloga CRP 06/12345"/></div>
+                <div style="grid-column:span 2;"><label class="label">Bio</label><textarea class="input" rows="3" style="resize:vertical;">Psicóloga clínica com 10 anos de experiência em terapia cognitivo-comportamental.</textarea></div>
+                <div><label class="label">Telefone</label><input class="input" value="+55 11 99999-8888"/></div>
+                <div><label class="label">E-mail</label><input class="input" value="ana@exemplo.com" readonly style="opacity:0.5;cursor:not-allowed;"/></div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn-primary"><i class="fas fa-floppy-disk"></i> Salvar alterações</button></div>
+            </div>
+
+            <!-- Disponibilidade -->
+            <div id="config-disponibilidade" style="display:none;">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Disponibilidade Semanal</h3>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:10px;color:var(--text-subtle);font-weight:700;display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;padding:0 10px;text-transform:uppercase;letter-spacing:0.08em;"><span>Dia</span><span>Início</span><span>Fim</span><span>Ativo</span></div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);"><span style="font-size:12px;font-weight:600;">Segunda</span><input class="input" type="time" value="09:00"/><input class="input" type="time" value="18:00"/><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);"><span style="font-size:12px;font-weight:600;">Terça</span><input class="input" type="time" value="09:00"/><input class="input" type="time" value="18:00"/><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.3);border-radius:var(--radius-md);"><span style="font-size:12px;font-weight:600;color:hsl(270,95%,78%);">Quarta</span><input class="input" type="time" value="09:00"/><input class="input" type="time" value="18:00"/><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);"><span style="font-size:12px;font-weight:600;">Quinta</span><input class="input" type="time" value="09:00"/><input class="input" type="time" value="18:00"/><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);"><span style="font-size:12px;font-weight:600;">Sexta</span><input class="input" type="time" value="09:00"/><input class="input" type="time" value="17:00"/><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);opacity:0.5;"><span style="font-size:12px;font-weight:600;">Sábado</span><input class="input" type="time" value="09:00" disabled/><input class="input" type="time" value="13:00" disabled/><label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label></div>
+                  <div style="display:grid;grid-template-columns:90px 1fr 1fr 40px;gap:12px;align-items:center;padding:10px;background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:var(--radius-md);opacity:0.5;"><span style="font-size:12px;font-weight:600;">Domingo</span><input class="input" type="time" value="09:00" disabled/><input class="input" type="time" value="13:00" disabled/><label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label></div>
+                </div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn-primary"><i class="fas fa-floppy-disk"></i> Salvar disponibilidade</button></div>
+            </div>
+
+            <!-- Valores -->
+            <div id="config-valores" style="display:none;">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Valores e Duração Padrão</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div><label class="label">Valor da sessão (R$)</label><input class="input" type="number" value="200" step="10"/><p style="font-size:10px;color:var(--text-muted);margin-top:4px;">Usado para calcular receita estimada nos relatórios.</p></div>
+                <div><label class="label">Duração da sessão</label><select class="input" style="background:var(--bg-surface);color:var(--text-primary);"><option>30 min</option><option>45 min</option><option selected>50 min</option><option>60 min</option><option>90 min</option></select></div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn-primary"><i class="fas fa-floppy-disk"></i> Salvar valores padrão</button></div>
+            </div>
+
+            <!-- WhatsApp Config -->
+            <div id="config-whatsapp-config" style="display:none;">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Integração WhatsApp</h3>
+              <div class="alert alert-success" style="margin-bottom:20px;">
+                <i class="fas fa-circle-check" style="color:var(--success);flex-shrink:0;font-size:16px;"></i>
+                <div><div style="font-size:13px;font-weight:700;color:var(--success);">WhatsApp Conectado</div><div style="font-size:11px;color:var(--text-muted);">+55 11 99999-8888 · Conectado em 01/03/2025</div></div>
+                <button class="btn-secondary" style="margin-left:auto;font-size:11px;color:var(--danger);border-color:rgba(248,113,113,0.4);">Desconectar</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-default);">
+                <div><div style="font-size:13px;font-weight:600;">Modo IA ativo</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">A IA responde automaticamente conforme suas instruções.</div></div>
+                <label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label>
+              </div>
+              <div style="margin-top:16px;"><label class="label">Instruções para a IA</label><textarea class="input" rows="5" style="resize:vertical;">Responda sempre em português de forma educada e profissional. Para perguntas sobre valores e agendamentos, diga que a profissional retornará em breve. Não confirme horários sem aprovação.</textarea></div>
+              <div style="margin-top:20px;"><button class="btn-primary"><i class="fas fa-floppy-disk"></i> Salvar configurações</button></div>
+            </div>
+
+            <!-- Notificações -->
+            <div id="config-notificacoes" style="display:none;">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Notificações</h3>
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-default);"><div><div style="font-size:13px;font-weight:600;">Lembrete de sessão (1h antes)</div><div style="font-size:11px;color:var(--text-muted);">Receba um alerta antes de cada sessão</div></div><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border-default);"><div><div style="font-size:13px;font-weight:600;">Mensagem no WhatsApp</div><div style="font-size:11px;color:var(--text-muted);">Notificação quando a IA detectar intervenção necessária</div></div><label class="toggle"><input type="checkbox" checked/><span class="toggle-slider"></span></label></div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;"><div><div style="font-size:13px;font-weight:600;">Resumo diário</div><div style="font-size:11px;color:var(--text-muted);">Resumo da agenda às 8h todos os dias úteis</div></div><label class="toggle"><input type="checkbox"/><span class="toggle-slider"></span></label></div>
+              </div>
+            </div>
+
+            <!-- Segurança -->
+            <div id="config-seguranca" style="display:none;">
+              <h3 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;">Segurança — Alterar Senha</h3>
+              <div style="display:flex;flex-direction:column;gap:14px;max-width:400px;">
+                <div><label class="label">Senha atual</label><input class="input" type="password" placeholder="••••••••"/></div>
+                <div><label class="label">Nova senha</label><input class="input" type="password" placeholder="••••••••"/></div>
+                <div><label class="label">Confirmar nova senha</label><input class="input" type="password" placeholder="••••••••"/></div>
+              </div>
+              <div style="margin-top:20px;"><button class="btn-primary"><i class="fas fa-lock"></i> Alterar senha</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /screen-area -->
+  </div><!-- /main-content -->
+</div><!-- /app-shell -->
+
+<!-- Mobile nav -->
+<nav class="mobile-nav" data-component="MobileBottomNav">
+  <div class="mobile-nav-item active" onclick="navigate('inicio',this)"><i class="fas fa-home"></i>Início</div>
+  <div class="mobile-nav-item" onclick="navigate('agenda',this)"><i class="fas fa-calendar-alt"></i>Agenda</div>
+  <div class="mobile-nav-item" onclick="navigate('clientes',this)"><i class="fas fa-users"></i>Clientes</div>
+  <div class="mobile-nav-item" onclick="navigate('whatsapp',this)" style="position:relative;"><i class="fab fa-whatsapp"></i>WhatsApp<span style="position:absolute;top:5px;right:8px;background:var(--danger);color:white;font-size:8px;font-weight:700;border-radius:999px;padding:0 4px;">3</span></div>
+  <div class="mobile-nav-item" onclick="navigate('configuracoes',this)"><i class="fas fa-cog"></i>Config</div>
+</nav>
+
+<!-- Toolbar -->
+<div class="wireframe-toolbar">
+  <span class="toolbar-label">Modo</span>
+  <button class="toolbar-btn active" id="btn-data"  onclick="toggleMode('data')">Com dados</button>
+  <button class="toolbar-btn"        id="btn-empty" onclick="toggleMode('empty')">Vazio</button>
+</div>
+
+<script>
+  const screenNames = {
+    inicio:'Início', agenda:'Agenda', clientes:'Clientes',
+    whatsapp:'WhatsApp', relatorios:'Relatórios', configuracoes:'Configurações'
+  };
+
+  function navigate(screenId, el) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const t = document.getElementById('screen-' + screenId);
+    if (t) t.classList.add('active');
+    document.getElementById('breadcrumb').textContent = screenNames[screenId] || screenId;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    const si = document.querySelector('.nav-item[data-screen="'+screenId+'"]');
+    if (si) si.classList.add('active');
+    document.querySelectorAll('.mobile-nav-item').forEach(i => i.classList.remove('active'));
+    if (el && el.classList && el.classList.contains('mobile-nav-item')) el.classList.add('active');
+  }
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+
+  function toggleMode(mode) {
+    const isData = mode === 'data';
+    document.querySelectorAll('.data-state').forEach(el => el.style.display = isData ? '' : 'none');
+    document.querySelectorAll('.empty-state-view').forEach(el => el.style.display = isData ? 'none' : '');
+    document.getElementById('btn-data').classList.toggle('active', isData);
+    document.getElementById('btn-empty').classList.toggle('active', !isData);
+  }
+
+  function switchConfigTab(tabId, el) {
+    document.querySelectorAll('#config-content > div').forEach(d => d.style.display = 'none');
+    const tab = document.getElementById('config-' + tabId);
+    if (tab) tab.style.display = '';
+    document.querySelectorAll('.config-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+  }
+
+  navigate('inicio', null);
+</script>
+</body>
+</html>

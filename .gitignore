@@ -83,6 +83,11 @@ poetry.lock
 # Frontend (React/Vite)
 apps/web/node_modules/
 apps/web/dist/
+apps/web/coverage/
+apps/web/*.tsbuildinfo
+# Whitelist frontend src/lib — the root 'lib/' rule excludes Python venvs,
+# not the React utility library.
+!apps/web/src/lib/
 apps/web/.vite/
 apps/web/.env
 apps/web/.env.local

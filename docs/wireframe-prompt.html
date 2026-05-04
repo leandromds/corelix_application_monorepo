@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corelix — Wireframe Prompt</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Fonte: Design System "Glass/Manrope" — ver Seção 3 */
+      --color-bg            : #cfddea;
+      --color-surface       : rgba(255,255,255,0.50);
+      --color-surface-card  : #f1f2f3;
+      --color-border        : #e5e7eb;
+      --color-primary       : #000000;
+      --color-primary-fg    : #ffffff;
+      --color-primary-light : #f1f2f3;
+      --color-text          : #0f0f0f;
+      --color-muted         : #6b7280;
+      --color-success       : #16a34a;
+      --color-success-light : #dcfce7;
+      --color-warning       : #d97706;
+      --color-warning-light : #ffedd5;
+      --color-destructive   : #dc2626;
+      --color-accent        : #2563eb;
+      --color-accent-light  : #dbeafe;
+      --color-green         : #16a34a;
+      --color-green-light   : #dcfce7;
+      --color-amber         : #d97706;
+      --color-amber-light   : #ffedd5;
+      --color-code-bg       : #1e293b;
+      --color-code-text     : #e2e8f0;
+      --badge-confirmed-bg  : #dcfce7;
+      --badge-confirmed-fg  : #16a34a;
+      --badge-pending-bg    : #ffedd5;
+      --badge-pending-fg    : #d97706;
+      --badge-cancelled-bg  : #fee2e2;
+      --badge-cancelled-fg  : #dc2626;
+      --badge-noshow-bg     : #f3f4f6;
+      --badge-noshow-fg     : #6b7280;
+      --badge-ai-bg         : #dbeafe;
+      --badge-ai-fg         : #2563eb;
+      --sidebar-width       : 260px;
+      --sidebar-width-icon  : 64px;
+      --topbar-height       : 48px;
+      --radius              : 0.5rem;
+      --radius-lg           : 1rem;
+      --radius-xl           : 1.5rem;
+      --radius-full         : 9999px;
+      --shadow-sm           : 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-card         : 0 2.8px 2.2px rgba(0,0,0,0.034),
+                              0 6.7px 5.3px rgba(0,0,0,0.048),
+                              0 12.5px 10px rgba(0,0,0,0.06),
+                              0 22.3px 17.9px rgba(0,0,0,0.072);
+      --shadow-glass        : rgba(255,255,255,0.1) 0px 1px 1px 0px inset,
+                              rgba(50,50,93,0.25) 0px 50px 100px -20px,
+                              rgba(0,0,0,0.3) 0px 30px 60px -30px;
+      --shadow              : var(--shadow-sm);
+      --font-heading        : 'Manrope', sans-serif;
+      --font-body           : 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* ── Design System Animations ── */
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.8s ease-out forwards; opacity: 0; }
+    .animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
+    .animate-delay-200 { animation-delay: 0.2s; }
+    .animate-delay-400 { animation-delay: 0.4s; }
+    .animate-delay-600 { animation-delay: 0.6s; }
+    .animate-delay-800 { animation-delay: 0.8s; }
+
+    html { font-size: 15px; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text);
+      line-height: 1.7;
+      padding: 0;
+    }
+
+    /* ── Cover page ── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 80px 72px;
+      background: rgba(255,255,255,0.50);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      color: var(--color-text);
+      page-break-after: always;
+      box-shadow: var(--shadow-glass);
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: var(--color-primary-light);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      margin-bottom: 32px;
+    }
+
+    .cover h1 {
+      font-family: var(--font-heading);
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+    }
+
+    .cover h1 span {
+      color: var(--color-primary);
+    }
+
+    .cover-subtitle {
+      font-size: 20px;
+      color: var(--color-muted);
+      margin-bottom: 56px;
+      max-width: 520px;
+      line-height: 1.5;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      gap: 40px;
+      margin-bottom: 64px;
+    }
+
+    .cover-meta-item { }
+
+    .cover-meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-muted);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .cover-meta-value {
+      font-size: 15px;
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .cover-divider {
+      width: 64px;
+      height: 3px;
+      background: var(--color-primary);
+      border-radius: 2px;
+      margin-bottom: 48px;
+    }
+
+    .cover-toc {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 40px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .cover-toc-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .cover-toc-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+
+    .cover-toc-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--color-primary-light);
+      color: var(--color-primary);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid var(--color-border);
+    }
+
+    /* ── Content layout ── */
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 48px 32px 64px;
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 32px;
+      background: rgba(255,255,255,0.50);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      box-shadow: var(--shadow-glass);
+      border: 1px solid rgba(255,255,255,0.3);
+      page-break-inside: avoid;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--color-border);
+    }
+
+    .section-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-text);
+      letter-spacing: -0.01em;
+    }
+
+    /* ── Subsections ── */
+    h3 {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin: 28px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3::before {
+      content: '';
+      display: block;
+      width: 4px;
+      height: 16px;
+      background: var(--color-primary);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin: 20px 0 8px;
+    }
+
+    p {
+      font-size: 14px;
+      color: var(--color-muted);
+      margin-bottom: 10px;
+      line-height: 1.75;
+    }
+
+    strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--color-code-bg);
+      color: var(--color-code-text);
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      padding: 20px 24px;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      margin: 12px 0 20px;
+      white-space: pre;
+      page-break-inside: avoid;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      background: var(--color-surface-card);
+      color: var(--color-text);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 12px 0 20px;
+      page-break-inside: avoid;
+    }
+
+    thead tr {
+      background: var(--color-surface);
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-muted);
+      border-bottom: 2px solid var(--color-border);
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--color-surface); }
+
+    /* ── Cards / callouts ── */
+    .callout {
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      border-left: 4px solid;
+      margin: 16px 0;
+      page-break-inside: avoid;
+    }
+
+    .callout-info {
+      background: var(--color-accent-light);
+      border-color: var(--color-accent);
+    }
+
+    .callout-info p { color: #0c4a6e; margin: 0; }
+
+    .callout-primary {
+      background: rgba(0,0,0,0.04);
+      border-color: var(--color-primary);
+    }
+
+    .callout-primary p { color: var(--color-text); margin: 0; }
+
+    .callout-success {
+      background: var(--color-green-light);
+      border-color: var(--color-green);
+    }
+
+    .callout-success p { color: #14532d; margin: 0; }
+
+    .callout-warning {
+      background: var(--color-amber-light);
+      border-color: var(--color-amber);
+    }
+
+    .callout-warning p { color: #78350f; margin: 0; }
+
+    /* ── Tag / badge ── */
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 2px;
+    }
+
+    .tag-primary { background: var(--color-primary-light); color: var(--color-text); }
+    .tag-green { background: var(--color-green-light); color: var(--color-green); }
+    .tag-amber { background: var(--color-amber-light); color: var(--color-amber); }
+    .tag-blue { background: var(--color-accent-light); color: var(--color-accent); }
+
+    /* ── Priority indicators ── */
+    .priority-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .priority-row:last-child { border-bottom: none; }
+
+    .priority-badge {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .p1 { background: #fef2f2; color: #dc2626; }
+    .p2 { background: #fff7ed; color: #ea580c; }
+    .p3 { background: #fefce8; color: #ca8a04; }
+    .p4 { background: #f0fdf4; color: #16a34a; }
+
+    .priority-content { flex: 1; }
+    .priority-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+    .priority-desc {
+      font-size: 12px;
+      color: var(--color-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Section break ── */
+    .section-break {
+      page-break-before: always;
+    }
+
+    /* ── Wireframe ascii block ── */
+    .wireframe {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin: 12px 0 20px;
+      page-break-inside: avoid;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .wireframe .hl { color: #a5b4fc; }
+    .wireframe .badge-green { color: #86efac; }
+    .wireframe .badge-amber { color: #fcd34d; }
+    .wireframe .badge-red { color: #fca5a5; }
+    .wireframe .badge-blue { color: #93c5fd; }
+    .wireframe .muted { color: #475569; }
+
+    /* ── Token grid ── */
+    .token-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin: 12px 0 20px;
+    }
+
+    .token-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      font-size: 12px;
+    }
+
+    .token-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .token-name { font-weight: 600; color: var(--color-text); }
+    .token-value { color: var(--color-muted); font-family: monospace; }
+
+    /* ── Delivery checklist ── */
+    .checklist { list-style: none; margin: 10px 0 20px; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 13px;
+      color: var(--color-text);
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before {
+      content: '☐';
+      color: var(--color-primary);
+      font-size: 15px;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+
+    /* ── Stack pills ── */
+    .stack-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0 20px;
+    }
+
+    .stack-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .stack-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-primary);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-brand {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-primary);
+    }
+
+    .footer-info {
+      font-size: 12px;
+      color: var(--color-muted);
+    }
+
+    /* ── Print ── */
+    @media print {
+      @page {
+        size: A4;
+        margin: 20mm 18mm 20mm 18mm;
+      }
+
+      body { font-size: 13px; }
+      .cover { min-height: auto; padding: 60px 48px; page-break-after: always; }
+      .cover h1 { font-size: 38px; }
+      .page { padding: 40px 0; max-width: 100%; }
+      .section { page-break-inside: avoid; }
+      pre, .wireframe { page-break-inside: avoid; font-size: 10.5px; }
+      table { page-break-inside: avoid; }
+      h3 { page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     COVER PAGE
+════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">Prompt de Especificação</div>
+  <h1>Corelix<br/><span>Dashboard Wireframe</span></h1>
+  <p class="cover-subtitle">
+    Especificação completa para geração de wireframe HTML interativo
+    do painel principal do SaaS — pronto para testar e ajustar antes
+    da implementação no frontend final.
+  </p>
+  <div class="cover-divider"></div>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Produto</div>
+      <div class="cover-meta-value">Corelix SaaS</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Versão</div>
+      <div class="cover-meta-value">MVP 1.0</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="cover-meta-label">Destino</div>
+      <div class="cover-meta-value">v0.dev / Claude / ChatGPT</div>
+    </div>
+  </div>
+
+  <div class="cover-toc">
+    <div class="cover-toc-title">Conteúdo deste documento</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">1</div>Role e contexto do produto</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">2</div>Stack final e requisitos de compatibilidade</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">3</div>Design tokens (CSS custom properties)</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">4</div>App Shell — sidebar e topbar persistentes</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">5</div>Screen 1 — Dashboard / Início</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">6</div>Screen 2 — Agenda</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">7</div>Screen 3 — Clientes</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">8</div>Screen 4 — WhatsApp</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">9</div>Screen 5 — Relatórios</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">10</div>Screen 6 — Configurações</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">11</div>Empty states, loading states e navegação</div>
+    <div class="cover-toc-item"><div class="cover-toc-num">12</div>Requisitos de entrega do wireframe</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     CONTENT
+════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- ── SECTION 1 ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <div class="section-title">Role e Contexto do Produto</div>
+    </div>
+
+    <div class="callout callout-primary">
+      <p><strong>Instrução para a IA:</strong> Você é um senior UI engineer. Sua tarefa é produzir um único arquivo HTML auto-contido que sirva como wireframe interativo para o aplicativo web <strong>Corelix</strong>. O wireframe deve estar</p> pronto para evoluir para um app React em produção: cada decisão de layout, unidade de espaçamento e classe CSS deve ser compatível com a stack final descrita neste documento.</p>
+    </div>
+
+    <h3>Sobre o Produto</h3>
+    <p>Corelix é um SaaS de secretária digital para profissionais autônomos de saúde e bem-estar no Brasil (psicólogos, fisioterapeutas, nutricionistas, personal trainers). Combina gerenciamento de agenda, cadastro de clientes, relatórios financeiros e comunicação via WhatsApp com assistência de IA.</p>
+
+    <h3>Persona Principal</h3>
+    <table>
+      <thead><tr><th>Atributo</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Nome</strong></td><td>Dra. Ana Beatriz</td></tr>
+        <tr><td><strong>Perfil</strong></td><td>Psicóloga solo, São Paulo, 35–45 anos</td></tr>
+        <tr><td><strong>Rotina</strong></td><td>Atende 6–8 clientes/dia, usa WhatsApp intensivamente</td></tr>
+        <tr><td><strong>Perfil tech</strong></td><td>Não técnica, mas domina smartphone</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Insight-chave para decisões de layout</h3>
+    <p>Ao abrir o app de manhã, Ana precisa responder quatro perguntas imediatamente:</p>
+
+    <div class="priority-row">
+      <div class="priority-badge p1">1</div>
+      <div class="priority-content">
+        <div class="priority-title">"Quem vou atender hoje e quando?"</div>
+        <div class="priority-desc">A agenda do dia é o elemento hero — deve estar visível acima do fold sem scroll.</div>
+      </div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-badge p2">2</div>
+      <div class="priority-content">
+        <div class="priority-title">"Tem mensagem urgente no WhatsApp?"</div>
+        <div class="priority-desc">A IA monitora as conversas e notifica quando uma precisa de atenção. A plataforma exibe um mini-feed de status; o profissional responde diretamente pelo seu próprio WhatsApp (celular ou WhatsApp Web) — sem chat dentro da plataforma.</div>
+      </div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-badge p3">3</div>
+      <div class="priority-content">
+        <div class="priority-title">"O dia está financeiramente no caminho certo?"</div>
+        <div class="priority-desc">KPI de receita estimada do dia (sessões concluídas × valor da sessão) com meta e progresso.</div>
+      </div>
+    </div>
+    <div class="priority-row">
+      <div class="priority-badge p4">4</div>
+      <div class="priority-content">
+        <div class="priority-title">"É fim do mês?"</div>
+        <div class="priority-desc">Alerta contextual quando o fim do mês se aproxima: lembra o profissional de obrigações pendentes como emissão de notas fiscais, envio de cobranças e relatórios de acompanhamento para clientes.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── SECTION 2 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <div class="section-title">Stack Final e Requisitos de Compatibilidade</div>
+    </div>
+
+    <div class="callout callout-warning">
+      <p><strong>Atenção:</strong> O wireframe em HTML puro deve ser totalmente compatível com esta stack. Cada decisão tomada aqui (nomes de classes, estrutura de componentes, espaçamento) será migrada diretamente para o frontend React final.</p>
+    </div>
+
+    <div class="callout callout-info">
+      <p><strong>Design System de Referência:</strong> Este wireframe usa o Design System <strong>"Glass/Manrope"</strong> como base visual. A IA que gerar o wireframe <strong>deve</strong> seguir os tokens e componentes descritos na Seção 3, que incluem: fundo <code>#cfddea</code>, superfícies glass (<code>bg-white/50 backdrop-blur-md</code>), primária preta, tipografia Manrope nos títulos, cards <code>rounded-2xl</code>, seções <code>rounded-3xl</code>, animações <code>animate-slide-up</code> e botões <code>rounded-full</code>.</p>
+    </div>
+
+    <h3>Stack definitiva do frontend</h3>
+    <div class="stack-grid">
+      <div class="stack-pill"><div class="dot"></div>React 18 + TypeScript</div>
+      <div class="stack-pill"><div class="dot"></div>Vite 5</div>
+      <div class="stack-pill"><div class="dot"></div>Tailwind CSS v4</div>
+      <div class="stack-pill"><div class="dot"></div>shadcn/ui (Radix UI)</div>
+      <div class="stack-pill"><div class="dot"></div>TanStack Query v5</div>
+      <div class="stack-pill"><div class="dot"></div>Zustand</div>
+      <div class="stack-pill"><div class="dot"></div>React Hook Form + Zod</div>
+      <div class="stack-pill"><div class="dot"></div>react-big-calendar</div>
+      <div class="stack-pill"><div class="dot"></div>date-fns v3</div>
+      <div class="stack-pill"><div class="dot"></div>Recharts</div>
+      <div class="stack-pill"><div class="dot"></div>Sonner (toasts)</div>
+      <div class="stack-pill"><div class="dot"></div>React Router v6</div>
+    </div>
+
+    <h3>Regras de compatibilidade para o wireframe HTML</h3>
+    <table>
+      <thead><tr><th>Regra</th><th>Implementação no wireframe</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Tailwind via CDN</strong></td>
+          <td>Usar classes Tailwind CSS v3 via CDN — idênticas às v4 na prática</td>
+        </tr>
+        <tr>
+          <td><strong>HTML semântico</strong></td>
+          <td>Sem div soup — usar <code>&lt;nav&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;header&gt;</code>, <code>&lt;aside&gt;</code>, <code>&lt;section&gt;</code>, <code>&lt;article&gt;</code></td>
+        </tr>
+        <tr>
+          <td><strong>Anotação de componentes</strong></td>
+          <td>Todo elemento relevante com <code>data-component="NomeDoComponente"</code> para mapeamento React</td>
+        </tr>
+        <tr>
+          <td><strong>CSS custom properties</strong></td>
+          <td>Apenas tokens semânticos — nunca hex hardcoded inline. Ex: <code>var(--color-primary)</code></td>
+        </tr>
+        <tr>
+          <td><strong>Unidade de espaçamento</strong></td>
+          <td>Base de 4px (alinhado ao Tailwind: 1 unit = 4px)</td>
+        </tr>
+        <tr>
+          <td><strong>Border radius</strong></td>
+          <td>Cards: <code>rounded-2xl</code> (1rem = 16px). Seções glass: <code>rounded-3xl</code> (1.5rem = 24px). Botões/pills: <code>rounded-full</code>. Tudo via variáveis <code>var(--radius-lg)</code>, <code>var(--radius-xl)</code>, <code>var(--radius-full)</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>Zero dependências externas</strong></td>
+          <td>Apenas Tailwind CDN. Sem React, sem libs JS</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ── SECTION 3 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <div class="section-title">Design Tokens</div>
+    </div>
+
+    <div class="callout callout-info">
+      <p><strong>Design System:</strong> Todos os tokens abaixo derivam do Design System <em>"Glass/Manrope"</em>. A IA que gerar o wireframe deve definir exatamente este bloco <code>:root</code> no <code>&lt;style&gt;</code> do arquivo gerado.</p>
+    </div>
+
+    <p>Defina todos os tokens no bloco <code>&lt;style&gt;</code> do wireframe. Nenhum valor de cor deve aparecer hardcoded fora deste bloco.</p>
+
+    <pre><code>:root {
+  /* ── Página & Superfícies ───────────────────────────── */
+  --color-bg            : #cfddea;           /* fundo do app */
+  --color-surface       : rgba(255,255,255,0.50); /* glass cards */
+  --color-surface-card  : #f1f2f3;           /* card sólido */
+  --color-border        : #e5e7eb;           /* divisores, bordas */
+
+  /* ── Cor primária = Preto ───────────────────────────── */
+  --color-primary       : #000000;
+  --color-primary-fg    : #ffffff;
+  --color-primary-light : #f1f2f3;
+
+  /* ── Texto ──────────────────────────────────────────── */
+  --color-foreground    : #0f0f0f;
+  --color-muted         : #6b7280;
+
+  /* ── Status ─────────────────────────────────────────── */
+  --color-success       : #16a34a;  /* green-600 */
+  --color-warning       : #d97706;  /* orange-600 */
+  --color-destructive   : #dc2626;  /* red-600 */
+  --color-info          : #2563eb;  /* blue-600 — IA */
+
+  /* ── Badges de status ───────────────────────────────── */
+  --badge-confirmed-bg  : #dcfce7;  --badge-confirmed-fg  : #16a34a;
+  --badge-pending-bg    : #ffedd5;  --badge-pending-fg    : #d97706;
+  --badge-cancelled-bg  : #fee2e2;  --badge-cancelled-fg  : #dc2626;
+  --badge-noshow-bg     : #f3f4f6;  --badge-noshow-fg     : #6b7280;
+  --badge-ai-bg         : #dbeafe;  --badge-ai-fg         : #2563eb;
+
+  /* ── Layout ─────────────────────────────────────────── */
+  --sidebar-width       : 260px;
+  --sidebar-width-icon  : 64px;
+  --topbar-height       : 48px;
+
+  /* ── Border Radius ──────────────────────────────────── */
+  --radius              : 0.5rem;   /* base — inputs, badges */
+  --radius-lg           : 1rem;     /* rounded-2xl — cards */
+  --radius-xl           : 1.5rem;   /* rounded-3xl — seções glass */
+  --radius-full         : 9999px;   /* rounded-full — pills, botões */
+
+  /* ── Sombras ────────────────────────────────────────── */
+  --shadow-sm           : 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-card         : 0 2.8px 2.2px rgba(0,0,0,0.034),
+                          0 6.7px 5.3px rgba(0,0,0,0.048),
+                          0 12.5px 10px rgba(0,0,0,0.06),
+                          0 22.3px 17.9px rgba(0,0,0,0.072);
+  --shadow-glass        : rgba(255,255,255,0.1) 0px 1px 1px 0px inset,
+                          rgba(50,50,93,0.25) 0px 50px 100px -20px,
+                          rgba(0,0,0,0.3) 0px 30px 60px -30px;
+
+  /* ── Tipografia ─────────────────────────────────────── */
+  --font-heading        : 'Manrope', sans-serif;
+  --font-body           : 'Inter', system-ui, -apple-system, sans-serif;
+}</code></pre>
+
+    <h3>Paleta visual de referência</h3>
+    <div class="token-grid">
+      <div class="token-item">
+        <div class="token-swatch" style="background:#cfddea; border-color:#b8c9d9"></div>
+        <div><div class="token-name">--color-bg</div><div class="token-value">#cfddea — fundo do app</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:rgba(255,255,255,0.5); border-color:#e5e7eb"></div>
+        <div><div class="token-name">--color-surface</div><div class="token-value">rgba(255,255,255,0.50) + blur</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#f1f2f3; border-color:#e5e7eb"></div>
+        <div><div class="token-name">--color-surface-card</div><div class="token-value">#f1f2f3 — card sólido</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#000000"></div>
+        <div><div class="token-name">--color-primary</div><div class="token-value">#000000 — preto</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#16a34a"></div>
+        <div><div class="token-name">--color-success</div><div class="token-value">#16a34a — green-600</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#d97706"></div>
+        <div><div class="token-name">--color-warning</div><div class="token-value">#d97706 — orange-600</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#dc2626"></div>
+        <div><div class="token-name">--color-destructive</div><div class="token-value">#dc2626 — red-600</div></div>
+      </div>
+      <div class="token-item">
+        <div class="token-swatch" style="background:#2563eb"></div>
+        <div><div class="token-name">--color-info</div><div class="token-value">#2563eb — blue-600 (IA)</div></div>
+      </div>
+    </div>
+
+    <h3>Padrões de componentes obrigatórios</h3>
+    <table>
+      <thead><tr><th>Componente</th><th>Classes Tailwind no wireframe</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Botão primário</strong></td><td><code>rounded-full bg-black text-white px-8 py-4 font-medium hover:scale-105 hover:bg-gray-900 hover:shadow-lg transition-all</code></td></tr>
+        <tr><td><strong>Botão secundário</strong></td><td><code>rounded-full border border-gray-200 bg-white text-black px-8 py-4 font-medium hover:bg-gray-100 hover:shadow-md transition-all</code></td></tr>
+        <tr><td><strong>Card feature</strong></td><td><code>rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 transition-colors</code></td></tr>
+        <tr><td><strong>Card glass (seções)</strong></td><td><code>rounded-3xl p-8 md:p-16 bg-white/50 backdrop-blur-md shadow-[glass] border border-white/30</code></td></tr>
+        <tr><td><strong>Card gradiente</strong></td><td><code>rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:shadow-lg transition-all</code></td></tr>
+        <tr><td><strong>Badge/pill status</strong></td><td><code>rounded-full px-3 py-1 text-xs font-semibold bg-[--badge-X-bg] text-[--badge-X-fg]</code></td></tr>
+        <tr><td><strong>Nav item ativo</strong></td><td><code>border-l-[3px] border-black bg-black/8 text-black font-semibold</code></td></tr>
+        <tr><td><strong>Topbar/nav sticky</strong></td><td><code>sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Animações de entrada obrigatórias</h3>
+    <p>Definir no <code>&lt;style&gt;</code> do wireframe. Aplicar com delays escalonados para elementos hero:</p>
+    <pre><code>@keyframes fadeIn  { to { opacity: 1; } }
+@keyframes slideUp { to { opacity: 1; transform: translateY(0); } }
+
+.animate-fade-in  { animation: fadeIn  0.8s ease-out forwards; opacity: 0; }
+.animate-slide-up { animation: slideUp 0.8s ease-out forwards; opacity: 0; transform: translateY(20px); }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-600 { animation-delay: 0.6s; }
+.animate-delay-800 { animation-delay: 0.8s; }</code></pre>
+
+    <h3>Tipografia</h3>
+    <table>
+      <thead><tr><th>Papel</th><th>Fonte</th><th>Classes Tailwind</th></tr></thead>
+      <tbody>
+        <tr><td>H1 — hero</td><td>Manrope</td><td><code>font-manrope text-4xl sm:text-5xl lg:text-7xl font-medium tracking-tight</code></td></tr>
+        <tr><td>H2 — seção</td><td>Manrope</td><td><code>font-manrope text-3xl font-semibold</code></td></tr>
+        <tr><td>H3 — sub-seção</td><td>Manrope</td><td><code>font-manrope text-xl font-semibold</code></td></tr>
+        <tr><td>Body</td><td>Inter</td><td><code>text-base font-sans text-gray-600</code></td></tr>
+        <tr><td>Labels/caps</td><td>Inter</td><td><code>text-xs font-semibold uppercase tracking-wider text-gray-500</code></td></tr>
+        <tr><td>Números KPI</td><td>Manrope</td><td><code>font-manrope text-3xl font-semibold text-gray-900</code></td></tr>
+      </tbody>
+    </table>
+
+    <p>No wireframe HTML, adicionar no <code>&lt;head&gt;</code>: <code>&lt;link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"&gt;</code></p>
+  </div>
+
+
+  <!-- ── SECTION 4 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <div class="section-title">App Shell — Persistente em Todas as Telas</div>
+    </div>
+
+    <h3>4.1 Sidebar — <code>data-component="AppSidebar"</code></h3>
+
+    <table>
+      <thead><tr><th>Breakpoint</th><th>Comportamento</th><th>Largura</th></tr></thead>
+      <tbody>
+        <tr><td>Desktop ≥ 1024px</td><td>Sempre visível, labels + ícones</td><td>260px</td></tr>
+        <tr><td>Tablet 768–1023px</td><td>Apenas ícones (colapsada)</td><td>64px</td></tr>
+        <tr><td>Mobile &lt; 768px</td><td>Off-canvas drawer (hambúrguer)</td><td>100%</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Estrutura da sidebar (de cima para baixo)</h4>
+<div class="wireframe">┌─────────────────────────────────────────────────────┐
+│  <span class="hl">● Corelix</span>                             [logo zone 48px]│
+├─────────────────────────────────────────────────────┤
+│  <span class="muted">MENU</h4></span>                                                 │
+│  ▌ <span class="hl">🏠  Início</span>        <span class="badge-green">← active: border-l-3 primary</span>     │
+│    📅  Agenda                                        │
+│    👥  Clientes                                      │
+│    💬  WhatsApp          <span class="badge-amber">[3]</span>  <span class="muted">← badge warning</span>    │
+│    📊  Relatórios                                    │
+├─────────────────────────────────────────────────────┤
+│  <span class="muted">CONTA</span>                                                │
+│    ⚙️  Configurações                                 │
+├─────────────────────────────────────────────────────┤
+│  [flex-1 spacer]                                     │
+├─────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────┐  │
+│  │ <span class="hl">[AV]</span> Dra. Ana Beatriz · Psicóloga    [→ sair] │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘</div>
+
+    <p><strong>Estado ativo do item de nav:</strong> <code>background: rgba(99,102,241,0.08)</code>, borda esquerda 3px <code>var(--color-primary)</code>, texto <code>var(--color-primary)</p></code>.</p>
+    <p><strong>Badge de contagem:</strong> <code>data-component="Badge"</code>, pill 16×16px, <code>background: var(--badge-pending-bg)</code>.</p>
+
+    <h3>4.2 Topbar — <code>data-component="SiteHeader"</code></h3>
+    <p>Altura: 48px. <code>background: var(--color-surface)</code>. <code>border-bottom: 1px solid var(--color-border)</code>. <code>position: sticky top-0</code>.</p>
+
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│  <span class="hl">[☰]</span>  Início                <span class="muted">Terça, 29 de Abril de 2025</span>   <span class="hl">[🔍][🔔 2]</span> <span class="badge-green">[+ Nova Sessão]</span> <span class="hl">[AV]</span>  │
+└──────────────────────────────────────────────────────────────────────┘
+  <span class="muted">← sidebar   breadcrumb        centro (data, ≥1024px)         direita →</span></div>
+
+    <table>
+      <thead><tr><th>Zona</th><th>Conteúdo</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Esquerda</strong></td><td>Sidebar toggle icon button (36px tap target) + Breadcrumb da página</td> atual</td></tr>
+        <tr><td><strong>Centro</strong></td><td>Data atual — visível apenas em ≥ 1024px. Ex: "Terça-feira, 29 de Abril"</td></tr>
+        <tr><td><strong>Direita</strong></td><td>Ícone de busca → campo inline | Bell + badge | <strong>Botão primário "+ Nova Sessão"</strong> | Avatar 32px</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ── SECTION 5 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <div class="section-title">Screen 1 — Dashboard / Início</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/dashboard</code> &nbsp;|&nbsp; <strong</p>>Label nav:</strong> Início &nbsp;|&nbsp; <strong>Propósito:</strong> Visão matinal completa do dia em um olhar.</p>
+
+    <h4>Fontes de dados (API)</h4>
+    <table>
+      <thead><tr><th>Endpoint</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/v1/agenda/sessions/today</code></td><td>Sessões do dia (inclui client_name)</td></tr>
+        <tr><td><code>GET /api/v1/agenda/sessions/upcoming?limit=3</code></td><td>Próximas sessões</td></tr>
+        <tr><td><code>GET /api/v1/reports/summary?start_date=HOJE&amp;end_date=HOJE</code></td><td>KPI de receita do dia</td></tr>
+        <tr><td><code>GET /api/v1/whatsapp/conversations?status=active</code></td><td>Mensagens pendentes</td></tr>
+        <tr><td><code>GET /api/v1/professionals/me</code></td><td>Nome para saudação</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Zona 1 — Banner de Saudação <span</h3> class="tag tag-primary">PRIORITY 1</span></h3>
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│ 👋 Bom dia, Dra. Ana! Você tem <span class="hl">6 sessões</span> hoje.                       │
+│    <span class="badge-amber">3 mensagens não lidas no WhatsApp.</span>              <span class="badge-blue">[Ver mensagens]</span>  │
+└──────────────────────────────────────────────────────────────────────┘
+<span class="muted">background: rgba(primary, 0.05) | border-left: 4px var(--color-primary) | data-component="Alert"</span></div>
+
+    <p>Exib</p>ir apenas quando houver mensagens pendentes. Não dismissível.</p>
+
+    <h3>Zona 2 — KPI Cards <span class="tag tag-primary">PRIORITY 2</span></h3>
+    <p>Grid: <code>grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4</code>. Cada card: <code>data-component="Card"</code>, white surface, shadow-sm, padding 20px, border-radius <code>var(--radius-lg)</code>.</p>
+
+<div class="wireframe">┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ 📅 [▲ +2]   │ │ 💬 [⚠️ aten] │ │ 💰 [78% ████]│ │ 🕐 [▼ -5%]  │
+│              │ │              │ │              │ │              │
+│  <span class="hl">6</span>           │ │  <span class="badge-amber">3</span>           │ │  <span class="badge-green">R$ 780</span>     │ │  <span class="badge-blue">75%</span>         │
+│ Sessões Hoje │ │ Msgs Pend.   │ │ Receita Hoje │ │ Ocupação     │
+│              │ │              │ │              │ │              │
+│ <span class="muted">5 conf · 1 pend</span>│ │ <span class="muted">2 há +1h sem</span> │ │ <span class="muted">Meta: R$ 900</span> │ │ <span class="muted">3 horários livres</span>│
+│              │ │ <span class="muted">resposta</span>     │ │              │ │              │
+└──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+<span class="muted">  Número: 32px bold foreground  |  Label: 13px muted-fg  |  Sub: 11px muted-fg</span></div>
+
+    <h3>Zona 3 — Conteúdo Principal <span class="tag tag-primary">PRIORITY 1</span></h3>
+    <p>Grid: <code>grid-cols-1 lg:grid-cols-3 gap-4</code></p>
+
+    <h4>Coluna esquerda (2/3 — lg:col-span-2) — Agenda de Hoje</h4>
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│ <span class="hl">Agenda de Hoje</span>                        [&lt; Ontem | <span class="hl">Hoje</span> | Amanhã &gt;]  │
+├──────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">09:00</span>  <span class="hl">[MC]</span> Mariana Costa                                            │
+│        <span class="muted">Sessão de Psicoterapia · 50 min</span>          <span class="badge-green">[● Confirmada ▼]</span>   │
+├──────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">10:30</span>  <span class="hl">[JL]</span> João Lima                                               │
+│        <span class="muted">Nutrição — Retorno · 30 min</span>               <span class="badge-amber">[⏳ Pendente  ▼]</span>   │
+├──────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">12:00  ─ ─ ─ ─ ─ ─ ─ ─  Bloqueado: Almoço  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─</span> │
+├──────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">14:00</span>  <span class="hl">[FS]</span> Fernanda Silva                                          │
+│        <span class="muted">Avaliação Inicial · 60 min</span>                <span class="badge-green">[● Confirmada ▼]</span>   │
+├──────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">15:30</span>  <span class="hl">[CM]</span> Carlos Mendes                                           │
+│        <span class="muted">Sessão de Psicoterapia · 50 min</span>           <span class="badge-green">[● Confirmada ▼]</span>   │
+├──────────────────────────────────────────────────────────────────────┤
+│                                           <span class="badge-blue">Ver agenda completa →</span>  │
+└──────────────────────────────────────────────────────────────────────┘
+<span class="muted">Avatar: 32px circular, iniciais fallback | Badge: dropdown de status rápido</span></div>
+
+    <h4>Coluna direita (1/3 — lg:col-span-1) — Notificações WhatsApp</h4>
+<div class="wireframe">┌──────────────────────────────────────────────────────┐
+│ 💬 <span class="hl">WhatsApp</span>                          <span class="badge-amber">[3 novos]</span>    │
+├──────────────────────────────────────────────────────┤
+│ <span class="hl">[MC]</span> Mariana Costa                          <span class="muted">2h</span>   │
+│ <span class="muted">"Posso reagendar para..."</span>                        │
+│                                  <span class="badge-blue">[🤖 IA · ativo]</span>  │
+├──────────────────────────────────────────────────────┤
+│ <span class="hl">[PA]</span> Pedro Alves                            <span class="muted">5h</span>   │
+│ <span class="muted">"Qual o valor da consulta?"</span>                      │
+│                               <span class="badge-amber">[⚠️ Requer atenção]</span>  │
+├──────────────────────────────────────────────────────┤
+│ <span class="hl">[?]</span>  +55 11 99999-0001                     <span class="muted">1d</span>   │
+│ <span class="muted">"Olá, vi seu contato no..."</span>                      │
+│                                  <span class="badge-blue">[🤖 IA · novo]</span>  │
+├──────────────────────────────────────────────────────┤
+│                         <span class="badge-blue">Abrir WhatsApp →</span>    │
+└──────────────────────────────────────────────────────┘
+<span class="muted">Painel somente-leitura — sem chat na plataforma. Badge ⚠️ = IA detectou necessidade de intervenção humana. "Abrir WhatsApp →" redireciona para o WhatsApp do profissional (celular/web).</span></div>
+
+    <h3>Zona 4 — Charts <span class="tag tag-amber">PRIORITY 3</span></h3>
+    <p>Grid: <code>grid-cols-1 lg:grid-cols-3 gap-4</code> — abaixo do fold (primeiro scroll).</p>
+
+<div class="wireframe">┌──────────────────────────────────────────┐  ┌────────────────────────┐
+│ <span class="hl">Sessões por Período</span>  [<span class="hl">Semana</span>][Mês][Tri.]  │  │ <span class="hl">Receita da Semana</span>       │
+├──────────────────────────────────────────┤  ├────────────────────────┤
+│  8 ┤         ╭──╮                        │  │  <span class="hl">R$ 2.340</span>              │
+│  6 ┤   ╭─────╯  ╰──╮    ╭──             │  │  Meta: R$3.000 · <span class="badge-amber">78%</span>  │
+│  4 ┤───╯            ╰────╯              │  │  <span class="badge-green">████████████</span><span class="muted">░░░░</span>      │
+│  2 ┤                                    │  ├────────────────────────┤
+│    └────────────────────────────────    │  │ ● Psicoterapia R$1.800 │
+│    Seg Ter Qua Qui Sex Sáb Dom          │  │ ● Avaliação    R$  540 │
+│  ● Sessões realizadas  ● Meta           │  │                        │
+│                                         │  │   <span class="badge-blue">Ver relatório →</span>     │
+└──────────────────────────────────────────┘  └────────────────────────┘
+<span class="muted">lg:col-span-2 — ChartAreaInteractive (Recharts)   lg:col-span-1</span></div>
+
+    <h3>Zona 5 — Tabela de Clientes Recentes <span class="tag tag-green">PRIORITY 4</span></h3>
+    <p>Full width, abaixo do fold (segundo scroll). <code>data-component="DataTable"</code> — max 5 linhas no dashboard.</p>
+
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│ <span class="hl">Clientes Recentes</span>                                   <span class="badge-blue">Ver todos →</span>   │
+├──────────────────┬────────────────┬──────────────────┬──────┬───────┤
+│ <span class="muted">Cliente</span>          │ <span class="muted">Próx. Sessão</span>   │ <span class="muted">Última Mensagem</span>  │<span class="muted">Status</span>│ <span class="muted">Ações</span> │
+├──────────────────┼────────────────┼──────────────────┼──────┼───────┤
+│<span class="hl">[MC]</span> Mar. Costa   │ Hoje, 09:00    │ há 2h (WhatsApp) │<span class="badge-green">●Ativo</span>│ <span class="muted">... ▼</span> │
+│<span class="hl">[JL]</span> João Lima    │ Hoje, 10:30    │ há 3 dias        │<span class="badge-green">●Ativo</span>│ <span class="muted">... ▼</span> │
+│<span class="hl">[FS]</span> Fer. Silva   │ Hoje, 14:00    │ há 1 semana      │<span class="badge-green">●Ativo</span>│ <span class="muted">... ▼</span> │
+│<span class="hl">[CM]</span> Car. Mendes  │ Sex, 09:00     │ nunca            │<span class="badge-green">●Ativo</span>│ <span class="muted">... ▼</span> │
+│<span class="hl">[LF]</span> Lia Fern.    │ —              │ há 2 semanas     │<span class="muted">○Inat.</span>│ <span class="muted">... ▼</span> │
+└──────────────────┴────────────────┴──────────────────┴──────┴───────┘</div>
+  </div>
+
+
+  <!-- ── SECTION 6 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <div class="section-title">Screen 2 — Agenda</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/agenda</code> &nbsp;|&nbsp; <strong>Propósito:</strong> Gerenciamento completo da agenda.</p>
+
+    <h3>Topbar da t</h3>ela de Agenda</h3>
+    <p>Breadcrumb <code>Agenda</code> + navegador de data <code>[&lt; Anterior] Semana de 28 Abr–04 Mai [Próxima &gt;]</code> + botão <code>[</code>Hoje]</code> + <code>[+ Nova Sessão]</code> primário. Toggle de visão: <code>data-component="Tabs"</code> — <code>[Dia][Semana][Mês]</code>.</p>
+
+    <h3>Sub-visão: Dia (default)</h3>
+<div class="wireframe">┌───────┬──────────────────────────────────────────────────────────────┐
+│       │  <span class="hl">Terça, 29 de Abril de 2025</span>           <span class="muted">4 sessões · R$ 520 prev.</span>│
+│ 08:00 │                                                              │
+│ 09:00 │  <span class="badge-green">███████████████████████</span>  <span class="hl">Mariana Costa</span>                    │
+│       │  <span class="muted">Psicoterapia · 50min</span>                    <span class="badge-green">[● Confirmada ▼]</span>  │
+│ 10:00 │                                                              │
+│ 10:30 │  <span class="badge-amber">████████████</span>  <span class="hl">João Lima</span>                              │
+│       │  <span class="muted">Nutrição · 30min</span>                         <span class="badge-amber">[⏳ Pendente  ▼]</span>  │
+│ 11:00 │                                                              │
+│ 12:00 │  <span class="muted">░░░░░░░░░░░░░░░░░░░  [🔒 Bloqueado: Almoço]  ░░░░░░░░░░░</span>    │
+│ 13:00 │  <span class="muted">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</span>    │
+│ 14:00 │  <span class="badge-green">████████████████████████████</span>  <span class="hl">Fernanda Silva</span>              │
+│       │  <span class="muted">Avaliação Inicial · 60min</span>               <span class="badge-green">[● Confirmada ▼]</span>  │
+│ 15:00 │                                                              │
+└───────┴──────────────────────────────────────────────────────────────┘
+<span class="muted">Clique em slot vazio → abre Sheet "Nova Sessão" | Clique em bloco → Sheet de edição</span></div>
+
+    <h3>Sheet lateral — Nova Sessão / Editar Sessão</h3>
+    <p><code>data-component="Sheet"</code> <code>side=right</code>, <code>width=420px</code>. Campos: Cliente (Select + search), Data, Horário, Duração, Tipo, Valor, Notas, toggle Recorrência. Footer: <code>[Cancelar]</code> <code>[Salvar sessão]</code>.</p>
+  </div>
+
+
+  <!-- ── SECTION 7 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <div class="section-title">Screen 3 — Clientes</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/clientes</code> &nbsp;|&nbsp; <strong>Propósito:</strong> Diretório de clientes.</p>
+
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│ <span class="hl">Clientes</span>                                       <span class="badge-green">[+ Novo cliente]</span>  │
+│ <span class="muted">[🔍 Buscar por nome, telefone, email...]</span>            <span class="muted">[Filtrar ▼]</span>     │
+├───────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">Cliente</span>      │ <span class="muted">Telefone</span>      │ <span class="muted">WhatsApp</span> │ <span class="muted">Últ. Sessão</span> │ <span class="muted">Status</span> │ <span class="muted">Ações</span>  │
+├─────────────┼───────────────┼─────────┼─────────────┼────────┼────────┤
+│<span class="hl">[MC]</span> Mar.Cos │ 11 98888-0001 │ ✓        │ Hoje, 09:00  │<span class="badge-green">●Ativo</span> │ <span class="muted">... ▼</span>  │
+│<span class="hl">[JL]</span> João Li │ 11 97777-0002 │ ✓        │ Hoje, 10:30  │<span class="badge-green">●Ativo</span> │ <span class="muted">... ▼</span>  │
+│<span class="hl">[FS]</span> Fer.Sil │ 11 96666-0003 │ ✓        │ Hoje, 14:00  │<span class="badge-green">●Ativo</span> │ <span class="muted">... ▼</span>  │
+└─────────────┴───────────────┴─────────┴─────────────┴────────┴────────┘</div>
+
+    <h3>Sheet de Detalhe do Cliente (painel direito, 480px)</h3>
+    <p>Tabs dentro do Sheet: <code>[Perfil][Sessões][Mensagens]</code></p>
+    <table>
+      <thead><tr><th>Tab</th><th>Conteúdo</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Perfil</strong></td><td>Campos editáveis inline, botão salvar no footer do Sheet</td></tr>
+        <tr><td><strong>Sessões</strong></td><td>Lista de sessões passadas + próximas, mini timeline</td></tr>
+        <tr><td><strong>Mensagens</strong></td><td>Últimas 5 mensagens WhatsApp, link para conversa completa</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ── SECTION 8 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <div class="section-title">Screen 4 — WhatsApp</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/whatsapp</code> &nbsp;|&nbsp; <strong>Layout:</strong> Dois painéis (lista de conversas + visão geral de status). A IA gerencia as conversas automaticamente e notifica o profissional quando é necessária intervenção. <strong>Não há campo de resposta na plataforma</strong> — todas as respostas são feitas pelo WhatsApp do próprio profissional (celular ou WhatsApp Web).</p>
+
+<div class="wireframe">┌─────────────────────────┬────────────────────────────────────────────┐
+│ <span class="hl">Conversas</span>         <span class="badge-amber">[3]</span>  │ <span class="hl">Pedro Alves</span>              <span class="badge-amber">[⚠️ Requer atenção]</span>  │
+│ <span class="muted">[🔍 Buscar...]</span>          │ <span class="muted">+55 11 97777-0002 · sem sessão agendada</span>     │
+│ <span class="muted">[Todas▼][Status▼]</span>        │                      <span class="badge-blue">[Abrir no WhatsApp ↗]</span>  │
+├─────────────────────────┼────────────────────────────────────────────┤
+│<span class="hl">[MC]</span> Mariana      <span class="muted">2h</span>  │  <span class="muted">[PA]</span> "Qual o valor da consulta?"    <span class="muted">5h</span>    │
+│ <span class="muted">"Posso reagend..."</span>      │  <span class="badge-blue">[🤖]</span> "O valor da sessão é R$200..."         │
+│    <span class="badge-blue">[🤖 IA · ativo]</span>     │  <span class="muted">[PA]</span> "E como funciona o pagamento?"        │
+│                         ├────────────────────────────────────────────┤
+│<span class="hl">[PA]</span> Pedro ●      <span class="muted">5h</span>  │  <span class="badge-amber">⚠️  A IA identificou que esta conversa</span>      │
+│ <span class="muted">"Qual o valor..."</span>       │  <span class="badge-amber">    requer sua atenção pessoal.</span>              │
+│    <span class="badge-amber">[⚠️ Requer atenção]</span> │  <span class="muted">    Responda pelo seu WhatsApp.</span>              │
+│                         │                      <span class="badge-blue">[Abrir no WhatsApp ↗]</span>  │
+│<span class="hl">[?]</span> +55 11 9...   <span class="muted">1d</span>  ├────────────────────────────────────────────┤
+│ <span class="muted">"Olá, vi seu..."</span>        │  <span class="muted">Quando IA ativa (ex: Mariana): painel</span>       │
+│    <span class="badge-blue">[🤖 IA · novo]</span>      │  <span class="muted">exibe ✅ IA gerenciando — sem ação.</span>         │
+└─────────────────────────┴────────────────────────────────────────────┘
+<span class="muted">Item ativo: bg primary/8, border-l-3 | Sem campo de resposta — plataforma é somente-leitura | Botão ↗ abre WhatsApp do profissional</span></div>
+  </div>
+
+
+  <!-- ── SECTION 9 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">9</div>
+      <div class="section-title">Screen 5 — Relatórios</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/relatorios</code> &nbsp;|&nbsp; <strong>Propósito:</strong> Resumo de produtividade e receita estimada por período. No MVP, a receita é calculada como <em>sessões concluídas × valor da sessão registrado</em> — sem gestão de cobranças ou emissão de notas na plataforma.</p>
+
+<div class="wireframe">┌──────────────────────────────────────────────────────────────────────┐
+│ <span class="hl">Relatórios</span>                                                         │
+│ Período: <span class="badge-blue">[📅 01/04/2025]</span> até <span class="badge-blue">[📅 30/04/2025]</span>   <span class="badge-green">[Gerar relatório →]</span>  │
+├───────────────────┬────────────────────┬──────────────────────────────┤
+│   <span class="hl">R$ 9.600</span>        │  <span class="hl">48 sessões</span>         │  <span class="badge-red">3 cancelamentos</span>            │
+│  receita estimada │  concluídas        │                              │
+├───────────────────┴────────────────────┴──────────────────────────────┤
+│ <span class="muted">[Chart: Receita estimada por semana — BarChart, 4 barras]</span>           │
+│  R$ 3.000 ┤  <span class="badge-green">████</span>                                                   │
+│  R$ 2.000 ┤  <span class="badge-green">████</span>  <span class="badge-green">████</span>  <span class="badge-green">████</span>  <span class="badge-green">████</span>                          │
+│         0 └───────────────────────────────────                        │
+│              Sem 1  Sem 2  Sem 3  Sem 4                               │
+├───────────────────────────────────────────────────────────────────────┤
+│ <span class="muted">Nome</span>             │ <span class="muted">Sessões</span> │ <span class="muted">Estimado</span>  │ <span class="muted">Valor/sessão</span> │ <span class="muted">Últ. Sessão</span>  │
+│ Mariana Costa    │     8   │ R$1.600  │ R$ 200     │ 29/04/2025   │
+│ João Lima        │     6   │ R$1.200  │ R$ 200     │ 29/04/2025   │
+├───────────────────────────────────────────────────────────────────────┤
+│ <span class="badge-blue">🤖 Insights da IA</span>  <span class="muted">(foco em agenda — MVP)</span>                         │
+│ <span class="muted">"Você tem 4 sessões sem confirmação esta semana — considere enviar</span>   │
+│ <span class="muted">lembretes. 2 novos clientes em abril. Taxa de no-show: 6% (3 faltas)</span>  │
+│ <span class="muted">— João Lima faltou 2x sem aviso prévio."</span>                            │
+└───────────────────────────────────────────────────────────────────────┘
+<span class="muted">AI insights card: border-left 4px var(--color-info) | bg: var(--badge-ai-bg) | Insights limitados a agenda no MVP</span></div>
+  </div>
+
+
+  <!-- ── SECTION 10 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <div class="section-title">Screen 6 — Configurações</div>
+    </div>
+
+    <p><strong>Rota:</strong> <code>/configuracoes</code> &nbsp;|&nbsp; <strong>Layout:</strong> Tabs verticais (200px) + área de formulário.</p>
+
+    <h3>Tabs de navegação (coluna esquerda)</h3>
+    <table>
+      <thead><tr><th>Tab</th><th>Conteúdo</th></tr></thead>
+      <tbody>
+        <tr><td>👤 <strong>Perfil</strong></td><td><code>full_name</code>, <code>specialty</code>, <code>bio</code>, <code>phone</code>, <code>email</code> (readonly), upload de foto. Botão <em>[Salvar alterações]</em></td></tr>
+        <tr><td>🕐 <strong>Disponibilidade</strong></td><td>Grid 7 linhas (Seg–Dom), cada linha: toggle ativo/inativo + <code>start_time</code> + <code>end_time</code>. Botão <em>[Salvar disponibilidade]</em></td></tr>
+        <tr><td>💰 <strong>Valores</strong></td><td><code>session_price</code> (decimal), <code>session_duration</code> (select: 30/45/50/60/90 min). Botão <em>[Salvar valores padrão]</em></td></tr>
+        <tr><td></td></td>💬 <strong>WhatsApp</strong></td><td>Número conectado (ou CTA <em>[Conectar número]</em>), toggle modo IA, textarea de instruções da IA</td></tr>
+        <tr><td>🔔 <strong>Notificações</strong></td><td>Toggles por tipo de</td> evento</td></tr>
+        <tr><td>🔑 <strong>Segurança</strong></td><td>Formulário troca de senha</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ── SECTION 11 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">11</div>
+      <div class="section-title">Empty States, Loading States e Navegação</div>
+    </div>
+
+    <h3>Empty States — obrigatório em todas as zonas de dados</h3>
+    <p>Nenhuma zona de dados pode ficar em branco. Toda zona deve ter um estado vazio com estrutura:</p>
+    <pre><code>[Ilustração placeholder — 120px, dashed border, rounded]
+Título descritivo
+Texto explicativo de uma linha
+[Botão CTA]</code></pre>
+
+    <table>
+      <thead><tr><th>Zona</th><th>Título</th><th>CTA</th></tr></thead>
+      <tbody>
+        <tr><td>Agenda vazia</td><td>Nenhuma sessão hoje</td><td>[+ Agendar sessão]</td></tr>
+        <tr><td>Clientes vazios</td><td>Comece adicionando seu primeiro cliente</td><td>[+ Novo cliente]</td></tr>
+        <tr><td>WhatsApp inativo</td><td>Conecte seu WhatsApp para começar</td><td>[Conectar]</td></tr>
+        <tr><td>Relatório sem dados</td><td>Sem sessões no período selecionado</td><td>[Alterar período]</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Loading States — obrigatório em todos os cards com dados</h3>
+    <p><code>data-component="Skeleton"</code> nas mesmas dimensões do conteúdo real:</p>
+    <table>
+      <thead><tr><th>Componente</th><th>Skeleton</th></tr></thead>
+      <tbody>
+        <tr><td>KPI card</td><td>3 barras horizontais (label + número + sub-info)</td></tr>
+        <tr><td>Tabela</td><td>5 linhas × N colunas, opacidade alternada</td></tr>
+        <tr><td>Chart</td><td>Retângulo com animação shimmer</td></tr>
+        <tr><td>Lista conversas</td><td>3 itens com avatar + 2 linhas</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Regras de navegação</h3>
+    <ul style="list-style:none; padding:0; margin: 10px 0 20px">
+      <li style="padding:6px 0; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-muted)">✦ Item ativo: border-left 3px <code>var(--color-primary)</code> + texto primary</li>
+      <li style="padding:6px 0; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-muted)">✦ Breadcrumb atualiza por rota</li>
+      <li style="padding:6px 0; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-muted)">✦ Badge WhatsApp sempre mostra contagem de conversas ativas</li>
+      <li style="padding:6px 0; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-muted)">✦ Mobile: sidebar vira bottom navigation bar (5 items)</li>
+      <li style="padding:6px 0; border-bottom:1px solid var(--color-border); font-size:13px; color:var(--color-muted)">✦ Todos os modais/drawers: <code>data-component="Dialog"</code> ou <code>data-component="Sheet"</code></li>
+      <li style="padding:6px 0; font-size:13px; color:var(--color-muted)">✦ Toasts: <code>data-component="Sonner"</code>, top-right, success=green, error=red</li>
+    </ul>
+  </div>
+
+
+  <!-- ── SECTION 12 ── -->
+  <div class="section section-break">
+    <div class="section-header">
+      <div class="section-number">12</div>
+      <div class="section-title">Requisitos de Entrega do Wireframe</div>
+    </div>
+
+    <div class="callout callout-success">
+      <p><strong>Instrução final para a IA:</strong> Gere apenas HTML + CSS inline + vanilla JS mínimo. Sem React, sem frameworks. O arquivo deve ser auto-contido e funcionar ao abrir localmente no browser.</p>
+    </div>
+
+    <ul class="checklist">
+      <li><strong>Design System "Glass/Manrope" obrigatório</strong> — fundo <code>#cfddea</code>, superfícies <code>bg-white/50 backdrop-blur-md rounded-3xl</code>, primária preta, font Manrope nos títulos, cards <code>rounded-2xl</code>, botões <code>rounded-full</code> — exatamente como especificado na Seção 3</li>
+      <li><strong>Arquivo único</strong> — todo CSS no <code>&lt;style&gt;</code>, JS de navegação inline no <code>&lt;script&gt;</code></li>
+      <li><strong>Naveg</strong>ação interativa</strong> — clicar nos itens da sidebar mostra/oculta a tela correta (toggle de classes JS, sem frameworks)</li>
+      <li><strong>Conteúdo em português real</strong> — sem lorem ipsum, sem texto em inglês exceto labels técnicos</li>
+      <li><strong>Todas as 6 telas implementadas</strong> — Início, Agenda, Clientes, WhatsApp, Relatórios, Configurações</li>
+      <li><strong>Anotação de componentes</strong> — <code>data-component="NomeDoComponente"</code> em todo elemento relevante para migração React</li>
+      <li><strong>Responsivo</strong> — desktop (≥1024px) e mobile (&lt;768px) devem funcionar sem scroll horizontal</li>
+      <li><strong>Sem dependências externas</strong> — apenas Tailwind CSS via CDN</li>
+      <li><strong>Toggle "Com dados / Vazio"</strong> — botão na toolbar do wireframe para alternar entre estado preenchido e empty state</li>
+      <li><strong>CSS custom properties apenas</strong> — nenhum hex hardcoded fora do bloco <code>:root</code></li>
+      <li><strong>Hierarquia de prioridade visual</strong> — os elementos PRIORITY 1 devem ter maior peso visual (tamanho, posição, contraste)</li>
+    </ul>
+
+    <div class="callout callout-info">
+      <p><strong>Como usar este documento:</strong> Copie todo o conteúdo das Seções 1 a 12 e cole como prompt no Claude.ai, ChatGPT-4o ou v0.dev. Para o v0, adicione ao início: <em>"Generate only HTML + inline CSS + minimal vanilla JS. No React."</em></p>
+    </div>
+
+    <div class="footer">
+      <div class="footer-brand">Corelix</div>
+      <div class="footer-info">Wireframe Specification · MVP 1.0 · Confidencial</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

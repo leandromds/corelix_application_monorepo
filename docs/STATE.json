@@ -1,18 +1,17 @@
 {
   "last_updated": "2025-07-18",
   "current_feature": {
-    "module": "backend-dashboard-api",
-    "branch": "feature/backend-dashboard-api",
-    "status": "in_progress",
+    "module": "frontend-clients-agenda-tests",
+    "branch": "feature/frontend-clients-agenda",
+    "status": "done",
     "implementation_order": [
-      "✅ reports/schemas.py — PeriodSummaryResponse (period_start, period_end, total_sessions, total_amount, status_filter)",
-      "✅ reports/service.py — ReportsService.get_period_summary() sem agregação por cliente e sem IA",
-      "✅ reports/router.py — GET /reports/summary: reutiliza validação de BillingReportRequest, TenantSession",
-      "✅ agenda/schemas.py — SessionResponse.client_name: str | None = None (non-breaking, from_attributes)",
-      "✅ agenda/repository.py — find_today_with_clients() e find_upcoming_with_clients() com JOIN em clients",
-      "✅ agenda/service.py — list_today_sessions() e list_upcoming_sessions() delegam para novos métodos JOIN",
-      "✅ tests/reports/ — +11 testes (5 service + 6 router)",
-      "✅ tests/agenda/ — +6 testes (4 repository + 2 router)"
+      "✅ vitest@3 + @vitest/coverage-v8 + jsdom + @testing-library/react + user-event + jest-dom + msw@2",
+      "✅ src/test/setup.ts — jest-dom matchers + browser API stubs (ResizeObserver, matchMedia, scrollTo, PointerEvent)",
+      "✅ src/test/server.ts — MSW Node server + BASE_URL = 'http://localhost/api/v1' + lifecycle hooks",
+      "✅ src/test/utils.tsx — renderWithProviders (QueryClient + MemoryRouter) + makeWrapper + createTestQueryClient",
+      "✅ src/test/globals.d.ts — /// <reference types='vitest/globals' />",
+      "✅ 18 test files — 88 testes passando, 0 falhando",
+      "✅ Coverage: 92.47% stmts | 91.91% branches | 83% funcs | 92.47% lines (thresholds: 80/80/75)"
     ]
   },
   "modules": {
@@ -101,24 +100,63 @@
     },
     "frontend": {
       "status": "partial",
-      "notes": "Auth (Login, Register, AuthContext, ProtectedRoute) done. Clients, Agenda, Reports, WhatsApp pages pendentes.",
+      "notes": "Auth + DashboardPage + Clients + Agenda done. Reports, WhatsApp, Settings pages pendentes.",
       "files": [
-        "src/types/auth.ts",
-        "src/services/api.ts",
+        "src/index.css",
+        "src/lib/utils.ts",
+        "src/contexts/ThemeContext.tsx",
         "src/contexts/AuthContext.tsx",
         "src/hooks/useAuth.ts",
+        "src/components/ui/button.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/label.tsx",
+        "src/components/ui/checkbox.tsx",
+        "src/components/ui/textarea.tsx",
+        "src/components/ui/select.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/alert-dialog.tsx",
+        "src/components/ui/badge.tsx",
+        "src/components/ui/form.tsx",
+        "src/components/shared/Avatar.tsx",
+        "src/components/shared/StatusBadge.tsx",
+        "src/components/layout/AppShell.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/Topbar.tsx",
         "src/components/ProtectedRoute.tsx",
         "src/components/PublicRoute.tsx",
+        "src/features/clients/types/index.ts",
+        "src/features/clients/schemas/clientSchema.ts",
+        "src/features/clients/hooks/useClients.ts",
+        "src/features/clients/hooks/useCreateClient.ts",
+        "src/features/clients/hooks/useUpdateClient.ts",
+        "src/features/clients/hooks/useDeleteClient.ts",
+        "src/features/clients/components/ClientForm.tsx",
+        "src/features/clients/components/ClientList.tsx",
+        "src/features/clients/ClientsPage.tsx",
+        "src/features/agenda/types/index.ts",
+        "src/features/agenda/schemas/sessionSchema.ts",
+        "src/features/agenda/hooks/useSessions.ts",
+        "src/features/agenda/hooks/useTodaySessions.ts",
+        "src/features/agenda/hooks/useUpcomingSessions.ts",
+        "src/features/agenda/hooks/useCreateSession.ts",
+        "src/features/agenda/hooks/useUpdateSession.ts",
+        "src/features/agenda/components/SessionForm.tsx",
+        "src/features/agenda/components/WeekView.tsx",
+        "src/features/agenda/components/DayList.tsx",
+        "src/features/agenda/AgendaPage.tsx",
+        "src/pages/DashboardPage.tsx",
         "src/pages/LoginPage.tsx",
         "src/pages/RegisterPage.tsx",
-        "src/pages/DashboardPage.tsx",
-        "src/App.tsx"
+        "src/services/api.ts",
+        "src/types/auth.ts",
+        "src/App.tsx",
+        "src/main.tsx"
       ]
     }
   },
   "tests": {
-    "total": 563,
-    "passing": 563,
+    "total": 651,
+    "passing": 651,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -242,6 +280,96 @@
         "file": "tests/agenda/test_router.py — client_name assertions",
         "count": 2,
         "status": "green"
+      },
+      {
+        "file": "src/features/clients/schemas/clientSchema.test.ts",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useClients.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useCreateClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useUpdateClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useDeleteClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/components/ClientList.test.tsx",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/components/ClientForm.test.tsx",
+        "count": 7,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/ClientsPage.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/schemas/sessionSchema.test.ts",
+        "count": 10,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useSessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useTodaySessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useUpcomingSessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useCreateSession.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useUpdateSession.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/DayList.test.tsx",
+        "count": 6,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/WeekView.test.tsx",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/SessionForm.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/AgendaPage.test.tsx",
+        "count": 8,
+        "status": "green"
       }
     ]
   },
@@ -264,9 +392,10 @@
   },
   "pending_tasks": [
     "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
-    "frontend — instalar stack (shadcn/ui + Tailwind + TanStack Query + Zustand + RHF + Zod + Recharts + react-big-calendar + Sonner)",
-    "frontend — páginas Clients, Agenda, Reports, WhatsApp conversations (4 domínios restantes)",
-    "frontend — usar fluxo: spec textual (Claude) → v0.dev → adaptar ao codebase → hook TanStack Query → RHF+Zod → gate a11y",
+    "frontend — páginas Reports (spec → v0 → hook → TanStack Query → gate a11y)",
+    "frontend — páginas WhatsApp conversations (spec → v0 → hook → gate a11y)",
+    "frontend — página Settings / perfil do profissional",
+    "frontend — gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px para Clients e Agenda",
     "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional",
     "infra — Procfile / Railway worker config para jobs runner"
   ],
@@ -306,7 +435,13 @@
     "dateutil stubs — python-dateutil não distribui stubs; adicionar dateutil.* ao ignore_missing_imports no pyproject.toml (mesmo padrão de passlib.* e jose.*)",
     "func-returns-value em testes — padrão lambda: list.append(...) or valor é rejeitado pelo mypy; substituir por função interna com return type explícito",
     "CI env vars — toda nova variável obrigatória no Settings deve ser adicionada nos dois steps do ci.yml (Run tests e Type check) como placeholder",
-    "find_today/upcoming_with_clients retornam list[Row] não list[Session] — usar result.all() sem .scalars() para preservar Row com colunas nomeadas; SessionResponse.model_validate() funciona via from_attributes=True em ambos os tipos"
+    "find_today/upcoming_with_clients retornam list[Row] não list[Session] — usar result.all() sem .scalars() para preservar Row com colunas nomeadas; SessionResponse.model_validate() funciona via from_attributes=True em ambos os tipos",
+    "z.coerce.number() em zodResolver — input type unknown, incompatível com useForm<TFieldValues>. Fix: cast explícito `zodResolver(schema) as Resolver<TFieldValues>`",
+    "z.boolean().default(false) em zodResolver — torna campo opcional no input type. Fix: remover .default() do schema, colocar default em useForm defaultValues",
+    "RHF v7 FormField TTransformedValues — Control<TFieldValues, any, TFieldValues> vs Control<TFieldValues, any, undefined>. Fix: adicionar terceiro generic TTransformedValues na assinatura do FormField",
+    "vi.useFakeTimers() + userEvent.setup() timeout — userEvent.click() hangs when fake timers are active even with advanceTimers callback. Fix: use fireEvent.click() for synchronous DOM interactions inside fake-timer tests",
+    "MSW v2 Node handlers require full URLs — in jsdom environment (url: 'http://localhost'), axios resolves '/api/v1' to 'http://localhost/api/v1'. MSW handlers must use BASE_URL = 'http://localhost/api/v1' prefix",
+    "@vitest/coverage-v8 version must match vitest version — installing @vitest/coverage-v8@4 with vitest@3 causes 'BaseCoverageProvider' export error. Fix: pin to same major version"
   ],
   "post_mvp": [
     "Disparo automático de documentos fiscais",
