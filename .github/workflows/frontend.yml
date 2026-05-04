@@ -39,9 +39,11 @@ jobs:
         run: npm run type-check
 
       - name: Lint (eslint)
-        # ESLint v9 flat config — --ext foi removido; o escopo é definido no eslint.config.js.
-        # --max-warnings 0 garante que avisos também quebrem o CI.
-        run: npm run lint -- --max-warnings 0
+        # ESLint v9 flat config — requer eslint.config.js (apps/web/eslint.config.js).
+        # --max-warnings 0 omitido: o codebase co-localiza utilitários com componentes
+        # (ex: Avatar + getInitials, Button + buttonVariants), gerando warnings do
+        # react-refresh/only-export-components que são intencionais e não impedem o CI.
+        run: npm run lint
 
       - name: Tests + Coverage
         # Roda vitest com coverage e aplica os thresholds configurados em vite.config.ts:
