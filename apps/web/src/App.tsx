@@ -1,26 +1,31 @@
 /**
  * App — root component.
  *
- * Sets up:
- * - BrowserRouter (client-side routing)
- * - AuthProvider (session management, token storage)
- * - Route definitions with ProtectedRoute / PublicRoute guards
+ * Route structure:
+ * - Public routes (/login, /register) — redirect to /dashboard if authenticated
+ * - Protected routes — wrapped in AppShell (sidebar + topbar + Outlet)
+ *   - /dashboard  → DashboardPage
+ *   - /clients    → ClientsPage
+ *   - /agenda     → AgendaPage
  */
 
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '@/contexts/AuthContext'
-import { ProtectedRoute } from '@/components/ProtectedRoute'
-import { PublicRoute } from '@/components/PublicRoute'
-import { LoginPage } from '@/pages/LoginPage'
-import { RegisterPage } from '@/pages/RegisterPage'
-import { DashboardPage } from '@/pages/DashboardPage'
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { PublicRoute } from "@/components/PublicRoute";
+import { AppShell } from "@/components/layout/AppShell";
+import { LoginPage } from "@/pages/LoginPage";
+import { RegisterPage } from "@/pages/RegisterPage";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { ClientsPage } from "@/features/clients/ClientsPage";
+import { AgendaPage } from "@/features/agenda/AgendaPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public routes — redirect to /dashboard if already authenticated */}
+          {/* ─── Public routes ─────────────────────────────────────────── */}
           <Route
             path="/login"
             element={
@@ -38,23 +43,29 @@ export default function App() {
             }
           />
 
-          {/* Protected routes — redirect to /login if not authenticated */}
+          {/* ─── Protected routes — AppShell layout ────────────────────── */}
+          {/*
+            AppShell renders Sidebar + Topbar + <Outlet />.
+            Each child route renders into that Outlet.
+          */}
           <Route
-            path="/dashboard"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <AppShell />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/agenda" element={<AgendaPage />} />
+            {/* TODO: /reports, /whatsapp, /settings */}
+          </Route>
 
-          {/* Default redirect */}
+          {/* ─── Default + 404 ─────────────────────────────────────────── */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-          {/* 404 fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
-  )
+  );
 }
