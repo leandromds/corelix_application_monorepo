@@ -3,10 +3,10 @@ import {
   useContext,
   useId,
   forwardRef,
-  type HTMLAttributes,
   type ElementRef,
   type ComponentPropsWithoutRef,
 } from "react";
+import { Slot } from "@radix-ui/react-slot";
 import {
   Controller,
   FormProvider,
@@ -105,23 +105,27 @@ const FormLabel = forwardRef<
 FormLabel.displayName = "FormLabel";
 
 // ─── FormControl ─────────────────────────────────────────────────────────────
-const FormControl = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ ...props }, ref) => {
-    const { error, formItemId, formDescriptionId, formMessageId } =
-      useFormField();
-    return (
-      <div
-        ref={ref}
-        id={formItemId}
-        aria-describedby={
-          !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
-        }
-        aria-invalid={!!error}
-        {...props}
-      />
-    );
-  },
-);
+// Uses Slot instead of a plain <div> so the id/aria-* props are cloned onto
+// the actual child element (e.g. <input>), making <label htmlFor> point to
+// the real focusable control — required for axe/a11y compliance.
+const FormControl = forwardRef<
+  ElementRef<typeof Slot>,
+  ComponentPropsWithoutRef<typeof Slot>
+>(({ ...props }, ref) => {
+  const { error, formItemId, formDescriptionId, formMessageId } =
+    useFormField();
+  return (
+    <Slot
+      ref={ref}
+      id={formItemId}
+      aria-describedby={
+        !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
+      }
+      aria-invalid={!!error}
+      {...props}
+    />
+  );
+});
 FormControl.displayName = "FormControl";
 
 // ─── FormDescription ─────────────────────────────────────────────────────────
