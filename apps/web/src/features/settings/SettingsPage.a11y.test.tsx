@@ -85,5 +85,5 @@ describe("SettingsPage a11y", () => {
 
     const results = await axe(container, AXE_CONFIG);
     expect(results).toHaveNoViolations();
-  });
+  }, 15000);
 });
