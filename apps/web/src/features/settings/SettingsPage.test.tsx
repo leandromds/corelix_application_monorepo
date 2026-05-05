@@ -18,7 +18,7 @@ import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 
 import { server, BASE_URL } from "@/test/server";
-import { renderWithProviders, screen, waitFor, fireEvent } from "@/test/utils";
+import { renderWithProviders, screen, waitFor } from "@/test/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { settingsSchema } from "./schemas/settingsSchema";
 import { SettingsPage } from "./SettingsPage";
