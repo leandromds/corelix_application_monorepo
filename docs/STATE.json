@@ -1,18 +1,19 @@
 {
   "last_updated": "2026-05-05",
   "current_feature": {
-    "module": "idle",
-    "branch": "develop",
-    "status": "awaiting_next_task",
-    "completed": [
-      "✅ feature/frontend-reports — merged em develop (PR #12): KPI cards, BillingTable, PeriodFilter, AI insights, 12 testes",
-      "✅ feature/frontend-settings — merged em develop (commit 1b50a31): ProfileForm, SessionConfig, refreshProfile sync, 9 testes"
-    ],
-    "next_candidates": [
-      "deploy — Railway: Procfile + worker (python -m jobs.runner) + vars de produção",
-      "frontend — página WhatsApp conversations",
-      "segurança — endpoint Embedded Signup (onboarding do número WhatsApp)",
-      "frontend — gate de qualidade a11y (axe-core + Tab navigation + mobile 380px)"
+    "module": "frontend-whatsapp-conversations",
+    "branch": "feature/frontend-whatsapp-conversations",
+    "status": "done",
+    "implementation_order": [
+      "✅ src/features/whatsapp/types/index.ts — Conversation, Message, ConversationWithMessages, HandoffResult",
+      "✅ src/features/whatsapp/hooks/useConversations.ts — GET /whatsapp/conversations com status filter opcional",
+      "✅ src/features/whatsapp/hooks/useMessages.ts — GET /whatsapp/conversations/{id} (enabled: !!id)",
+      "✅ src/features/whatsapp/hooks/useHandoff.ts — POST /whatsapp/conversations/{id}/handoff + invalidate queries",
+      "✅ src/features/whatsapp/components/ConversationList.tsx — lista stateless com skeleton, empty state, badges, aria-current",
+      "✅ src/features/whatsapp/components/MessageThread.tsx — thread com bubbles L/R, botão handoff condicional",
+      "✅ src/features/whatsapp/WhatsAppPage.tsx — split-pane + responsivo (mobile: list ↔ thread)",
+      "✅ src/App.tsx — route /whatsapp adicionada",
+      "✅ Testes TDD: 22/22 passando (4 hooks + 5 ConversationList + 5 MessageThread + 5 WhatsAppPage + 3 useMessages)"
     ]
   },
   "modules": {
@@ -101,7 +102,7 @@
     },
     "frontend": {
       "status": "partial",
-      "notes": "Auth + DashboardPage + Clients + Agenda + Reports + Settings done. WhatsApp page pendente.",
+      "notes": "Auth + DashboardPage + Clients + Agenda + Reports + Settings + WhatsApp done. Embedded Signup pendente.",
       "files": [
         "src/index.css",
         "src/lib/utils.ts",
@@ -154,6 +155,13 @@
         "src/features/settings/schemas/settingsSchema.ts",
         "src/features/settings/hooks/useUpdateProfile.ts",
         "src/features/settings/SettingsPage.tsx",
+        "src/features/whatsapp/types/index.ts",
+        "src/features/whatsapp/hooks/useConversations.ts",
+        "src/features/whatsapp/hooks/useMessages.ts",
+        "src/features/whatsapp/hooks/useHandoff.ts",
+        "src/features/whatsapp/components/ConversationList.tsx",
+        "src/features/whatsapp/components/MessageThread.tsx",
+        "src/features/whatsapp/WhatsAppPage.tsx",
         "src/pages/DashboardPage.tsx",
         "src/pages/LoginPage.tsx",
         "src/pages/RegisterPage.tsx",
@@ -165,8 +173,8 @@
     }
   },
   "tests": {
-    "total": 672,
-    "passing": 672,
+    "total": 694,
+    "passing": 694,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -387,8 +395,28 @@
         "status": "green"
       },
       {
-        "file": "src/features/agenda/AgendaPage.test.tsx",
-        "count": 8,
+        "file": "src/features/whatsapp/hooks/useConversations.test.ts",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/hooks/useMessages.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/components/ConversationList.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/components/MessageThread.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/WhatsAppPage.test.tsx",
+        "count": 5,
         "status": "green"
       }
     ]
@@ -412,7 +440,6 @@
   },
   "pending_tasks": [
     "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
-    "frontend — página WhatsApp conversations (spec → v0 → hook → gate a11y)",
     "frontend — gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px",
     "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional",
     "infra — Procfile / Railway worker config para jobs runner"
