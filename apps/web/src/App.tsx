@@ -21,6 +21,7 @@ import { ClientsPage } from "@/features/clients/ClientsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import { WhatsAppPage } from "@/features/whatsapp/WhatsAppPage";
 
 export default function App() {
   return (
@@ -62,7 +63,7 @@ export default function App() {
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
-            {/* TODO: /whatsapp */}
+            <Route path="/whatsapp" element={<WhatsAppPage />} />
           </Route>
 
           {/* ─── Default + 404 ─────────────────────────────────────────── */}

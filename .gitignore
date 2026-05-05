@@ -118,3 +118,4 @@ docker-compose.override.yml
 # Backup files
 *.bak
 *.backup
+.github/*.dmg
