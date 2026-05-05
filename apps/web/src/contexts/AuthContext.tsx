@@ -4,30 +4,33 @@ import {
   useRef,
   useState,
   type ReactNode,
-} from 'react'
-import axios from 'axios'
-import api, { setAccessToken } from '@/services/api'
+} from "react";
+import axios from "axios";
+import api, { setAccessToken } from "@/services/api";
 import type {
   AccessTokenResponse,
   LoginRequest,
   ProfessionalResponse,
   RegisterRequest,
-} from '@/types/auth'
+} from "@/types/auth";
 
 // ---------------------------------------------------------------------------
 // Context shape
 // ---------------------------------------------------------------------------
 
 interface AuthContextValue {
-  professional: ProfessionalResponse | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (data: RegisterRequest) => Promise<void>
-  logout: () => Promise<void>
+  professional: ProfessionalResponse | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  /** Re-fetches /professionals/me and updates the in-memory professional state.
+   *  Call after a successful PATCH /professionals/me to keep the context in sync. */
+  refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null)
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,10 +39,10 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 function extractErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
     // Backend format: { error: { message: string } }
-    const msg: unknown = error.response?.data?.error?.message
-    if (typeof msg === 'string' && msg.length > 0) return msg
+    const msg: unknown = error.response?.data?.error?.message;
+    if (typeof msg === "string" && msg.length > 0) return msg;
   }
-  return fallback
+  return fallback;
 }
 
 // ---------------------------------------------------------------------------
@@ -47,12 +50,14 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 // ---------------------------------------------------------------------------
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [professional, setProfessional] = useState<ProfessionalResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [professional, setProfessional] = useState<ProfessionalResponse | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   // ---------------------------------------------------------------------------
   // Session restore on mount
@@ -60,43 +65,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // If the cookie is missing or expired, the user is simply not authenticated.
   // ---------------------------------------------------------------------------
 
-  const didAttemptRestore = useRef(false)
+  const didAttemptRestore = useRef(false);
 
   useEffect(() => {
     // Guard against React StrictMode double-invocation
-    if (didAttemptRestore.current) return
-    didAttemptRestore.current = true
+    if (didAttemptRestore.current) return;
+    didAttemptRestore.current = true;
 
-    let mounted = true
+    let mounted = true;
 
     async function restoreSession(): Promise<void> {
       try {
         const { data: tokenData } =
-          await api.post<AccessTokenResponse>('/auth/refresh')
+          await api.post<AccessTokenResponse>("/auth/refresh");
 
-        if (!mounted) return
-        setAccessToken(tokenData.access_token)
+        if (!mounted) return;
+        setAccessToken(tokenData.access_token);
 
         const { data: profData } =
-          await api.get<ProfessionalResponse>('/professionals/me')
+          await api.get<ProfessionalResponse>("/professionals/me");
 
-        if (!mounted) return
-        setProfessional(profData)
+        if (!mounted) return;
+        setProfessional(profData);
       } catch {
         // Cookie missing, expired, or network error -- treat as unauthenticated.
         // Do NOT redirect here; the route guards handle redirection.
-        if (mounted) setAccessToken(null)
+        if (mounted) setAccessToken(null);
       } finally {
-        if (mounted) setIsLoading(false)
+        if (mounted) setIsLoading(false);
       }
     }
 
-    void restoreSession()
+    void restoreSession();
 
     return () => {
-      mounted = false
-    }
-  }, [])
+      mounted = false;
+    };
+  }, []);
 
   // ---------------------------------------------------------------------------
   // login
@@ -105,18 +110,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function login(email: string, password: string): Promise<void> {
     try {
       const { data: tokenData } = await api.post<AccessTokenResponse>(
-        '/auth/login',
+        "/auth/login",
         { email, password } satisfies LoginRequest,
-      )
-      setAccessToken(tokenData.access_token)
+      );
+      setAccessToken(tokenData.access_token);
 
       const { data: profData } =
-        await api.get<ProfessionalResponse>('/professionals/me')
-      setProfessional(profData)
+        await api.get<ProfessionalResponse>("/professionals/me");
+      setProfessional(profData);
     } catch (error) {
       // Clear any stale state before re-throwing
-      setAccessToken(null)
-      throw new Error(extractErrorMessage(error, 'Credenciais inválidas'))
+      setAccessToken(null);
+      throw new Error(extractErrorMessage(error, "Credenciais inválidas"));
     }
   }
 
@@ -126,16 +131,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function register(data: RegisterRequest): Promise<void> {
     try {
-      await api.post('/auth/register', data)
+      await api.post("/auth/register", data);
       // Immediately authenticate after successful registration
-      await login(data.email, data.password)
+      await login(data.email, data.password);
     } catch (error) {
       // Re-throw with a message the form can display.
       // login() already sets a good message for auth failures;
       // here we handle registration-specific errors (e.g. duplicate email).
-      if (error instanceof Error) throw error
-      throw new Error(extractErrorMessage(error, 'Erro ao criar conta'))
+      if (error instanceof Error) throw error;
+      throw new Error(extractErrorMessage(error, "Erro ao criar conta"));
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // refreshProfile
+  // ---------------------------------------------------------------------------
+
+  async function refreshProfile(): Promise<void> {
+    const { data } = await api.get<ProfessionalResponse>("/professionals/me");
+    setProfessional(data);
   }
 
   // ---------------------------------------------------------------------------
@@ -144,13 +158,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   async function logout(): Promise<void> {
     try {
-      await api.post('/auth/logout')
+      await api.post("/auth/logout");
     } catch {
       // Even if the server call fails (e.g. network error), clear local state.
       // The server will eventually expire the token.
     } finally {
-      setAccessToken(null)
-      setProfessional(null)
+      setAccessToken(null);
+      setProfessional(null);
     }
   }
 
@@ -165,13 +179,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login,
     register,
     logout,
-  }
+    refreshProfile,
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // ---------------------------------------------------------------------------
 // Raw context export (for useAuth hook)
 // ---------------------------------------------------------------------------
 
-export { AuthContext }
+export { AuthContext };
