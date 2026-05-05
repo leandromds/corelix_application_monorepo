@@ -1,19 +1,17 @@
 {
   "last_updated": "2025-07-21",
   "current_feature": {
-    "module": "frontend-reports",
-    "branch": "feature/frontend-reports",
+    "module": "frontend-settings",
+    "branch": "feature/frontend-settings",
     "status": "done",
     "implementation_order": [
-      "✅ src/features/reports/types/index.ts — PeriodSummary, SessionEntry, ClientBillingEntry, BillingReport, ReportParams, STATUS_OPTIONS",
-      "✅ src/features/reports/hooks/useReportSummary.ts — auto-fetch + serializeReportParams (URLSearchParams fix for FastAPI list[str])",
-      "✅ src/features/reports/hooks/useBillingReport.ts — on-demand (enabled: params !== null)",
-      "✅ src/features/reports/components/KpiCard.tsx — metric tile with loading skeleton",
-      "✅ src/features/reports/components/PeriodFilter.tsx — presets (7/30/90d) + date inputs + status checkboxes",
-      "✅ src/features/reports/components/BillingTable.tsx — expandable client rows, aria-label flip Expandir/Colapsar",
-      "✅ src/features/reports/ReportsPage.tsx — two-stage loading: summary auto + billing on-demand",
-      "✅ src/features/reports/ReportsPage.test.tsx — 12 testes, 12 passando (TDD)",
-      "✅ src/App.tsx — route /reports adicionada"
+      "✅ src/contexts/AuthContext.tsx — adicionado refreshProfile() que re-faz GET /professionals/me e atualiza state",
+      "✅ src/hooks/useAuth.ts — adicionado refreshProfile: () => Promise<void> ao UseAuthReturn",
+      "✅ src/features/settings/schemas/settingsSchema.ts — Zod schema com z.coerce para session_duration/session_price",
+      "✅ src/features/settings/hooks/useUpdateProfile.ts — mutation PATCH /professionals/me + refreshProfile on success",
+      "✅ src/features/settings/SettingsPage.tsx — form com 2 secões (pessoal + sessão), email read-only, avatar, memberSince",
+      "✅ src/features/settings/SettingsPage.test.tsx — 9 testes (TDD) com vi.mock('@/hooks/useAuth')",
+      "✅ src/App.tsx — route /settings adicionada (junto com /reports do merge de develop)"
     ]
   },
   "modules": {
@@ -102,7 +100,7 @@
     },
     "frontend": {
       "status": "partial",
-      "notes": "Auth + DashboardPage + Clients + Agenda + Reports done. WhatsApp, Settings pages pendentes.",
+      "notes": "Auth + DashboardPage + Clients + Agenda + Reports + Settings done. WhatsApp page pendente.",
       "files": [
         "src/index.css",
         "src/lib/utils.ts",
@@ -152,7 +150,9 @@
         "src/features/reports/components/KpiCard.tsx",
         "src/features/reports/components/PeriodFilter.tsx",
         "src/features/reports/components/BillingTable.tsx",
-        "src/features/reports/ReportsPage.tsx",
+        "src/features/settings/schemas/settingsSchema.ts",
+        "src/features/settings/hooks/useUpdateProfile.ts",
+        "src/features/settings/SettingsPage.tsx",
         "src/pages/DashboardPage.tsx",
         "src/pages/LoginPage.tsx",
         "src/pages/RegisterPage.tsx",
@@ -164,8 +164,8 @@
     }
   },
   "tests": {
-    "total": 663,
-    "passing": 663,
+    "total": 672,
+    "passing": 672,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -376,6 +376,11 @@
         "status": "green"
       },
       {
+        "file": "src/features/settings/SettingsPage.test.tsx",
+        "count": 9,
+        "status": "green"
+      },
+      {
         "file": "src/features/reports/ReportsPage.test.tsx",
         "count": 12,
         "status": "green"
@@ -406,9 +411,8 @@
   },
   "pending_tasks": [
     "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
-    "frontend — páginas WhatsApp conversations (spec → v0 → hook → gate a11y)",
-    "frontend — página Settings / perfil do profissional",
-    "frontend — gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px para Clients e Agenda",
+    "frontend — página WhatsApp conversations (spec → v0 → hook → gate a11y)",
+    "frontend — gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px",
     "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional",
     "infra — Procfile / Railway worker config para jobs runner"
   ],
@@ -454,7 +458,7 @@
     "RHF v7 FormField TTransformedValues — Control<TFieldValues, any, TFieldValues> vs Control<TFieldValues, any, undefined>. Fix: adicionar terceiro generic TTransformedValues na assinatura do FormField",
     "vi.useFakeTimers() + userEvent.setup() timeout — userEvent.click() hangs when fake timers are active even with advanceTimers callback. Fix: use fireEvent.click() for synchronous DOM interactions inside fake-timer tests",
     "MSW v2 Node handlers require full URLs — in jsdom environment (url: 'http://localhost'), axios resolves '/api/v1' to 'http://localhost/api/v1'. MSW handlers must use BASE_URL = 'http://localhost/api/v1' prefix",
-    "Axios array params serialização FastAPI — axios default usa bracket notation (status_filter[]=completed). FastAPI list[str] query params exigem repeat-key notation (status_filter=completed&status_filter=no_show). Fix: passar paramsSerializer custom com URLSearchParams.append() por item de array. Utilitário serializeReportParams exportado de useReportSummary e reusado em useBillingReport."
+    "fireEvent.change + type='number' + RHF em JSDOM não atualiza o campo do form — o React não processa o evento sintético corretamente para inputs numerados em ambiente de teste. Fix: para validar constraints de campos numéricos, usar schema.safeParse() direto no teste (testa o contrato Zod) em vez de simular interação DOM. Para validações de texto, userEvent.clear()+type() continua funcionando normalmente."
   ],
   "post_mvp": [
     "Disparo automático de documentos fiscais",

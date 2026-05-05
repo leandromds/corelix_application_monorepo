@@ -20,6 +20,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { ClientsPage } from "@/features/clients/ClientsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
 import { ReportsPage } from "@/features/reports/ReportsPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 
 export default function App() {
   return (
@@ -60,7 +61,8 @@ export default function App() {
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/agenda" element={<AgendaPage />} />
             <Route path="/reports" element={<ReportsPage />} />
-            {/* TODO: /whatsapp, /settings */}
+            <Route path="/settings" element={<SettingsPage />} />
+            {/* TODO: /whatsapp */}
           </Route>
 
           {/* ─── Default + 404 ─────────────────────────────────────────── */}
