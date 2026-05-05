@@ -1,17 +1,19 @@
 {
-  "last_updated": "2025-07-18",
+  "last_updated": "2025-07-21",
   "current_feature": {
-    "module": "frontend-clients-agenda-tests",
-    "branch": "feature/frontend-clients-agenda",
+    "module": "frontend-reports",
+    "branch": "feature/frontend-reports",
     "status": "done",
     "implementation_order": [
-      "✅ vitest@3 + @vitest/coverage-v8 + jsdom + @testing-library/react + user-event + jest-dom + msw@2",
-      "✅ src/test/setup.ts — jest-dom matchers + browser API stubs (ResizeObserver, matchMedia, scrollTo, PointerEvent)",
-      "✅ src/test/server.ts — MSW Node server + BASE_URL = 'http://localhost/api/v1' + lifecycle hooks",
-      "✅ src/test/utils.tsx — renderWithProviders (QueryClient + MemoryRouter) + makeWrapper + createTestQueryClient",
-      "✅ src/test/globals.d.ts — /// <reference types='vitest/globals' />",
-      "✅ 18 test files — 88 testes passando, 0 falhando",
-      "✅ Coverage: 92.47% stmts | 91.91% branches | 83% funcs | 92.47% lines (thresholds: 80/80/75)"
+      "✅ src/features/reports/types/index.ts — PeriodSummary, SessionEntry, ClientBillingEntry, BillingReport, ReportParams, STATUS_OPTIONS",
+      "✅ src/features/reports/hooks/useReportSummary.ts — auto-fetch + serializeReportParams (URLSearchParams fix for FastAPI list[str])",
+      "✅ src/features/reports/hooks/useBillingReport.ts — on-demand (enabled: params !== null)",
+      "✅ src/features/reports/components/KpiCard.tsx — metric tile with loading skeleton",
+      "✅ src/features/reports/components/PeriodFilter.tsx — presets (7/30/90d) + date inputs + status checkboxes",
+      "✅ src/features/reports/components/BillingTable.tsx — expandable client rows, aria-label flip Expandir/Colapsar",
+      "✅ src/features/reports/ReportsPage.tsx — two-stage loading: summary auto + billing on-demand",
+      "✅ src/features/reports/ReportsPage.test.tsx — 12 testes, 12 passando (TDD)",
+      "✅ src/App.tsx — route /reports adicionada"
     ]
   },
   "modules": {
@@ -100,7 +102,7 @@
     },
     "frontend": {
       "status": "partial",
-      "notes": "Auth + DashboardPage + Clients + Agenda done. Reports, WhatsApp, Settings pages pendentes.",
+      "notes": "Auth + DashboardPage + Clients + Agenda + Reports done. WhatsApp, Settings pages pendentes.",
       "files": [
         "src/index.css",
         "src/lib/utils.ts",
@@ -144,6 +146,13 @@
         "src/features/agenda/components/WeekView.tsx",
         "src/features/agenda/components/DayList.tsx",
         "src/features/agenda/AgendaPage.tsx",
+        "src/features/reports/types/index.ts",
+        "src/features/reports/hooks/useReportSummary.ts",
+        "src/features/reports/hooks/useBillingReport.ts",
+        "src/features/reports/components/KpiCard.tsx",
+        "src/features/reports/components/PeriodFilter.tsx",
+        "src/features/reports/components/BillingTable.tsx",
+        "src/features/reports/ReportsPage.tsx",
         "src/pages/DashboardPage.tsx",
         "src/pages/LoginPage.tsx",
         "src/pages/RegisterPage.tsx",
@@ -155,8 +164,8 @@
     }
   },
   "tests": {
-    "total": 651,
-    "passing": 651,
+    "total": 663,
+    "passing": 663,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
@@ -367,6 +376,11 @@
         "status": "green"
       },
       {
+        "file": "src/features/reports/ReportsPage.test.tsx",
+        "count": 12,
+        "status": "green"
+      },
+      {
         "file": "src/features/agenda/AgendaPage.test.tsx",
         "count": 8,
         "status": "green"
@@ -392,7 +406,6 @@
   },
   "pending_tasks": [
     "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
-    "frontend — páginas Reports (spec → v0 → hook → TanStack Query → gate a11y)",
     "frontend — páginas WhatsApp conversations (spec → v0 → hook → gate a11y)",
     "frontend — página Settings / perfil do profissional",
     "frontend — gate de qualidade: Tab navigation + axe-core + Lighthouse a11y + mobile 380px para Clients e Agenda",
@@ -441,7 +454,7 @@
     "RHF v7 FormField TTransformedValues — Control<TFieldValues, any, TFieldValues> vs Control<TFieldValues, any, undefined>. Fix: adicionar terceiro generic TTransformedValues na assinatura do FormField",
     "vi.useFakeTimers() + userEvent.setup() timeout — userEvent.click() hangs when fake timers are active even with advanceTimers callback. Fix: use fireEvent.click() for synchronous DOM interactions inside fake-timer tests",
     "MSW v2 Node handlers require full URLs — in jsdom environment (url: 'http://localhost'), axios resolves '/api/v1' to 'http://localhost/api/v1'. MSW handlers must use BASE_URL = 'http://localhost/api/v1' prefix",
-    "@vitest/coverage-v8 version must match vitest version — installing @vitest/coverage-v8@4 with vitest@3 causes 'BaseCoverageProvider' export error. Fix: pin to same major version"
+    "Axios array params serialização FastAPI — axios default usa bracket notation (status_filter[]=completed). FastAPI list[str] query params exigem repeat-key notation (status_filter=completed&status_filter=no_show). Fix: passar paramsSerializer custom com URLSearchParams.append() por item de array. Utilitário serializeReportParams exportado de useReportSummary e reusado em useBillingReport."
   ],
   "post_mvp": [
     "Disparo automático de documentos fiscais",
