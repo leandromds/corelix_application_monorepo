@@ -19,6 +19,7 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { ClientsPage } from "@/features/clients/ClientsPage";
 import { AgendaPage } from "@/features/agenda/AgendaPage";
+import { ReportsPage } from "@/features/reports/ReportsPage";
 
 export default function App() {
   return (
@@ -58,7 +59,8 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/agenda" element={<AgendaPage />} />
-            {/* TODO: /reports, /whatsapp, /settings */}
+            <Route path="/reports" element={<ReportsPage />} />
+            {/* TODO: /whatsapp, /settings */}
           </Route>
 
           {/* ─── Default + 404 ─────────────────────────────────────────── */}
