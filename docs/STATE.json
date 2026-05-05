@@ -1,17 +1,18 @@
 {
-  "last_updated": "2025-07-21",
+  "last_updated": "2026-05-05",
   "current_feature": {
-    "module": "frontend-settings",
-    "branch": "feature/frontend-settings",
-    "status": "done",
-    "implementation_order": [
-      "✅ src/contexts/AuthContext.tsx — adicionado refreshProfile() que re-faz GET /professionals/me e atualiza state",
-      "✅ src/hooks/useAuth.ts — adicionado refreshProfile: () => Promise<void> ao UseAuthReturn",
-      "✅ src/features/settings/schemas/settingsSchema.ts — Zod schema com z.coerce para session_duration/session_price",
-      "✅ src/features/settings/hooks/useUpdateProfile.ts — mutation PATCH /professionals/me + refreshProfile on success",
-      "✅ src/features/settings/SettingsPage.tsx — form com 2 secões (pessoal + sessão), email read-only, avatar, memberSince",
-      "✅ src/features/settings/SettingsPage.test.tsx — 9 testes (TDD) com vi.mock('@/hooks/useAuth')",
-      "✅ src/App.tsx — route /settings adicionada (junto com /reports do merge de develop)"
+    "module": "idle",
+    "branch": "develop",
+    "status": "awaiting_next_task",
+    "completed": [
+      "✅ feature/frontend-reports — merged em develop (PR #12): KPI cards, BillingTable, PeriodFilter, AI insights, 12 testes",
+      "✅ feature/frontend-settings — merged em develop (commit 1b50a31): ProfileForm, SessionConfig, refreshProfile sync, 9 testes"
+    ],
+    "next_candidates": [
+      "deploy — Railway: Procfile + worker (python -m jobs.runner) + vars de produção",
+      "frontend — página WhatsApp conversations",
+      "segurança — endpoint Embedded Signup (onboarding do número WhatsApp)",
+      "frontend — gate de qualidade a11y (axe-core + Tab navigation + mobile 380px)"
     ]
   },
   "modules": {
