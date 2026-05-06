@@ -90,9 +90,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch {
         // Cookie missing, expired, or network error -- treat as unauthenticated.
         // Do NOT redirect here; the route guards handle redirection.
-        if (mounted) setAccessToken(null);
+        // Note: no `if (mounted)` guard here — clearing a stale token is always safe.
+        setAccessToken(null);
       } finally {
-        if (mounted) setIsLoading(false);
+        // Always clear loading, regardless of mounted state.
+        //
+        // Why: in dev, React 18 StrictMode runs cleanup (mounted=false) BEFORE the
+        // async POST /auth/refresh completes. The useRef guard correctly prevents a
+        // second restoreSession call, but the first one finishes after mounted=false.
+        // Without this unconditional call, isLoading stays true forever → blank page.
+        // In React 18, calling a state setter after unmount is a safe no-op.
+        setIsLoading(false);
       }
     }
 
