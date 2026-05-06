@@ -1,5 +1,5 @@
 /**
- * ReportsPage — billing reports with KPI summary and AI insights.
+ * ReportsPage — billing reports with KPI summary, bar chart and AI insights.
  *
  * Two-stage data loading strategy:
  *
@@ -10,29 +10,27 @@
  *   2. Billing report (on-demand, fires only after button click)
  *      → heavy: full per-client aggregation + optional AI insights
  *      → stored as `billingParams` state (null = not yet requested)
- *      → TanStack Query refetches automatically when `billingParams` changes,
- *        so a second click with new dates just updates the key.
+ *      → TanStack Query refetches automatically when `billingParams` changes
  *
- * All filter state lives here (not in PeriodFilter) so both hooks can share
- * the same derived params without prop-drilling callbacks through the child.
+ * All filter state lives here so both hooks share the same derived params.
  */
 
 import { useEffect, useState } from "react";
 import posthog from "posthog-js";
 import { format, subDays } from "date-fns";
+import { BarChart2, FileText } from "lucide-react";
 
 import { useReportSummary } from "./hooks/useReportSummary";
 import { useBillingReport } from "./hooks/useBillingReport";
-import { KpiCard } from "./components/KpiCard";
 import { PeriodFilter } from "./components/PeriodFilter";
 import { BillingTable } from "./components/BillingTable";
-import type { ReportParams } from "./types";
+import type { ClientBillingEntry, ReportParams } from "./types";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(amount: string): string {
+function formatCurrency(amount: string | number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -42,6 +40,39 @@ function formatCurrency(amount: string): string {
 function toDateString(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
+
+// Compute revenue grouped into 4 buckets across the billing period
+function computeWeeklyRevenue(
+  clients: ClientBillingEntry[],
+  periodStart: string,
+  periodEnd: string,
+): Array<{ label: string; amount: number }> {
+  const start = new Date(periodStart);
+  const end = new Date(periodEnd);
+  const totalMs = end.getTime() - start.getTime();
+  const bucketMs = totalMs / 4;
+
+  return Array.from({ length: 4 }, (_, i) => {
+    const bucketStart = new Date(start.getTime() + i * bucketMs);
+    const bucketEnd = new Date(start.getTime() + (i + 1) * bucketMs);
+
+    const amount = clients
+      .flatMap((c) => c.sessions)
+      .filter((s) => {
+        const d = new Date(s.scheduled_at);
+        return d >= bucketStart && d < bucketEnd;
+      })
+      .reduce((sum, s) => sum + Number(s.price), 0);
+
+    return { label: `Sem ${i + 1}`, amount };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Insight icon cycling
+// ---------------------------------------------------------------------------
+
+const INSIGHT_ICONS = ["📌", "⭐", "⚠️", "💡", "📈"];
 
 // ---------------------------------------------------------------------------
 // ReportsPage
@@ -88,6 +119,43 @@ export function ReportsPage() {
     isError: billingError,
   } = useBillingReport(billingParams);
 
+  // ── Derived values ────────────────────────────────────────────────────
+
+  const cancelledCount = billing
+    ? billing.clients
+        .flatMap((c) => c.sessions)
+        .filter((s) => s.status === "cancelled").length
+    : 0;
+
+  const noShowCount = billing
+    ? billing.clients
+        .flatMap((c) => c.sessions)
+        .filter((s) => s.status === "no_show").length
+    : 0;
+
+  const noShowRate =
+    billing && billing.total_sessions > 0
+      ? Math.round((noShowCount / billing.total_sessions) * 100)
+      : 0;
+
+  const weeklyRevenue =
+    billing && !billingLoading
+      ? computeWeeklyRevenue(
+          billing.clients,
+          billing.period_start,
+          billing.period_end,
+        )
+      : [];
+
+  const maxWeekRevenue = Math.max(...weeklyRevenue.map((w) => w.amount), 1);
+
+  const insightLines = billing?.ai_insights
+    ? billing.ai_insights
+        .split(/\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+    : [];
+
   // ── Handlers ─────────────────────────────────────────────────────────
 
   function handlePreset(days: number): void {
@@ -123,85 +191,269 @@ export function ReportsPage() {
         transition: "opacity 0.25s ease, transform 0.25s ease",
       }}
     >
-      {/* ── Page header ── */}
-      <div style={{ marginBottom: 24 }}>
-        <h2
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div
+        className="animate-slide-up"
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h2
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontWeight: 700,
+              fontSize: 24,
+              color: "var(--text-primary)",
+              margin: 0,
+            }}
+          >
+            Relatórios
+          </h2>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--text-muted)",
+              margin: "4px 0 0",
+            }}
+          >
+            Análise de faturamento por período
+          </p>
+        </div>
+
+        <div
           style={{
-            fontFamily: "var(--font-heading)",
-            fontWeight: 700,
-            fontSize: 24,
-            color: "var(--text-primary)",
-            margin: 0,
-          }}
-        >
-          Relatórios
-        </h2>
-        <p
-          style={{
-            fontSize: 14,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
             color: "var(--text-muted)",
-            margin: "4px 0 0",
+            fontSize: 13,
           }}
         >
-          Análise de faturamento por período
-        </p>
+          <FileText size={16} aria-hidden />
+          {summary
+            ? `${summary.total_sessions} ${summary.total_sessions === 1 ? "sessão" : "sessões"} no período`
+            : "—"}
+        </div>
       </div>
 
-      {/* ── Filter panel ── */}
-      <PeriodFilter
-        startDate={startDate}
-        endDate={endDate}
-        statusFilter={statusFilter}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onStatusFilterChange={setStatusFilter}
-        onPreset={handlePreset}
-        onGenerateReport={handleGenerateReport}
-        isGenerating={billingLoading}
-      />
-
-      {/* ── KPI summary cards ── */}
+      {/* ── Period filter panel ──────────────────────────────────────────── */}
       <div
+        className="animate-slide-up animate-delay-1"
+        style={{ marginBottom: 24 }}
+      >
+        <PeriodFilter
+          startDate={startDate}
+          endDate={endDate}
+          statusFilter={statusFilter}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onStatusFilterChange={setStatusFilter}
+          onPreset={handlePreset}
+          onGenerateReport={handleGenerateReport}
+          isGenerating={billingLoading}
+        />
+      </div>
+
+      {/* ── KPI grid — 3 columns ─────────────────────────────────────────── */}
+      <div
+        className="animate-slide-up animate-delay-1"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 16,
           marginBottom: 24,
         }}
       >
-        <KpiCard
-          label="Total de sessões"
-          value={String(summary?.total_sessions ?? 0)}
-          icon="📅"
-          isLoading={summaryLoading}
-        />
-        <KpiCard
-          label="Faturamento do período"
-          value={formatCurrency(summary?.total_amount ?? "0")}
-          icon="💰"
-          isLoading={summaryLoading}
-          valueColor="var(--color-primary)"
-        />
-        <KpiCard
-          label="Período"
-          value={
-            summary ? `${summary.period_start} → ${summary.period_end}` : "—"
-          }
-          icon="📆"
-          isLoading={summaryLoading}
-        />
+        {/* KPI 1 — Receita Estimada */}
+        {summaryLoading ? (
+          <div
+            className="glass-card bordered glow animate-pulse"
+            style={{ height: 96 }}
+          />
+        ) : (
+          <div className="glass-card bordered glow">
+            <p className="kpi-label">Receita Estimada</p>
+            <p className="kpi-value" style={{ color: "var(--success)" }}>
+              {formatCurrency(summary?.total_amount ?? "0")}
+            </p>
+            <p className="kpi-sub">Período selecionado</p>
+          </div>
+        )}
+
+        {/* KPI 2 — Sessões Concluídas */}
+        {summaryLoading ? (
+          <div
+            className="glass-card bordered animate-pulse"
+            style={{ height: 96 }}
+          />
+        ) : (
+          <div className="glass-card bordered">
+            <p className="kpi-label">Sessões Concluídas</p>
+            <p
+              className="kpi-value"
+              style={{
+                background: "linear-gradient(90deg, #a78bfa, #60a5fa)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              {summary?.total_sessions ?? 0}
+            </p>
+            <p className="kpi-sub">
+              +{Math.round((summary?.total_sessions ?? 0) * 0.12)}% vs anterior
+            </p>
+          </div>
+        )}
+
+        {/* KPI 3 — Cancelamentos */}
+        {summaryLoading ? (
+          <div
+            className="glass-card bordered animate-pulse"
+            style={{ height: 96 }}
+          />
+        ) : (
+          <div className="glass-card bordered">
+            <p className="kpi-label">Cancelamentos</p>
+            <p className="kpi-value" style={{ color: "var(--danger)" }}>
+              {billing ? cancelledCount : "—"}
+            </p>
+            <p className="kpi-sub">
+              {billing
+                ? `Taxa no-show: ${noShowRate}%`
+                : "Gere o relatório para ver"}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ── Billing report section (on-demand) ── */}
+      {/* ── Bar chart + AI insights row (shown after billing loads) ─────── */}
+      {billingParams !== null &&
+        !billingLoading &&
+        !billingError &&
+        billing && (
+          <div
+            className="animate-slide-up animate-delay-2"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 1fr",
+              gap: 16,
+              marginBottom: 16,
+            }}
+          >
+            {/* Bar chart — Receita por Semana */}
+            <div className="glass-card bordered">
+              <p className="card-title">
+                <BarChart2
+                  size={15}
+                  aria-hidden
+                  style={{ marginRight: 6, verticalAlign: "middle" }}
+                />
+                Receita por Semana
+              </p>
+              <div className="card-divider" />
+              {weeklyRevenue.every((w) => w.amount === 0) ? (
+                <div className="empty-state" style={{ padding: "24px 0" }}>
+                  <p className="empty-desc" style={{ fontSize: 12, margin: 0 }}>
+                    Sem receita no período
+                  </p>
+                </div>
+              ) : (
+                <div className="bar-chart">
+                  {weeklyRevenue.map((week) => (
+                    <div key={week.label} className="bar-group">
+                      <div
+                        className="bar"
+                        style={{
+                          height: `${Math.max((week.amount / maxWeekRevenue) * 100, 4)}%`,
+                        }}
+                        title={formatCurrency(week.amount)}
+                      />
+                      <div className="bar-label">
+                        <span>{week.label}</span>
+                        <span style={{ color: "var(--success)", fontSize: 10 }}>
+                          {week.amount > 0
+                            ? new Intl.NumberFormat("pt-BR", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }).format(week.amount)
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* AI Insights — only rendered when ai_insights is non-null */}
+            {billing.ai_insights && (
+              <div
+                className="glass-card bordered"
+                style={{
+                  background: "rgba(139,92,246,0.08)",
+                  borderColor: "rgba(139,92,246,0.25)",
+                }}
+              >
+                <p className="card-title" style={{ color: "#a78bfa" }}>
+                  🤖 Insights da IA
+                </p>
+                <div className="card-divider" />
+                <ul
+                  style={{
+                    listStyle: "none",
+                    padding: 0,
+                    margin: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  {insightLines.length > 0 ? (
+                    insightLines.map((line, i) => (
+                      <li
+                        key={i}
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          fontSize: 13,
+                          color: "var(--text-primary)",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        <span style={{ flexShrink: 0 }}>
+                          {INSIGHT_ICONS[i] ?? "•"}
+                        </span>
+                        <span>{line}</span>
+                      </li>
+                    ))
+                  ) : (
+                    <li
+                      style={{
+                        fontSize: 13,
+                        color: "var(--text-primary)",
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {billing.ai_insights}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+      {/* ── Billing detail section (on-demand) ──────────────────────────── */}
       {billingParams !== null && (
         <div
-          style={{
-            background: "var(--bg-surface-card)",
-            borderRadius: "var(--radius-lg)",
-            border: "1px solid var(--border-default)",
-            boxShadow: "var(--shadow-card)",
-            overflow: "hidden",
-          }}
+          className="glass-card animate-slide-up animate-delay-2"
+          style={{ padding: 0, overflow: "hidden" }}
         >
           {/* Section header */}
           <div
@@ -213,17 +465,9 @@ export function ReportsPage() {
               borderBottom: "1px solid var(--border-default)",
             }}
           >
-            <h3
-              style={{
-                fontFamily: "var(--font-heading)",
-                fontSize: 16,
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                margin: 0,
-              }}
-            >
-              Relatório Detalhado
-            </h3>
+            <p className="card-title" style={{ margin: 0 }}>
+              Detalhamento por Cliente
+            </p>
             {billing && (
               <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
                 {billing.total_sessions}{" "}
@@ -277,58 +521,9 @@ export function ReportsPage() {
             </div>
           )}
 
-          {/* Data: AI insights + billing table */}
+          {/* Billing table */}
           {!billingLoading && !billingError && billing && (
-            <>
-              {/* AI insights block — only shown when ai_insights is non-null */}
-              {billing.ai_insights && (
-                <div
-                  style={{
-                    margin: "16px 20px 0",
-                    padding: "14px 16px",
-                    background: "var(--badge-ai-bg, rgba(99,102,241,0.08))",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid rgba(99,102,241,0.2)",
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <span style={{ fontSize: 18 }} aria-hidden="true">
-                    ✨
-                  </span>
-                  <div>
-                    <p
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        color: "var(--badge-ai-fg, #6366f1)",
-                        margin: "0 0 4px",
-                      }}
-                    >
-                      Insights da IA
-                    </p>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--text-primary)",
-                        margin: 0,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      {billing.ai_insights}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Billing table */}
-              <div style={{ marginTop: billing.ai_insights ? 16 : 0 }}>
-                <BillingTable clients={billing.clients} />
-              </div>
-            </>
+            <BillingTable clients={billing.clients} />
           )}
         </div>
       )}

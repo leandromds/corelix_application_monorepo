@@ -1,10 +1,9 @@
+import { Users } from "lucide-react";
+
 import { useDeleteClient } from "../hooks/useDeleteClient";
 import { useUpdateClient } from "../hooks/useUpdateClient";
 import type { Client } from "../types";
 
-import { Avatar, getInitials } from "@/components/shared/Avatar";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,52 +17,63 @@ import {
 } from "@/components/ui/alert-dialog";
 
 // ---------------------------------------------------------------------------
-// Avatar color — deterministic hash from name
+// Avatar color palette — index-based (cycles through 5 colors)
 // ---------------------------------------------------------------------------
 
-const AVATAR_COLORS = [
-  "#4f46e5",
-  "#0891b2",
-  "#059669",
-  "#dc2626",
-  "#7c3aed",
-  "#d97706",
-  "#0f766e",
-];
+const AVATAR_PALETTE = [
+  {
+    bg: "rgba(99,102,241,0.25)",
+    border: "rgba(99,102,241,0.5)",
+    text: "#a5b4fc",
+  },
+  {
+    bg: "rgba(6,182,212,0.20)",
+    border: "rgba(6,182,212,0.4)",
+    text: "#67e8f9",
+  },
+  {
+    bg: "rgba(52,211,153,0.20)",
+    border: "rgba(52,211,153,0.4)",
+    text: "#6ee7b7",
+  },
+  {
+    bg: "rgba(248,113,113,0.20)",
+    border: "rgba(248,113,113,0.4)",
+    text: "#fca5a5",
+  },
+  {
+    bg: "rgba(251,191,36,0.20)",
+    border: "rgba(251,191,36,0.4)",
+    text: "#fcd34d",
+  },
+] as const;
 
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (const c of name) hash = (hash << 5) - hash + c.charCodeAt(0);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]!;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  const first = words[0]![0]!.toUpperCase();
+  if (words.length === 1) return first;
+  return `${first}${words[1]![0]!.toUpperCase()}`;
 }
 
 // ---------------------------------------------------------------------------
-// Table header labels (shared between loading skeleton and live table)
+// Column headers (8 columns — actions has no header text)
 // ---------------------------------------------------------------------------
 
 const COLUMN_HEADERS = [
   "Nome",
   "Telefone",
-  "E-mail",
+  "Tipo",
+  "Sessões",
+  "Valor/sessão",
+  "Última sessão",
   "Status",
   "Ações",
 ] as const;
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: "12px 16px",
-  fontSize: 12,
-  fontWeight: 600,
-  color: "var(--text-muted)",
-  borderBottom: "1px solid var(--border-default)",
-  whiteSpace: "nowrap",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "12px 16px",
-  fontSize: 14,
-  verticalAlign: "middle",
-};
 
 // ---------------------------------------------------------------------------
 // Props
@@ -73,6 +83,8 @@ interface ClientListProps {
   clients: Client[];
   isLoading: boolean;
   onEdit: (client: Client) => void;
+  /** Called when the empty-state CTA is clicked. */
+  onNewClient?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,74 +92,81 @@ interface ClientListProps {
 // ---------------------------------------------------------------------------
 
 function SkeletonRows() {
+  const barStyle: React.CSSProperties = {
+    borderRadius: 4,
+    backgroundColor: "var(--border-default)",
+  };
+
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: "1px solid var(--border-default)" }}>
+        <tr key={i}>
           {/* Nome */}
-          <td style={tdStyle}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <td style={{ padding: "11px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
-                className="animate-pulse rounded-full"
+                className="animate-pulse"
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
                   backgroundColor: "var(--border-default)",
                   flexShrink: 0,
                 }}
               />
               <div
-                className="animate-pulse rounded"
-                style={{
-                  width: 120,
-                  height: 14,
-                  backgroundColor: "var(--border-default)",
-                }}
+                className="animate-pulse"
+                style={{ ...barStyle, width: 110, height: 13 }}
               />
             </div>
           </td>
           {/* Telefone */}
-          <td style={tdStyle}>
+          <td style={{ padding: "11px 14px" }}>
             <div
-              className="animate-pulse rounded"
-              style={{
-                width: 100,
-                height: 14,
-                backgroundColor: "var(--border-default)",
-              }}
+              className="animate-pulse"
+              style={{ ...barStyle, width: 96, height: 13 }}
             />
           </td>
-          {/* E-mail */}
-          <td style={tdStyle}>
+          {/* Tipo */}
+          <td style={{ padding: "11px 14px" }}>
             <div
-              className="animate-pulse rounded"
-              style={{
-                width: 140,
-                height: 14,
-                backgroundColor: "var(--border-default)",
-              }}
+              className="animate-pulse"
+              style={{ ...barStyle, width: 72, height: 13 }}
+            />
+          </td>
+          {/* Sessões */}
+          <td style={{ padding: "11px 14px" }}>
+            <div
+              className="animate-pulse"
+              style={{ ...barStyle, width: 32, height: 13 }}
+            />
+          </td>
+          {/* Valor/sessão */}
+          <td style={{ padding: "11px 14px" }}>
+            <div
+              className="animate-pulse"
+              style={{ ...barStyle, width: 56, height: 13 }}
+            />
+          </td>
+          {/* Última sessão */}
+          <td style={{ padding: "11px 14px" }}>
+            <div
+              className="animate-pulse"
+              style={{ ...barStyle, width: 80, height: 13 }}
             />
           </td>
           {/* Status */}
-          <td style={tdStyle}>
+          <td style={{ padding: "11px 14px" }}>
             <div
-              className="animate-pulse rounded-full"
-              style={{
-                width: 64,
-                height: 22,
-                backgroundColor: "var(--border-default)",
-              }}
+              className="animate-pulse"
+              style={{ ...barStyle, width: 60, height: 20, borderRadius: 20 }}
             />
           </td>
           {/* Actions */}
-          <td style={tdStyle}>
+          <td style={{ padding: "11px 14px" }}>
             <div
-              className="animate-pulse rounded"
-              style={{
-                width: 80,
-                height: 28,
-                backgroundColor: "var(--border-default)",
-              }}
+              className="animate-pulse"
+              style={{ ...barStyle, width: 40, height: 24 }}
             />
           </td>
         </tr>
@@ -160,24 +179,37 @@ function SkeletonRows() {
 // Empty state
 // ---------------------------------------------------------------------------
 
-function EmptyState() {
+interface EmptyStateProps {
+  onNewClient?: () => void;
+}
+
+function EmptyState({ onNewClient }: EmptyStateProps) {
   return (
     <tr>
-      <td colSpan={5}>
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <div style={{ fontSize: 40 }}>👥</div>
-          <p
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-            }}
-          >
-            Nenhum cliente encontrado
+      <td colSpan={8}>
+        <div className="empty-state">
+          <div className="empty-icon">
+            <Users aria-hidden="true" style={{ width: 32, height: 32 }} />
+          </div>
+          <p className="empty-title">Adicione seu primeiro cliente</p>
+          <p className="empty-desc">
+            Cadastre clientes para organizar sua agenda.
           </p>
-          <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-            Tente ajustar os filtros ou adicione um novo cliente.
-          </p>
+          {onNewClient && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={onNewClient}
+              style={{
+                marginTop: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              + Novo cliente
+            </button>
+          )}
         </div>
       </td>
     </tr>
@@ -188,7 +220,12 @@ function EmptyState() {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ClientList({ clients, isLoading, onEdit }: ClientListProps) {
+export function ClientList({
+  clients,
+  isLoading,
+  onEdit,
+  onNewClient,
+}: ClientListProps) {
   const { mutate: deleteClient, isPending: isDeleting } = useDeleteClient();
   const { mutate: updateClient, isPending: isUpdating } = useUpdateClient();
 
@@ -197,13 +234,11 @@ export function ClientList({ clients, isLoading, onEdit }: ClientListProps) {
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table className="data-table">
         <thead>
           <tr>
-            {COLUMN_HEADERS.map((h) => (
-              <th key={h} style={thStyle}>
-                {h}
-              </th>
+            {COLUMN_HEADERS.map((h, i) => (
+              <th key={i}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -212,130 +247,170 @@ export function ClientList({ clients, isLoading, onEdit }: ClientListProps) {
           {isLoading ? (
             <SkeletonRows />
           ) : clients.length === 0 ? (
-            <EmptyState />
+            <EmptyState onNewClient={onNewClient} />
           ) : (
-            clients.map((client) => (
-              <tr
-                key={client.id}
-                style={{
-                  borderBottom: "1px solid var(--border-default)",
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--bg-surface)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "";
-                }}
-              >
-                {/* Nome */}
-                <td style={tdStyle}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+            clients.map((client, idx) => {
+              const palette = AVATAR_PALETTE[idx % AVATAR_PALETTE.length]!;
+
+              return (
+                <tr key={client.id}>
+                  {/* Nome */}
+                  <td>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          background: palette.bg,
+                          border: `1px solid ${palette.border}`,
+                          color: palette.text,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          letterSpacing: "0.03em",
+                        }}
+                        aria-label={client.full_name}
+                      >
+                        {getInitials(client.full_name)}
+                      </div>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: "var(--text-primary)",
+                          fontSize: 13,
+                        }}
+                      >
+                        {client.full_name}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Telefone */}
+                  <td style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                    {client.phone ?? "—"}
+                  </td>
+
+                  {/* Tipo — not yet in Client type */}
+                  <td style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                    —
+                  </td>
+
+                  {/* Sessões — not yet in Client type */}
+                  <td
+                    style={{
+                      fontWeight: 600,
+                      color: "var(--text-primary)",
+                      fontSize: 13,
+                    }}
                   >
-                    <Avatar
-                      initials={getInitials(client.full_name)}
-                      color={getAvatarColor(client.full_name)}
-                      size="sm"
-                    />
+                    —
+                  </td>
+
+                  {/* Valor/sessão — not yet in Client type */}
+                  <td style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                    —
+                  </td>
+
+                  {/* Última sessão — not yet in Client type */}
+                  <td style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                    —
+                  </td>
+
+                  {/* Status */}
+                  <td>
                     <span
-                      style={{ fontWeight: 600, color: "var(--text-primary)" }}
+                      className={
+                        client.is_active ? "badge-confirmed" : "badge-noshow"
+                      }
                     >
-                      {client.full_name}
+                      {client.is_active ? "Ativo" : "Inativo"}
                     </span>
-                  </div>
-                </td>
+                  </td>
 
-                {/* Telefone */}
-                <td style={{ ...tdStyle, color: "var(--text-muted)" }}>
-                  {client.phone}
-                </td>
-
-                {/* E-mail */}
-                <td
-                  style={{
-                    ...tdStyle,
-                    color: client.email
-                      ? "var(--text-primary)"
-                      : "var(--text-muted)",
-                  }}
-                >
-                  {client.email ?? "—"}
-                </td>
-
-                {/* Status */}
-                <td style={tdStyle}>
-                  <StatusBadge
-                    status={client.is_active ? "active" : "inactive"}
-                  />
-                </td>
-
-                {/* Actions */}
-                <td style={tdStyle}>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    {/* Edit */}
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={isActing}
-                      onClick={() => onEdit(client)}
+                  {/* Actions */}
+                  <td>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
                     >
-                      Editar
-                    </Button>
+                      {/* Ver / Editar */}
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={isActing}
+                        onClick={() => onEdit(client)}
+                        style={{ fontSize: 10, padding: "3px 10px" }}
+                      >
+                        Ver
+                      </button>
 
-                    {/* Desativar (active) / Reativar (inactive) */}
-                    {client.is_active ? (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={isActing}
-                          >
-                            Desativar
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Desativar {client.full_name}?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação desativa o cliente. Você pode reativá-lo
-                              a qualquer momento.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteClient(client.id)}
+                      {/* Desativar (active) / Reativar (inactive) */}
+                      {client.is_active ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              disabled={isActing}
+                              style={{ fontSize: 10, padding: "3px 10px" }}
                             >
                               Desativar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={isActing}
-                        onClick={() =>
-                          updateClient({
-                            id: client.id,
-                            payload: { is_active: true },
-                          })
-                        }
-                      >
-                        Reativar
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Desativar {client.full_name}?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação desativa o cliente. Você pode
+                                reativá-lo a qualquer momento.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteClient(client.id)}
+                              >
+                                Desativar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={isActing}
+                          onClick={() =>
+                            updateClient({
+                              id: client.id,
+                              payload: { is_active: true },
+                            })
+                          }
+                          style={{ fontSize: 10, padding: "3px 10px" }}
+                        >
+                          Reativar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

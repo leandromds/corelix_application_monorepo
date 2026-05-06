@@ -1,65 +1,33 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+/**
+ * ThemeContext — dark-only.
+ * The HTML root always has data-theme="dark".
+ * ThemeProvider sets the attribute once on mount.
+ * useTheme returns { resolvedTheme: 'dark' } — kept for backward-compat
+ * with any consumer that reads resolvedTheme.
+ */
 
-type Theme = 'light' | 'dark' | 'system'
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 
 interface ThemeContextValue {
-  theme: Theme
-  setTheme: (t: Theme) => void
-  resolvedTheme: 'light' | 'dark'
+  resolvedTheme: "dark";
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  theme: 'system',
-  setTheme: () => {},
-  resolvedTheme: 'light',
-})
+  resolvedTheme: "dark",
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(
-    () => (localStorage.getItem('corelix-theme') as Theme) ?? 'system'
-  )
-
-  const resolvedTheme: 'light' | 'dark' =
-    theme === 'system'
-      ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-      : theme
-
   useEffect(() => {
-    const root = document.documentElement
-    const resolved =
-      theme === 'system'
-        ? window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light'
-        : theme
-    root.setAttribute('data-theme', resolved)
-    localStorage.setItem('corelix-theme', theme)
-  }, [theme])
-
-  // Listen for system theme changes when theme === 'system'
-  useEffect(() => {
-    if (theme !== 'system') return
-    const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => {
-      document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light')
-    }
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
-  }, [theme])
-
-  function setTheme(t: Theme) {
-    setThemeState(t)
-  }
+    document.documentElement.setAttribute("data-theme", "dark");
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
+    <ThemeContext.Provider value={{ resolvedTheme: "dark" }}>
       {children}
     </ThemeContext.Provider>
-  )
+  );
 }
 
 export function useTheme(): ThemeContextValue {
-  return useContext(ThemeContext)
+  return useContext(ThemeContext);
 }
