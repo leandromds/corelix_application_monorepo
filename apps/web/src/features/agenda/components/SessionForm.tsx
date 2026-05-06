@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import posthog from "posthog-js";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -153,7 +154,12 @@ export function SessionForm({
         status: values.status,
         notes: values.notes || undefined,
       };
-      createSession.mutate(payload, { onSuccess: () => onOpenChange(false) });
+      createSession.mutate(payload, {
+        onSuccess: () => {
+          posthog.capture("appointment_created");
+          onOpenChange(false);
+        },
+      });
     }
   }
 

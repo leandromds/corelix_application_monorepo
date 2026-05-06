@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-05-05",
   "current_feature": {
-    "module": "idle",
-    "branch": "develop",
-    "status": "awaiting_next_task",
+    "module": "infra",
+    "branch": "feature/infra-docker-observability",
+    "status": "done",
     "completed": [
       "✅ feature/frontend-reports merged (PR #12)",
       "✅ feature/frontend-settings merged (PR #13)",
       "✅ feature/frontend-whatsapp-conversations merged (PR #14)",
-      "✅ feature/frontend-quality-gate merged (PR #15): jest-axe, FormControl Slot fix, ClientList header fix, 8 testes a11y, 0 violations"
+      "✅ feature/frontend-quality-gate merged (PR #15): jest-axe, FormControl Slot fix, ClientList header fix, 8 testes a11y, 0 violations",
+      "✅ feature/infra-docker-observability: Dockerfile + Dockerfile.worker, docker-compose.yml (prod Coolify), docker-compose.dev.yml (dev postgres), .dockerignore, core/logging.py (JSON structured), GLITCHTIP_DSN em Settings, sentry-sdk init em main.py; @sentry/react + posthog-js no frontend, ErrorBoundary global, posthog.capture em 4 pages; ADR-025/026/027; 24 novos testes (709→726)"
     ],
     "next_candidates": [
-      "deploy — Railway: Procfile + worker (python -m jobs.runner) + vars de producao",
-      "seguranca — endpoint Embedded Signup (onboarding do numero WhatsApp)",
-      "infra — Procfile / Railway worker config para jobs runner"
+      "deploy — Coolify: provisionar VPS Hostinger KVM 2, instalar Coolify, configurar serviços API + worker + PostgreSQL, Uptime Kuma, Glitchtip, variáveis de ambiente de produção",
+      "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional"
     ]
   },
   "modules": {
@@ -26,7 +26,8 @@
         "core/security.py",
         "core/exceptions.py",
         "core/deps.py",
-        "core/models.py"
+        "core/models.py",
+        "core/logging.py"
       ]
     },
     "auth": {
@@ -100,9 +101,20 @@
         "jobs/tasks/whatsapp.py"
       ]
     },
+    "infra": {
+      "status": "done",
+      "files": [
+        "apps/api/Dockerfile",
+        "apps/api/Dockerfile.worker",
+        "apps/api/.dockerignore",
+        "docker-compose.yml",
+        "docker-compose.dev.yml",
+        "apps/api/core/logging.py"
+      ]
+    },
     "frontend": {
       "status": "done",
-      "notes": "Todas as paginas concluidas + quality gate a11y aplicado (jest-axe, 0 violations). FormControl corrigido (Slot). Embedded Signup pendente como proximo modulo.",
+      "notes": "Todas as paginas concluidas + quality gate a11y (jest-axe, 0 violations) + observabilidade: @sentry/react ErrorBoundary global, posthog-js com eventos customizados em 4 pages. FormControl corrigido (Slot). Embedded Signup pendente.",
       "files": [
         "src/index.css",
         "src/lib/utils.ts",
@@ -169,6 +181,9 @@
         "src/features/reports/ReportsPage.a11y.test.tsx",
         "src/features/settings/SettingsPage.a11y.test.tsx",
         "src/features/whatsapp/WhatsAppPage.a11y.test.tsx",
+        "src/test/observability.test.ts",
+        "src/features/agenda/AgendaPage.posthog.test.tsx",
+        "src/features/clients/ClientsPage.posthog.test.tsx",
         "src/pages/DashboardPage.tsx",
         "src/pages/LoginPage.tsx",
         "src/pages/RegisterPage.tsx",
@@ -180,12 +195,18 @@
     }
   },
   "tests": {
-    "total": 702,
-    "passing": 702,
+    "total": 726,
+    "passing": 726,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
       { "file": "tests/core/test_deps.py", "count": 6, "status": "green" },
+      { "file": "tests/core/test_health.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/core/test_observability.py",
+        "count": 4,
+        "status": "green"
+      },
       {
         "file": "tests/professionals/test_model.py",
         "count": 5,
@@ -460,6 +481,21 @@
         "file": "src/features/whatsapp/WhatsAppPage.a11y.test.tsx",
         "count": 1,
         "status": "green"
+      },
+      {
+        "file": "src/test/observability.test.ts",
+        "count": 9,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/AgendaPage.posthog.test.tsx",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/ClientsPage.posthog.test.tsx",
+        "count": 4,
+        "status": "green"
       }
     ]
   },
@@ -476,14 +512,16 @@
         "whatsapp_conversations"
       ]
     },
-    "docker_compose": "done",
+    "docker_compose": "done — docker-compose.yml (prod Coolify), docker-compose.dev.yml (dev postgres)",
+    "dockerfile": "done — apps/api/Dockerfile (api) + apps/api/Dockerfile.worker (worker)",
+    "dockerignore": "done — apps/api/.dockerignore",
+    "observability": "done — sentry-sdk, GLITCHTIP_DSN em Settings, core/logging.py (JSON structured)",
     "env_example": "done",
     "alembic": "configured"
   },
   "pending_tasks": [
-    "deploy — Railway setup: worker process python -m jobs.runner, variáveis de produção (WHATSAPP_APP_ID, ENCRYPTION_KEY real, etc.)",
-    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional",
-    "infra — Procfile / Railway worker config para jobs runner"
+    "deploy — Coolify: provisionar VPS Hostinger KVM 2, instalar Coolify, configurar serviços API + worker + PostgreSQL, Uptime Kuma, Glitchtip, variáveis de ambiente de produção",
+    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional"
   ],
   "known_issues": [],
   "api_gaps_resolved": [
@@ -530,7 +568,11 @@
     "fireEvent.change + type='number' + RHF em JSDOM nao atualiza o campo do form — Fix: usar schema.safeParse() direto no teste.",
     "axe-core em JSDOM: color-contrast e focus-visible nao sao testaveis headless. Desabilitar: rules: { color-contrast: { enabled: false }, region: { enabled: false } }. Lighthouse CLI necessario para validacao visual completa.",
     "FormControl shadcn como div: FormLabel.htmlFor aponta para div nao-labelable — violacao WCAG. Fix: usar Slot do @radix-ui/react-slot para clonar id para o filho (input).",
-    "jest-axe + Vitest: toHaveNoViolations deve ser registrado em setup.ts via expect.extend(). Timeout padrao 5s pode ser insuficiente para forms shadcn/RHF — usar it('...', async () => {...}, 15000)."
+    "jest-axe + Vitest: toHaveNoViolations deve ser registrado em setup.ts via expect.extend(). Timeout padrao 5s pode ser insuficiente para forms shadcn/RHF — usar it('...', async () => {...}, 15000).",
+    "Glitchtip/Sentry init guard: sempre checar if (dsn) antes de chamar sentry_sdk.init() / Sentry.init() — None ou undefined em dev não deve lançar erro.",
+    "PostHog posthog.capture em componentes (não pages): mutation onSuccess vive em SessionForm/ClientForm, não em AgendaPage/ClientsPage. Colocar o capture no componente onde a mutação é chamada, não na page.",
+    "posthog-js session_recording.maskAllInputs: propriedade direta de SessionRecordingOptions (não aninhada). Verificar tipos após instalar a versão específica.",
+    "Poetry não disponível no shell de CI sem carregar ~/.zshrc: instalar sentry-sdk via pip3 no pyenv Python ativo e adicionar manualmente ao pyproject.toml — equivalente a poetry add para o runtime."
   ],
   "lighthouse_scores": {
     "_note": "Requer servidor rodando. Executar: npx lighthouse http://localhost:5173/[rota] --only-categories=accessibility",

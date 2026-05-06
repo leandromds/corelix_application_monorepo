@@ -12,6 +12,7 @@ Setup:
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -26,9 +27,23 @@ from clients.router import router as clients_router
 from core.config import settings
 from core.database import check_database_connection, close_db
 from core.exceptions import AppException
+from core.logging import configure_logging
 from professionals.router import router as professionals_router
 from reports.router import router as reports_router
 from whatsapp.router import router as whatsapp_router
+
+# ============================================================================
+# Logging & Observability — initialized at module load time
+# ============================================================================
+configure_logging(debug=settings.DEBUG)
+
+if settings.GLITCHTIP_DSN:
+    sentry_sdk.init(
+        dsn=settings.GLITCHTIP_DSN,
+        traces_sample_rate=0.2,
+        environment=settings.ENVIRONMENT,
+    )
+
 
 # ============================================================================
 # Lifespan Management

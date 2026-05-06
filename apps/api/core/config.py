@@ -164,6 +164,12 @@ class Settings(BaseSettings):
         description="Allowed CORS origins",
     )
 
+    # Observability
+    GLITCHTIP_DSN: str | None = Field(
+        default=None,
+        description="Glitchtip/Sentry DSN for error tracking (optional — skip in dev)",
+    )
+
     # Encryption (for sensitive data at rest)
     ENCRYPTION_KEY: str = Field(
         ...,
