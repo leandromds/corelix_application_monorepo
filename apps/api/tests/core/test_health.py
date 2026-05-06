@@ -5,7 +5,6 @@ TDD — Red -> Green -> Refactor.
 The endpoint must return 200 without authentication.
 """
 
-import pytest
 from httpx import AsyncClient
 
 

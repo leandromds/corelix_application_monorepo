@@ -6,9 +6,7 @@ These tests verify that:
 2. configure_logging does not raise regardless of debug flag
 """
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 
 class TestSentryInit:
