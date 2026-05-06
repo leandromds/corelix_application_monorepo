@@ -1,14 +1,19 @@
 {
   "last_updated": "2026-05-05",
   "current_feature": {
-    "module": "frontend",
-    "branch": "feature/frontend-quality-gate",
-    "status": "done",
+    "module": "idle",
+    "branch": "develop",
+    "status": "awaiting_next_task",
     "completed": [
       "✅ feature/frontend-reports merged (PR #12)",
       "✅ feature/frontend-settings merged (PR #13)",
       "✅ feature/frontend-whatsapp-conversations merged (PR #14)",
-      "✅ feature/frontend-quality-gate: jest-axe, FormControl Slot fix, ClientList header fix, 8 testes a11y, 0 violations"
+      "✅ feature/frontend-quality-gate merged (PR #15): jest-axe, FormControl Slot fix, ClientList header fix, 8 testes a11y, 0 violations"
+    ],
+    "next_candidates": [
+      "deploy — Railway: Procfile + worker (python -m jobs.runner) + vars de producao",
+      "seguranca — endpoint Embedded Signup (onboarding do numero WhatsApp)",
+      "infra — Procfile / Railway worker config para jobs runner"
     ]
   },
   "modules": {
