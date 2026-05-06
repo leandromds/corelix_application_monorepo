@@ -33,7 +33,7 @@ gera insights e se comunica de forma humanizada. IA não é módulo isolado — 
 | Testes      | pytest + pytest-asyncio + httpx + factory-boy       |
 | WhatsApp    | Meta Cloud API — Embedded Signup (Tech Provider)    |
 | IA          | Anthropic API (Claude Sonnet)                       |
-| Hospedagem  | Railway                                             |
+| Hospedagem  | Hostinger VPS KVM2 + Coolify self-hosted                    |
 | Deps Python | Poetry (pyproject.toml)                             |
 
 ---
@@ -88,6 +88,9 @@ Módulos: `auth` / `professionals` / `clients` / `agenda` / `reports` / `whatsap
 | 22 | Gitflow: `main` ← PR ← `develop` ← PR ← `feature/*` | ADR-022 |
 | 23 | Pydantic v2 `model_validator` + `jsonable_encoder` no exception handler | ADR-023 |
 | 24 | PATCH semântico: `exclude_unset=True` em vez de `exclude_none=True` | ADR-024 |
+| 25 | Infra: Hostinger KVM 2 + Coolify self-hosted | ADR-025 |
+| 26 | Observabilidade: Uptime Kuma + Glitchtip + PostHog Cloud | ADR-026 |
+| 27 | Containerização: Docker Compose (API + worker separados) | ADR-027 |
 
 ---
 

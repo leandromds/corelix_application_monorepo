@@ -78,7 +78,9 @@ dmypy.json
 .python-version
 
 # Poetry
-poetry.lock
+# poetry.lock is intentionally NOT ignored: it must be committed so
+# Docker builds (poetry install --no-root --only=main) are reproducible.
+# See ADR-027 (Containerização) and ADR-020 (Poetry).
 
 # Frontend (React/Vite)
 apps/web/node_modules/
