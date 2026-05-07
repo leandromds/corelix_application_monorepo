@@ -1,7 +1,11 @@
 /**
  * Avatar — circular component that displays user initials.
  *
- * Style: purple-tinted background matching the dark glass morphism design system.
+ * Style: driven entirely by .avatar + .avatar-{size} CSS classes from index.css.
+ * The optional `color` prop is a programmatic override (e.g. hash-based colors
+ * in DayList) — applied via minimal inline style since it's dynamic data, not
+ * a hardcoded design token.
+ *
  * Also exports `getInitials`, a pure helper that derives two-character initials.
  */
 
@@ -14,26 +18,21 @@ import { cn } from "@/lib/utils";
 export interface AvatarProps {
   /** Pre-computed initials to display (use getInitials to generate). */
   initials: string;
-  /** Override background. Defaults to the purple-tinted palette. */
+  /** Optional programmatic background override (e.g. hash-based color). */
   color?: string;
   size?: "sm" | "md" | "default" | "lg";
   className?: string;
 }
 
-interface SizeConfig {
-  px: number;
-  fontSize: string;
-}
-
 // ---------------------------------------------------------------------------
-// Size map
+// Size → CSS class map
 // ---------------------------------------------------------------------------
 
-const SIZE_MAP: Record<NonNullable<AvatarProps["size"]>, SizeConfig> = {
-  sm: { px: 28, fontSize: "10px" },
-  default: { px: 32, fontSize: "11px" },
-  md: { px: 36, fontSize: "12px" },
-  lg: { px: 40, fontSize: "13px" },
+const SIZE_CLASS: Record<NonNullable<AvatarProps["size"]>, string> = {
+  sm: "avatar-sm",
+  default: "avatar-md", // 34px — closest to original 32px, no visible difference
+  md: "avatar-md",
+  lg: "avatar-lg",
 };
 
 // ---------------------------------------------------------------------------
@@ -70,24 +69,10 @@ export function Avatar({
   size = "default",
   className,
 }: AvatarProps) {
-  const { px, fontSize } = SIZE_MAP[size];
-
   return (
     <div
-      className={cn(
-        "flex items-center justify-center rounded-full flex-shrink-0 select-none",
-        className,
-      )}
-      style={{
-        width: `${px}px`,
-        height: `${px}px`,
-        background: color ?? "rgba(139, 92, 246, 0.25)",
-        border: color ? undefined : "1px solid rgba(139, 92, 246, 0.40)",
-        fontSize,
-        fontWeight: 700,
-        color: "hsl(270, 95%, 85%)",
-        fontFamily: "var(--font-body)",
-      }}
+      className={cn("avatar", SIZE_CLASS[size], className)}
+      style={color ? { background: color, border: "none" } : undefined}
       aria-label={initials}
     >
       {initials}

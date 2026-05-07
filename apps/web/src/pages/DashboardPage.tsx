@@ -48,23 +48,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-// Shared avatar style per wireframe spec
-const AVATAR: React.CSSProperties = {
-  background: "rgba(139,92,246,0.25)",
-  border: "1px solid rgba(139,92,246,0.4)",
-  color: "hsl(270,95%,85%)",
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 10,
-  fontWeight: 700,
-  flexShrink: 0,
-};
-
-// session.status → CSS badge class
+// session.status → CSS badge modifier class (base "badge" class always added separately)
 const STATUS_BADGE: Record<string, string> = {
   scheduled: "badge-pending",
   completed: "badge-confirmed",
@@ -110,9 +94,7 @@ function SkeletonRow() {
         className="skeleton"
         style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0 }}
       />
-      <div
-        style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}
-      >
+      <div className="flex flex-col gap-1.5 flex-1">
         <div className="skeleton" style={{ width: "55%", height: 11 }} />
         <div className="skeleton" style={{ width: "35%", height: 9 }} />
       </div>
@@ -213,18 +195,15 @@ export function DashboardPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
-      style={{
-        padding: "24px",
-        maxWidth: 1100,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-      }}
+      className="flex flex-col gap-5"
+      style={{ maxWidth: 1100, margin: "0 auto" }}
     >
       {/* ── 1. Alert banner ───────────────────────────────────────────────── */}
-      <div className="alert alert-purple animate-fade-in" style={{ gap: 12 }}>
-        <span style={{ fontSize: 18, flexShrink: 0 }}>👋</span>
+      <div className="alert alert-purple animate-fade-in">
+        <i
+          className="fas fa-hand-wave"
+          style={{ fontSize: 16, color: "hsl(270,95%,75%)", flexShrink: 0 }}
+        />
 
         <span style={{ flex: 1, lineHeight: 1.5 }}>
           <strong>
@@ -258,8 +237,10 @@ export function DashboardPage() {
         }}
       >
         {/* KPI 1 — Sessões Hoje */}
-        <div className="glass-card animate-slide-up">
-          <div className="kpi-label">Sessões Hoje</div>
+        <div className="glass-card bordered animate-slide-up">
+          <div className="kpi-label">
+            <i className="fas fa-calendar-day" /> Sessões Hoje
+          </div>
           <div
             className="kpi-value"
             style={{
@@ -277,8 +258,10 @@ export function DashboardPage() {
         </div>
 
         {/* KPI 2 — Msgs Pendentes */}
-        <div className="glass-card animate-slide-up animate-delay-1">
-          <div className="kpi-label">Msgs Pendentes</div>
+        <div className="glass-card bordered animate-slide-up animate-delay-1">
+          <div className="kpi-label">
+            <i className="fab fa-whatsapp" /> Msgs Pendentes
+          </div>
           <div className="kpi-value" style={{ color: "var(--warning)" }}>
             {totalUnread}
           </div>
@@ -288,8 +271,10 @@ export function DashboardPage() {
         </div>
 
         {/* KPI 3 — Receita Hoje */}
-        <div className="glass-card animate-slide-up animate-delay-2">
-          <div className="kpi-label">Receita Hoje</div>
+        <div className="glass-card bordered animate-slide-up animate-delay-2">
+          <div className="kpi-label">
+            <i className="fas fa-circle-dollar-to-slot" /> Receita Hoje
+          </div>
           <div className="kpi-value" style={{ color: "var(--success)" }}>
             {formatCurrency(revenueToday)}
           </div>
@@ -305,8 +290,10 @@ export function DashboardPage() {
         </div>
 
         {/* KPI 4 — Ocupação */}
-        <div className="glass-card animate-slide-up animate-delay-3">
-          <div className="kpi-label">Ocupação</div>
+        <div className="glass-card bordered animate-slide-up animate-delay-3">
+          <div className="kpi-label">
+            <i className="fas fa-clock" /> Ocupação
+          </div>
           <div className="kpi-value" style={{ color: "var(--info)" }}>
             {occupancyPct}%
           </div>
@@ -323,24 +310,15 @@ export function DashboardPage() {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 300px",
-          gap: 20,
+          gap: 16,
           alignItems: "start",
         }}
       >
         {/* ── Agenda de Hoje ────────────────────────────────────────────── */}
         <div className="glass-card bordered">
-          {/* Header row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 4,
-            }}
-          >
-            <span className="card-title">📅 Agenda de Hoje</span>
-
-            {/* Date navigation — all navigate to /agenda for now */}
+          {/* card-title is the flex row itself — no wrapper needed */}
+          <div className="card-title">
+            Agenda de Hoje
             <div style={{ display: "flex", gap: 5 }}>
               <button
                 className="btn-secondary"
@@ -366,7 +344,7 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <hr className="card-divider" />
+          <div className="card-divider" />
 
           {/* Loading skeleton */}
           {loadingToday && (
@@ -380,7 +358,9 @@ export function DashboardPage() {
           {/* Empty state */}
           {!loadingToday && todaySessions.length === 0 && (
             <div className="empty-state" style={{ padding: "28px 0" }}>
-              <div className="empty-icon">📅</div>
+              <div className="empty-icon">
+                <i className="fas fa-calendar-xmark" />
+              </div>
               <div className="empty-title">Nenhuma sessão hoje</div>
               <div className="empty-desc">
                 Sua agenda está livre. Que tal agendar uma sessão?
@@ -390,7 +370,7 @@ export function DashboardPage() {
                 style={{ marginTop: 14 }}
                 onClick={() => navigate("/agenda")}
               >
-                + Agendar sessão
+                <i className="fas fa-plus" /> Agendar sessão
               </button>
             </div>
           )}
@@ -404,7 +384,7 @@ export function DashboardPage() {
                     {formatTime(session.scheduled_at)}
                   </span>
 
-                  <div style={AVATAR}>
+                  <div className="avatar avatar-sm">
                     {getInitials(session.client_name ?? "CL")}
                   </div>
 
@@ -418,8 +398,9 @@ export function DashboardPage() {
                     </div>
                   </div>
 
+                  {/* badge + badge-* base class always required together */}
                   <span
-                    className={STATUS_BADGE[session.status] ?? "badge-pending"}
+                    className={`badge ${STATUS_BADGE[session.status] ?? "badge-pending"}`}
                   >
                     {STATUS_LABEL[session.status] ?? session.status}
                   </span>
@@ -440,26 +421,22 @@ export function DashboardPage() {
 
         {/* ── WhatsApp ──────────────────────────────────────────────────── */}
         <div className="glass-card bordered">
-          {/* Header row */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 4,
-            }}
-          >
-            {/* WhatsApp icon — green message bubble */}
-            <span style={{ fontSize: 16, lineHeight: 1 }}>💬</span>
-            <span className="card-title" style={{ flex: 1, marginBottom: 0 }}>
+          <div className="card-title">
+            <span>
+              <i
+                className="fab fa-whatsapp"
+                style={{ color: "var(--success)", marginRight: 6 }}
+              />
               WhatsApp
             </span>
             {conversations.length > 0 && (
-              <span className="badge-ai">{conversations.length}</span>
+              <span className="badge badge-pending">
+                {conversations.length}
+              </span>
             )}
           </div>
 
-          <hr className="card-divider" />
+          <div className="card-divider" />
 
           {/* Loading skeleton */}
           {loadingConversations && (
@@ -469,20 +446,13 @@ export function DashboardPage() {
                   <div
                     className="skeleton"
                     style={{
-                      width: 32,
-                      height: 32,
+                      width: 34,
+                      height: 34,
                       borderRadius: "50%",
                       flexShrink: 0,
                     }}
                   />
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 6,
-                    }}
-                  >
+                  <div className="flex flex-col gap-1.5 flex-1">
                     <div
                       className="skeleton"
                       style={{ width: "65%", height: 11 }}
@@ -500,7 +470,9 @@ export function DashboardPage() {
           {/* Empty state */}
           {!loadingConversations && conversations.length === 0 && (
             <div className="empty-state" style={{ padding: "20px 0" }}>
-              <div className="empty-icon">💬</div>
+              <div className="empty-icon">
+                <i className="fab fa-whatsapp" />
+              </div>
               <div className="empty-title">Sem conversas</div>
               <div className="empty-desc">
                 Nenhuma conversa ativa no momento
@@ -528,15 +500,7 @@ export function DashboardPage() {
 
                 return (
                   <div key={conv.id} className="wa-item">
-                    {/* Avatar — last 2 digits of phone as initials */}
-                    <div
-                      style={{
-                        ...AVATAR,
-                        width: 32,
-                        height: 32,
-                        fontSize: 11,
-                      }}
-                    >
+                    <div className="avatar avatar-md">
                       {conv.client_phone.replace(/\D/g, "").slice(-2)}
                     </div>
 
@@ -556,7 +520,10 @@ export function DashboardPage() {
                         </span>
                       </div>
                       <div className="wa-preview">
-                        <span className={badgeClass}>{badgeLabel}</span>
+                        {/* badge + badge-* always together */}
+                        <span className={`badge ${badgeClass}`}>
+                          {badgeLabel}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -566,7 +533,7 @@ export function DashboardPage() {
           )}
 
           {/* Footer */}
-          <hr className="card-divider" style={{ marginTop: 12 }} />
+          <div className="card-divider" style={{ marginTop: 12 }} />
           <p
             style={{
               fontSize: 10,
@@ -588,23 +555,17 @@ export function DashboardPage() {
         style={{
           display: "grid",
           gridTemplateColumns: "2fr 1fr",
-          gap: 20,
+          gap: 16,
           alignItems: "start",
         }}
       >
         {/* ── Bar chart — Sessões por Período ───────────────────────────── */}
         <div className="glass-card bordered">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 4,
-            }}
-          >
-            <span className="card-title">📊 Sessões por Período</span>
-
-            {/* Period toggle */}
+          <div className="card-title">
+            <span>
+              <i className="fas fa-chart-bar" style={{ marginRight: 6 }} />
+              Sessões por Período
+            </span>
             <div style={{ display: "flex", gap: 4 }}>
               {(["Semana", "Mês", "Tri"] as const).map((p) => (
                 <button
@@ -621,14 +582,13 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <hr className="card-divider" />
+          <div className="card-divider" />
 
           {/*
            * Bar chart — heights are pixel values matching a 100px container.
-           * bar-chart uses align-items: flex-end so all bars grow upward from
-           * the same baseline; bar-label sits below each column.
-           * NOTE: weekly aggregation endpoint not yet implemented — using
-           * static placeholder data (see WEEK_BARS constant above).
+           * bar-chart uses align-items: flex-end so bars grow upward from the
+           * same baseline; bar-label sits below each column.
+           * NOTE: weekly aggregation not yet implemented — static placeholder data.
            */}
           <div className="bar-chart" style={{ height: 100, marginTop: 16 }}>
             {WEEK_BARS.map(({ label, height }) => (
@@ -668,7 +628,7 @@ export function DashboardPage() {
             Meta: {formatCurrency(WEEKLY_GOAL)} · {weekRevenuePct}%
           </div>
 
-          <hr className="card-divider" />
+          <div className="card-divider" />
 
           {/* Legend dots */}
           <div

@@ -3,18 +3,19 @@
  *
  * Responsibilities:
  *  - Sidebar toggle (hamburger)
- *  - Breadcrumb showing current page title
- *  - Current date (center, hidden on mobile)
- *  - Search + Bell+notif-dot icon buttons
+ *  - Breadcrumb showing current page title (.topbar-breadcrumb)
+ *  - Current date in center (.topbar-date — hidden on mobile via CSS)
+ *  - Search + Bell+notif-dot icon buttons (.icon-btn)
  *  - "+ Nova Sessão" primary CTA → navigates to /agenda
- *  - User avatar (derived from professional name)
+ *  - User avatar (.avatar.avatar-sm derived from professional name)
  *
- * Dark-only: theme toggle removed (ThemeContext is now dark-only).
+ * Layout: .topbar class handles display:flex, gap, height, backdrop.
+ * .topbar-date uses margin:0 auto (CSS) to push itself to center.
+ * Icons: Font Awesome 6 via <i className="fas fa-...">
  */
 
-import { Bell, Menu, Plus, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Avatar, getInitials } from "@/components/shared/Avatar";
+import { getInitials } from "@/components/shared/Avatar";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -42,89 +43,57 @@ export function Topbar({ onToggleSidebar, title, professional }: TopbarProps) {
   });
 
   return (
-    <header
-      className="flex items-center gap-[12px] flex-shrink-0 px-[20px] z-[30]"
-      style={{
-        height: "var(--topbar-height)",
-        minHeight: "var(--topbar-height)",
-        background: "rgba(15, 15, 25, 0.80)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid var(--border-default)",
-      }}
-    >
-      {/* ── Left — hamburger + breadcrumb ── */}
+    <header className="topbar">
+      {/* ── Hamburger ── */}
       <button
         type="button"
         onClick={onToggleSidebar}
         aria-label="Alternar menu"
         className="icon-btn"
       >
-        <Menu size={16} />
+        <i className="fas fa-bars" />
       </button>
 
-      <span
-        className="flex-shrink-0"
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "var(--text-primary)",
-        }}
+      {/* ── Breadcrumb ── */}
+      <span className="topbar-breadcrumb">{title}</span>
+
+      {/* ── Current date — hidden on mobile via .topbar-date CSS ── */}
+      <span className="topbar-date">{dateString}</span>
+
+      {/* ── Search ── */}
+      <button type="button" aria-label="Pesquisar" className="icon-btn">
+        <i className="fas fa-magnifying-glass" />
+      </button>
+
+      {/* ── Notifications with red dot ── */}
+      <button
+        type="button"
+        aria-label="Notificações"
+        className="icon-btn"
+        style={{ position: "relative" }}
       >
-        {title}
-      </span>
+        <i className="fas fa-bell" />
+        <span className="notif-badge" aria-hidden="true" />
+      </button>
 
-      {/* ── Center — current date (hidden on mobile) ── */}
-      <span
-        className="hidden md:block mx-auto truncate"
-        style={{ fontSize: "12px", color: "var(--text-muted)" }}
+      {/* ── "+ Nova Sessão" primary CTA ── */}
+      <button
+        type="button"
+        onClick={() => navigate("/agenda")}
+        className="btn-primary"
       >
-        {dateString}
-      </span>
+        <i className="fas fa-plus" /> Nova Sessão
+      </button>
 
-      {/* ── Right — action cluster ── */}
-      <div className="flex items-center gap-[4px] ml-auto md:ml-0">
-        {/* Search */}
-        <button type="button" aria-label="Pesquisar" className="icon-btn">
-          <Search size={15} />
-        </button>
-
-        {/* Notifications with red dot */}
-        <div className="relative">
-          <button type="button" aria-label="Notificações" className="icon-btn">
-            <Bell size={15} />
-          </button>
-          {/* Red badge dot */}
-          <span
-            className="absolute top-[6px] right-[6px] w-[7px] h-[7px] rounded-full pointer-events-none"
-            style={{
-              background: "var(--danger)",
-              border: "1.5px solid var(--bg-page)",
-            }}
-            aria-hidden="true"
-          />
-        </div>
-
-        {/* "+ Nova Sessão" primary CTA */}
-        <button
-          type="button"
-          onClick={() => navigate("/agenda")}
-          className="btn-primary ml-[6px]"
+      {/* ── User avatar ── */}
+      {professional && (
+        <div
+          className="avatar avatar-sm"
+          style={{ marginLeft: 4, fontSize: 10 }}
         >
-          <Plus size={13} />
-          Nova Sessão
-        </button>
-
-        {/* User avatar */}
-        {professional && (
-          <Avatar
-            initials={initials}
-            size="sm"
-            className="cursor-pointer hover:opacity-80 transition-opacity duration-200 ml-[4px]"
-          />
-        )}
-      </div>
+          {initials}
+        </div>
+      )}
     </header>
   );
 }

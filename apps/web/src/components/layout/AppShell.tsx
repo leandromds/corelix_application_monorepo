@@ -53,21 +53,13 @@ export function AppShell() {
   return (
     <>
       {/* ── Decorative background blobs (fixed, behind everything) ── */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-          overflow: "hidden",
-        }}
-      >
+      <div className="bg-blobs">
         <div className="blob blob-1" />
         <div className="blob blob-2" />
       </div>
 
       {/* ── App shell (sits above blobs) ── */}
-      <div className="app-shell" style={{ position: "relative", zIndex: 1 }}>
+      <div className="app-shell">
         {/* Sidebar — hidden on mobile via .sidebar-desktop class */}
         <Sidebar
           collapsed={collapsed}

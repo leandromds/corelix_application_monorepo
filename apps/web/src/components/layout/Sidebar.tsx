@@ -2,27 +2,18 @@
  * Sidebar — collapsible navigation sidebar.
  *
  * Design (dark glass morphism):
- *  - Background: rgba(15,15,25,0.80) + backdrop-filter blur(20px)
- *  - Width transitions between var(--sidebar-width) ↔ var(--sidebar-collapsed)
- *  - Active NavLink: bg-selected + border-purple + purple glow
- *  - Inactive NavLink: text-muted, hover → bg-elevated + text-primary
- *  - Section labels: 10px uppercase, text-subtle
- *  - Footer avatar: purple tinted circle with initials + logout icon
+ *  - .sidebar class handles background, width, border, transition
+ *  - .sidebar.collapsed → narrowed to icon-only mode (64px)
+ *  - Active NavLink: .nav-item.active (bg-selected + border-purple + glow)
+ *  - Inactive NavLink: .nav-item (text-muted, hover → bg-elevated)
+ *  - Section labels: .sidebar-section-label (10px uppercase, text-subtle)
+ *  - Footer: .sidebar-footer > .sidebar-user > .avatar.avatar-md
+ *  - Icons: Font Awesome 6 via <i className="nav-icon fas fa-...">
  */
 
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  BarChart2,
-  CalendarDays,
-  Home,
-  LogOut,
-  MessageCircle,
-  Settings,
-  Stethoscope,
-  Users,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar, getInitials } from "@/components/shared/Avatar";
+import { getInitials } from "@/components/shared/Avatar";
 import { useAuth } from "@/hooks/useAuth";
 
 // ---------------------------------------------------------------------------
@@ -31,7 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
   path: string;
-  icon: React.ElementType;
+  icon: string; // Font Awesome class string, e.g. "fas fa-home"
   label: string;
   badge?: number;
 }
@@ -48,15 +39,15 @@ export interface SidebarProps {
 // ---------------------------------------------------------------------------
 
 const NAV_ITEMS: NavItem[] = [
-  { path: "/dashboard", icon: Home, label: "Início" },
-  { path: "/agenda", icon: CalendarDays, label: "Agenda" },
-  { path: "/clients", icon: Users, label: "Clientes" },
-  { path: "/whatsapp", icon: MessageCircle, label: "WhatsApp" },
-  { path: "/reports", icon: BarChart2, label: "Relatórios" },
+  { path: "/dashboard", icon: "fas fa-home", label: "Início" },
+  { path: "/agenda", icon: "fas fa-calendar-alt", label: "Agenda" },
+  { path: "/clients", icon: "fas fa-users", label: "Clientes" },
+  { path: "/whatsapp", icon: "fab fa-whatsapp", label: "WhatsApp" },
+  { path: "/reports", icon: "fas fa-chart-line", label: "Relatórios" },
 ];
 
 const ACCOUNT_ITEMS: NavItem[] = [
-  { path: "/settings", icon: Settings, label: "Configurações" },
+  { path: "/settings", icon: "fas fa-cog", label: "Configurações" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -69,89 +60,23 @@ interface NavLinkItemProps {
 }
 
 function NavLinkItem({ item, collapsed }: NavLinkItemProps) {
-  const Icon = item.icon;
-
   return (
     <NavLink
       to={item.path}
       title={collapsed ? item.label : undefined}
-      className={({ isActive }) =>
-        cn(
-          "flex items-center no-underline whitespace-nowrap",
-          "transition-all duration-200",
-          "py-[9px] rounded-[var(--radius-md)]",
-          collapsed
-            ? "mx-[8px] justify-center px-0"
-            : "mx-[8px] gap-[10px] px-[14px]",
-          isActive
-            ? "font-bold text-[var(--text-primary)]"
-            : "font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[rgba(255,255,255,0.08)]",
-        )
-      }
-      style={({ isActive }) =>
-        isActive
-          ? {
-              fontSize: "13px",
-              background: "var(--bg-selected)",
-              border: "1px solid var(--border-purple)",
-              boxShadow: "0 0 12px rgba(139,92,246,0.2)",
-            }
-          : {
-              fontSize: "13px",
-              background: "transparent",
-              border: "1px solid transparent",
-            }
+      className={({ isActive }) => cn("nav-item", isActive && "active")}
+      style={
+        collapsed ? { justifyContent: "center", padding: "9px 0" } : undefined
       }
     >
-      {/* Icon */}
-      <span
-        className="flex items-center justify-center flex-shrink-0"
-        style={{ width: "18px", textAlign: "center", lineHeight: 1 }}
-      >
-        <Icon size={15} />
-      </span>
+      <i className={cn("nav-icon", item.icon)} />
 
-      {/* Label — hidden when collapsed */}
-      {!collapsed && (
-        <span className="flex-1 truncate sidebar-label">{item.label}</span>
-      )}
+      {!collapsed && <span className="nav-item-label">{item.label}</span>}
 
-      {/* Optional badge count */}
       {!collapsed && item.badge !== undefined && item.badge > 0 && (
-        <span className="badge badge-pending ml-auto">{item.badge}</span>
+        <span className="sidebar-badge">{item.badge}</span>
       )}
     </NavLink>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Section label
-// ---------------------------------------------------------------------------
-
-interface SectionLabelProps {
-  label: string;
-  collapsed: boolean;
-}
-
-function SectionLabel({ label, collapsed }: SectionLabelProps) {
-  if (collapsed) return null;
-
-  return (
-    <div
-      className="sidebar-label"
-      style={{
-        fontSize: "10px",
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.12em",
-        color: "var(--text-subtle)",
-        padding: "18px 18px 6px",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-      }}
-    >
-      {label}
-    </div>
   );
 }
 
@@ -170,72 +95,28 @@ export function Sidebar({ collapsed, professional, className }: SidebarProps) {
   }
 
   return (
-    <aside
-      className={cn("flex flex-col overflow-hidden flex-shrink-0", className)}
-      style={{
-        width: collapsed ? "var(--sidebar-collapsed)" : "var(--sidebar-width)",
-        minWidth: collapsed
-          ? "var(--sidebar-collapsed)"
-          : "var(--sidebar-width)",
-        background: "rgba(15, 15, 25, 0.80)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderRight: "1px solid var(--border-default)",
-        transition: "width 0.25s ease, min-width 0.25s ease",
-        zIndex: 40,
-      }}
-    >
+    <aside className={cn("sidebar", collapsed && "collapsed", className)}>
       {/* ── Logo ── */}
-      <div
-        className={cn(
-          "flex items-center flex-shrink-0 overflow-hidden",
-          collapsed ? "justify-center px-0" : "gap-[10px] px-[18px]",
-        )}
-        style={{
-          height: "var(--topbar-height)",
-          borderBottom: "1px solid var(--border-default)",
-        }}
-      >
-        {/* Purple stethoscope icon box */}
-        <div
-          className="flex items-center justify-center flex-shrink-0 rounded-[8px]"
-          style={{
-            width: 30,
-            height: 30,
-            background: "rgba(139, 92, 246, 0.20)",
-            border: "1px solid rgba(139, 92, 246, 0.45)",
-          }}
-        >
-          <Stethoscope size={15} style={{ color: "hsl(260,95%,75%)" }} />
+      <div className="sidebar-logo">
+        <div className="logo-icon">
+          <i
+            className="fas fa-stethoscope"
+            style={{ fontSize: 13, color: "hsl(270,95%,75%)" }}
+          />
         </div>
-
-        {/* Brand name — hidden when collapsed */}
-        {!collapsed && (
-          <span
-            className="sidebar-label"
-            style={{
-              fontFamily: "var(--font-heading)",
-              fontSize: "15px",
-              fontWeight: 800,
-              color: "var(--text-primary)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Corelix
-          </span>
-        )}
+        {!collapsed && <span className="logo-text">Corelix</span>}
       </div>
 
       {/* ── Navigation ── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-[8px]">
-        <SectionLabel label="Menu" collapsed={collapsed} />
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+        {!collapsed && <div className="sidebar-section-label">Menu</div>}
         <nav aria-label="Navegação principal">
           {NAV_ITEMS.map((item) => (
             <NavLinkItem key={item.path} item={item} collapsed={collapsed} />
           ))}
         </nav>
 
-        <SectionLabel label="Conta" collapsed={collapsed} />
+        {!collapsed && <div className="sidebar-section-label">Conta</div>}
         <nav aria-label="Conta">
           {ACCOUNT_ITEMS.map((item) => (
             <NavLinkItem key={item.path} item={item} collapsed={collapsed} />
@@ -244,56 +125,45 @@ export function Sidebar({ collapsed, professional, className }: SidebarProps) {
       </div>
 
       {/* ── Footer — user card + logout ── */}
-      <div
-        className="flex-shrink-0 p-[12px]"
-        style={{ borderTop: "1px solid var(--border-default)" }}
-      >
-        <div
-          className={cn(
-            "flex items-center rounded-[var(--radius-md)]",
-            collapsed
-              ? "justify-center p-[9px]"
-              : "gap-[10px] px-[10px] py-[9px]",
-          )}
-        >
-          {/* Purple-tinted avatar */}
-          <Avatar initials={initials} size="md" />
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <div className="avatar avatar-md">{initials}</div>
 
-          {/* Name + specialty + logout — hidden when collapsed */}
           {!collapsed && professional && (
             <>
-              <div className="flex flex-col overflow-hidden min-w-0 flex-1">
-                <span
-                  className="truncate"
+              <div className="sidebar-user-info" style={{ overflow: "hidden" }}>
+                <div
                   style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "var(--text-primary)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {professional.full_name}
-                </span>
+                </div>
                 {professional.specialty && (
-                  <span
-                    className="truncate"
-                    style={{ fontSize: "11px", color: "var(--text-muted)" }}
-                  >
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>
                     {professional.specialty}
-                  </span>
+                  </div>
                 )}
               </div>
 
-              {/* Logout icon button */}
               <button
                 type="button"
                 onClick={() => {
                   void handleLogout();
                 }}
                 aria-label="Sair"
-                className="icon-btn flex-shrink-0"
+                className="icon-btn"
                 title="Sair"
+                style={{ marginLeft: "auto" }}
               >
-                <LogOut size={14} />
+                <i
+                  className="fas fa-arrow-right-from-bracket"
+                  style={{ fontSize: 11 }}
+                />
               </button>
             </>
           )}
