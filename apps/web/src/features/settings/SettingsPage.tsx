@@ -378,23 +378,22 @@ export function SettingsPage() {
 
                       {/* E-mail (read-only — not in PATCH endpoint) */}
                       <div>
-                        <label
+                        <p
                           className="form-label"
-                          style={{ display: "block", marginBottom: 6 }}
+                          style={{ marginBottom: 6 }}
                         >
                           E-mail
-                        </label>
-                        <input
-                          className="form-input"
-                          type="email"
-                          value={professional?.email ?? ""}
-                          readOnly
+                        </p>
+                        <p
                           style={{
-                            width: "100%",
-                            opacity: 0.55,
-                            cursor: "not-allowed",
+                            fontSize: 12,
+                            color: "var(--text-muted)",
+                            opacity: 0.75,
+                            padding: "8px 0",
                           }}
-                        />
+                        >
+                          {professional?.email ?? "—"}
+                        </p>
                       </div>
                     </div>
 

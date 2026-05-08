@@ -191,9 +191,9 @@ function EmptyState({ onNewClient }: EmptyStateProps) {
           <div className="empty-icon">
             <Users aria-hidden="true" style={{ width: 32, height: 32 }} />
           </div>
-          <p className="empty-title">Adicione seu primeiro cliente</p>
+          <p className="empty-title">Nenhum cliente encontrado</p>
           <p className="empty-desc">
-            Cadastre clientes para organizar sua agenda.
+            Tente ajustar os filtros ou adicione um novo cliente.
           </p>
           {onNewClient && (
             <button
@@ -253,7 +253,11 @@ export function ClientList({
               const palette = AVATAR_PALETTE[idx % AVATAR_PALETTE.length]!;
 
               return (
-                <tr key={client.id}>
+                <tr
+                  key={client.id}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-surface)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "")}
+                >
                   {/* Nome */}
                   <td>
                     <div
@@ -346,7 +350,6 @@ export function ClientList({
                         gap: 6,
                       }}
                     >
-                      {/* Ver / Editar */}
                       <button
                         type="button"
                         className="btn-secondary"
@@ -354,7 +357,7 @@ export function ClientList({
                         onClick={() => onEdit(client)}
                         style={{ fontSize: 10, padding: "3px 10px" }}
                       >
-                        Ver
+                        Editar
                       </button>
 
                       {/* Desativar (active) / Reativar (inactive) */}
