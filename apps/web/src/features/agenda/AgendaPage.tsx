@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
   format,
   addWeeks,
@@ -7,380 +7,352 @@ import {
   subDays,
   isSameDay,
   parseISO,
-} from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-
-import { useSessions } from './hooks/useSessions'
-import { useUpdateSession } from './hooks/useUpdateSession'
-import { WeekView } from './components/WeekView'
-import { DayList } from './components/DayList'
-import { SessionForm } from './components/SessionForm'
-import type { Session, SessionStatus } from './types'
-import { STATUS_LABELS } from './types'
+import { useSessions } from "./hooks/useSessions";
+import { WeekView } from "./components/WeekView";
+import { DayList } from "./components/DayList";
+import { SessionForm } from "./components/SessionForm";
+import type { Session, SessionStatus } from "./types";
+import { STATUS_LABELS } from "./types";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type ViewMode = 'week' | 'day'
+type ViewMode = "week" | "day";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(value: string): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(Number(value))
+function formatDateTime(iso: string): string {
+  return format(parseISO(iso), "dd/MM 'às' HH:mm", { locale: ptBR });
 }
 
-function formatDateTime(iso: string): string {
-  return format(parseISO(iso), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-}
+// Status → badge CSS class
+const STATUS_BADGE: Record<SessionStatus, string> = {
+  scheduled: "badge-confirmed",
+  completed: "badge-confirmed",
+  cancelled: "badge-cancelled",
+  no_show: "badge-noshow",
+};
 
 // ---------------------------------------------------------------------------
-// Sub-component: upcoming sessions table
+// UpcomingSessionsTable
 // ---------------------------------------------------------------------------
 
 interface UpcomingTableProps {
-  sessions: Session[]
-  onEditSession: (session: Session) => void
+  sessions: Session[];
+  onEditSession: (session: Session) => void;
 }
 
-function UpcomingSessionsTable({ sessions, onEditSession }: UpcomingTableProps) {
-  const { mutate: updateSession } = useUpdateSession()
-  const now = new Date()
-
+function UpcomingSessionsTable({
+  sessions,
+  onEditSession,
+}: UpcomingTableProps) {
+  const now = new Date();
   const upcoming = sessions
-    .filter((s) => s.status === 'scheduled' && new Date(s.scheduled_at) > now)
+    .filter((s) => s.status === "scheduled" && new Date(s.scheduled_at) > now)
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
-    .slice(0, 20)
+    .slice(0, 20);
 
-  if (upcoming.length === 0) return null
+  if (upcoming.length === 0) return null;
 
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{
-        background: 'var(--bg-surface-card)',
-        boxShadow: 'var(--shadow-card)',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="px-6 py-4"
-        style={{ borderBottom: '1px solid var(--border-default)' }}
-      >
-        <h3
-          className="font-semibold text-base"
-          style={{
-            color: 'var(--text-primary)',
-            fontFamily: 'var(--font-heading)',
-          }}
-        >
-          Próximas sessões
-        </h3>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
+    <div className="glass-card animate-slide-up animate-delay-2">
+      <p className="card-title">Próximas Sessões</p>
+      <div className="card-divider" />
+      <div style={{ overflowX: "auto" }}>
+        <table className="data-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
-              {['Data/Hora', 'Cliente', 'Duração', 'Valor', 'Status', ''].map(
-                (header) => (
-                  <th
-                    key={header}
-                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    {header}
-                  </th>
-                ),
-              )}
+            <tr>
+              <th>Data/Hora</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Duração</th>
+              <th>Status</th>
+              <th />
             </tr>
           </thead>
           <tbody>
-            {upcoming.map((session) => (
-              <tr
-                key={session.id}
-                style={{ borderBottom: '1px solid var(--border-default)' }}
-              >
-                <td
-                  className="px-4 py-3 text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {formatDateTime(session.scheduled_at)}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm font-medium"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {session.client_name ?? '—'}
-                </td>
-                <td
-                  className="px-4 py-3 text-sm"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {session.duration_minutes} min
-                </td>
-                <td
-                  className="px-4 py-3 text-sm"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {formatCurrency(session.price)}
-                </td>
-                <td className="px-4 py-3">
-                  <Select
-                    value={session.status}
-                    onValueChange={(value) => {
-                      updateSession({
-                        id: session.id,
-                        payload: { status: value as SessionStatus },
-                      })
-                    }}
-                  >
-                    <SelectTrigger className="w-36 h-7 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.keys(STATUS_LABELS) as SessionStatus[]).map(
-                        (value) => (
-                          <SelectItem
-                            key={value}
-                            value={value}
-                            className="text-xs"
-                          >
-                            {STATUS_LABELS[value]}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </td>
-                <td className="px-4 py-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => onEditSession(session)}
-                  >
-                    Editar
-                  </Button>
-                </td>
-              </tr>
-            ))}
+            {upcoming.map((session) => {
+              const name = session.client_name ?? "—";
+              const initials = name
+                .split(" ")
+                .map((w) => w[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
+
+              return (
+                <tr key={session.id}>
+                  <td style={{ color: "var(--text-primary)" }}>
+                    {formatDateTime(session.scheduled_at)}
+                  </td>
+
+                  <td>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
+                      <div className="avatar avatar-sm">{initials}</div>
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: "var(--text-primary)",
+                          fontSize: 13,
+                        }}
+                      >
+                        {name}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td style={{ color: "var(--text-muted)" }}>Sessão</td>
+
+                  <td style={{ color: "var(--text-muted)" }}>
+                    {session.duration_minutes} min
+                  </td>
+
+                  <td>
+                    <span className={`badge ${STATUS_BADGE[session.status]}`}>
+                      {STATUS_LABELS[session.status]}
+                    </span>
+                  </td>
+
+                  <td>
+                    <button
+                      className="btn-secondary"
+                      style={{ padding: "4px 12px", fontSize: 12 }}
+                      onClick={() => onEditSession(session)}
+                    >
+                      Detalhes
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Main page
+// AgendaPage
 // ---------------------------------------------------------------------------
 
 export function AgendaPage() {
-  const [currentWeek, setCurrentWeek] = useState<Date>(new Date())
-  const [viewMode, setViewMode] = useState<ViewMode>('week')
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingSession, setEditingSession] = useState<Session | null>(null)
-  const [defaultFormDate, setDefaultFormDate] = useState<Date | undefined>()
+  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<Session | null>(null);
+  const [defaultFormDate, setDefaultFormDate] = useState<Date | undefined>();
 
-  // Fetch the full month so the calendar doesn't need extra requests when
-  // the user navigates days inside the same month.
-  const monthParam = format(currentWeek, 'yyyy-MM')
+  // Fetch full month so calendar doesn't need extra requests when navigating
+  // days within the same month.
+  const monthParam = format(currentWeek, "yyyy-MM");
   const { data: sessions = [], isLoading } = useSessions({
     date: monthParam,
     limit: 100,
-  })
+  });
 
-  // For day view: filter the already-loaded sessions for the selected day.
+  // Day view: filter already-loaded sessions for the selected day.
   const sessionsForDay = sessions.filter((s) =>
     isSameDay(parseISO(s.scheduled_at), currentWeek),
-  )
+  );
 
-  // ------------------------------------------------------------------
-  // Navigation
-  // ------------------------------------------------------------------
+  // ── Navigation ──────────────────────────────────────────────────────────
 
-  function navigate(direction: 'prev' | 'next'): void {
-    if (viewMode === 'week') {
+  function navigate(direction: "prev" | "next"): void {
+    if (viewMode === "week") {
       setCurrentWeek((prev) =>
-        direction === 'prev' ? subWeeks(prev, 1) : addWeeks(prev, 1),
-      )
+        direction === "prev" ? subWeeks(prev, 1) : addWeeks(prev, 1),
+      );
     } else {
       setCurrentWeek((prev) =>
-        direction === 'prev' ? subDays(prev, 1) : addDays(prev, 1),
-      )
+        direction === "prev" ? subDays(prev, 1) : addDays(prev, 1),
+      );
     }
   }
 
-  // ------------------------------------------------------------------
-  // Handlers
-  // ------------------------------------------------------------------
+  // ── Handlers ────────────────────────────────────────────────────────────
 
   function handleEditSession(session: Session): void {
-    setEditingSession(session)
-    setFormOpen(true)
+    setEditingSession(session);
+    setFormOpen(true);
   }
 
   function handleNewSession(date: Date): void {
-    setDefaultFormDate(date)
-    setFormOpen(true)
+    setDefaultFormDate(date);
+    setFormOpen(true);
   }
 
   function handleFormOpenChange(open: boolean): void {
-    setFormOpen(open)
+    setFormOpen(open);
     if (!open) {
-      setEditingSession(null)
-      setDefaultFormDate(undefined)
+      setEditingSession(null);
+      setDefaultFormDate(undefined);
     }
   }
 
-  // ------------------------------------------------------------------
-  // Header date label
-  // ------------------------------------------------------------------
+  // ── Header date label ────────────────────────────────────────────────────
 
   const headerDate =
-    viewMode === 'week'
-      ? format(currentWeek, 'MMMM yyyy', { locale: ptBR })
-      : format(currentWeek, "d 'de' MMMM yyyy", { locale: ptBR })
+    viewMode === "week"
+      ? format(currentWeek, "MMMM yyyy", { locale: ptBR })
+      : format(currentWeek, "d 'de' MMMM yyyy", { locale: ptBR });
 
-  // ------------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------------
+  // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div
-      className="p-6 space-y-6"
-      style={{ background: 'var(--bg-page)', minHeight: '100vh' }}
-    >
-      {/* ---------------------------------------------------------------- */}
-      {/* Page header                                                       */}
-      {/* ---------------------------------------------------------------- */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        {/* Title + current period */}
+    <div style={{ padding: 24, minHeight: "100vh" }}>
+      {/* ── Page header ──────────────────────────────────────────────── */}
+      <div
+        className="animate-slide-up"
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
           <h2
-            className="text-2xl font-bold"
             style={{
-              fontFamily: 'var(--font-heading)',
-              color: 'var(--text-primary)',
+              fontFamily: "var(--font-heading)",
+              fontWeight: 700,
+              fontSize: 24,
+              color: "var(--text-primary)",
+              margin: 0,
             }}
           >
             Agenda
           </h2>
           <p
-            className="mt-0.5 capitalize text-sm"
             style={{
-              color: 'var(--text-muted)',
-              fontFamily: 'var(--font-body)',
+              fontSize: 13,
+              color: "var(--text-muted)",
+              margin: "4px 0 0",
+              textTransform: "capitalize",
             }}
           >
             {headerDate}
           </p>
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
           {/* Week / Day toggle */}
           <div
-            className="flex rounded-lg overflow-hidden border"
-            style={{ borderColor: 'var(--border-default)' }}
+            style={{
+              display: "flex",
+              gap: 2,
+              padding: 3,
+              background: "var(--bg-surface)",
+              borderRadius: 8,
+              border: "1px solid var(--border-default)",
+            }}
           >
-            {(['week', 'day'] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                className={cn(
-                  'px-3 py-1.5 text-sm font-medium transition-colors',
-                  mode === 'day' && 'border-l',
-                )}
-                style={{
-                  borderColor: 'var(--border-default)',
-                  background:
-                    viewMode === mode ? 'var(--color-primary)' : 'transparent',
-                  color:
-                    viewMode === mode
-                      ? 'var(--color-primary-fg)'
-                      : 'var(--text-primary)',
-                }}
-                onClick={() => setViewMode(mode)}
-              >
-                {mode === 'week' ? 'Semana' : 'Dia'}
-              </button>
-            ))}
+            <button
+              onClick={() => setViewMode("week")}
+              style={{
+                padding: "4px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
+                background:
+                  viewMode === "week" ? "var(--bg-selected)" : "transparent",
+                color: viewMode === "week" ? "var(--purple-500)" : "var(--text-muted)",
+                transition: "all 0.15s",
+              }}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setViewMode("day")}
+              style={{
+                padding: "4px 14px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
+                background:
+                  viewMode === "day" ? "var(--bg-selected)" : "transparent",
+                color: viewMode === "day" ? "var(--purple-500)" : "var(--text-muted)",
+                transition: "all 0.15s",
+              }}
+            >
+              Dia
+            </button>
           </div>
 
           {/* Navigation */}
-          <Button variant="outline" size="sm" onClick={() => navigate('prev')}>
-            <ChevronLeft className="h-4 w-4 mr-1" aria-hidden />
-            Anterior
-          </Button>
+          <button className="btn-secondary" onClick={() => navigate("prev")}>
+            <ChevronLeft size={14} aria-hidden /> Anterior
+          </button>
 
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            className="btn-secondary"
             onClick={() => setCurrentWeek(new Date())}
           >
             Hoje
-          </Button>
+          </button>
 
-          <Button variant="outline" size="sm" onClick={() => navigate('next')}>
-            Próximo
-            <ChevronRight className="h-4 w-4 ml-1" aria-hidden />
-          </Button>
+          <button className="btn-secondary" onClick={() => navigate("next")}>
+            Próximo <ChevronRight size={14} aria-hidden />
+          </button>
 
           {/* New session */}
-          <Button
-            size="sm"
-            style={{
-              background: 'var(--color-primary)',
-              color: 'var(--color-primary-fg)',
-            }}
+          <button
+            className="btn-primary"
             onClick={() => {
-              setEditingSession(null)
-              setDefaultFormDate(undefined)
-              setFormOpen(true)
+              setEditingSession(null);
+              setDefaultFormDate(undefined);
+              setFormOpen(true);
             }}
           >
-            <Plus className="h-4 w-4 mr-1" aria-hidden />
+            <Plus
+              size={14}
+              aria-hidden
+              style={{ marginRight: 4, verticalAlign: "middle" }}
+            />
             Nova Sessão
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Calendar card                                                     */}
-      {/* ---------------------------------------------------------------- */}
+      {/* ── Calendar card ──────────────────────────────────────────────── */}
       <div
-        className="rounded-xl overflow-hidden"
-        style={{
-          background: 'var(--bg-surface-card)',
-          boxShadow: 'var(--shadow-card)',
-        }}
+        className="glass-card bordered animate-slide-up animate-delay-1"
+        style={{ padding: 0, marginBottom: 16, overflow: "hidden" }}
       >
         {isLoading ? (
           <div
-            className="p-12 text-center text-sm"
-            style={{ color: 'var(--text-muted)' }}
+            style={{
+              padding: 48,
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--text-muted)",
+            }}
           >
             Carregando agenda…
           </div>
-        ) : viewMode === 'week' ? (
+        ) : viewMode === "week" ? (
           <WeekView
             sessions={sessions}
             currentWeek={currentWeek}
@@ -396,17 +368,13 @@ export function AgendaPage() {
         )}
       </div>
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Upcoming sessions table                                           */}
-      {/* ---------------------------------------------------------------- */}
+      {/* ── Upcoming sessions table ────────────────────────────────────── */}
       <UpcomingSessionsTable
         sessions={sessions}
         onEditSession={handleEditSession}
       />
 
-      {/* ---------------------------------------------------------------- */}
-      {/* Create / Edit session modal                                       */}
-      {/* ---------------------------------------------------------------- */}
+      {/* ── Session form dialog (unchanged) ────────────────────────────── */}
       <SessionForm
         open={formOpen}
         onOpenChange={handleFormOpenChange}
@@ -414,5 +382,5 @@ export function AgendaPage() {
         defaultDate={defaultFormDate}
       />
     </div>
-  )
+  );
 }

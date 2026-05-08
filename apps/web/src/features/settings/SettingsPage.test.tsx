@@ -94,12 +94,16 @@ describe("SettingsPage", () => {
   // ── Pré-população ────────────────────────────────────────────────────────
 
   it("pré-popula os campos com os dados do profissional do AuthContext", async () => {
+    const user = userEvent.setup();
     renderWithProviders(<SettingsPage />);
 
-    // RHF populates values via useEffect → wait for DOM update
+    // Perfil tab fields
     expect(await screen.findByDisplayValue("Ana Silva")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Psicologia")).toBeInTheDocument();
     expect(screen.getByDisplayValue("+5511999999999")).toBeInTheDocument();
+
+    // Valores tab fields — navigate first
+    await user.click(screen.getByRole("button", { name: /valores/i }));
     expect(screen.getByDisplayValue("50")).toBeInTheDocument();
     expect(screen.getByDisplayValue("200")).toBeInTheDocument();
   });

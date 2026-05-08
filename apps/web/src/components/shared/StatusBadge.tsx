@@ -1,27 +1,25 @@
 /**
  * StatusBadge — maps session and client statuses to compact styled badges.
  *
- * All colors are resolved at runtime via CSS variables defined in index.css,
- * which means the badge automatically adapts to light / dark themes.
+ * Uses .badge + .badge-{variant} CSS classes from index.css.
+ * No inline styles — all colors are owned by the CSS design system.
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type SessionStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show'
-type ClientStatus  = 'active'    | 'inactive'
-export type Status = SessionStatus | ClientStatus
+type SessionStatus = "scheduled" | "completed" | "cancelled" | "no_show";
+type ClientStatus = "active" | "inactive";
+export type Status = SessionStatus | ClientStatus;
 
 interface BadgeConfig {
   /** Portuguese display label */
-  label: string
-  /** CSS variable name (without `var()`) for background */
-  bgVar: string
-  /** CSS variable name (without `var()`) for text and border */
-  fgVar: string
+  label: string;
+  /** CSS modifier class, e.g. "badge-confirmed" */
+  badgeClass: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -30,66 +28,27 @@ interface BadgeConfig {
 
 const STATUS_CONFIG: Record<Status, BadgeConfig> = {
   // Session statuses
-  scheduled: {
-    label: 'Agendada',
-    bgVar: '--badge-confirmed-bg',
-    fgVar: '--badge-confirmed-fg',
-  },
-  completed: {
-    label: 'Realizada',
-    bgVar: '--badge-confirmed-bg',
-    fgVar: '--badge-confirmed-fg',
-  },
-  cancelled: {
-    label: 'Cancelada',
-    bgVar: '--badge-cancelled-bg',
-    fgVar: '--badge-cancelled-fg',
-  },
-  no_show: {
-    label: 'Faltou',
-    bgVar: '--badge-noshow-bg',
-    fgVar: '--badge-noshow-fg',
-  },
+  scheduled: { label: "Agendada", badgeClass: "badge-confirmed" },
+  completed: { label: "Realizada", badgeClass: "badge-confirmed" },
+  cancelled: { label: "Cancelada", badgeClass: "badge-cancelled" },
+  no_show: { label: "Faltou", badgeClass: "badge-noshow" },
 
   // Client statuses
-  active: {
-    label: 'Ativo',
-    bgVar: '--badge-confirmed-bg',
-    fgVar: '--badge-confirmed-fg',
-  },
-  inactive: {
-    label: 'Inativo',
-    bgVar: '--badge-noshow-bg',
-    fgVar: '--badge-noshow-fg',
-  },
-}
+  active: { label: "Ativo", badgeClass: "badge-confirmed" },
+  inactive: { label: "Inativo", badgeClass: "badge-noshow" },
+};
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 interface StatusBadgeProps {
-  status: Status
-  className?: string
+  status: Status;
+  className?: string;
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const { label, bgVar, fgVar } = STATUS_CONFIG[status]
+  const { label, badgeClass } = STATUS_CONFIG[status];
 
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center text-[10px] font-bold',
-        'px-[9px] py-[2px] rounded-full border',
-        className,
-      )}
-      style={{
-        background:   `var(${bgVar})`,
-        color:        `var(${fgVar})`,
-        borderColor:  `var(${fgVar})`,
-      }}
-    >
-      {label}
-    </span>
-  )
+  return <span className={cn("badge", badgeClass, className)}>{label}</span>;
 }
