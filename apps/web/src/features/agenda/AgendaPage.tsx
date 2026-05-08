@@ -25,44 +25,6 @@ import { STATUS_LABELS } from "./types";
 type ViewMode = "week" | "day";
 
 // ---------------------------------------------------------------------------
-// Avatar color variants — cycled by name hash
-// ---------------------------------------------------------------------------
-
-const AVATAR_VARIANTS = [
-  {
-    bg: "rgba(99,102,241,0.25)",
-    border: "rgba(99,102,241,0.5)",
-    color: "#a5b4fc",
-  },
-  {
-    bg: "rgba(34,211,238,0.20)",
-    border: "rgba(34,211,238,0.5)",
-    color: "#67e8f9",
-  },
-  {
-    bg: "rgba(52,211,153,0.20)",
-    border: "rgba(52,211,153,0.5)",
-    color: "#6ee7b7",
-  },
-  {
-    bg: "rgba(251,191,36,0.20)",
-    border: "rgba(251,191,36,0.5)",
-    color: "#fcd34d",
-  },
-  {
-    bg: "rgba(248,113,113,0.20)",
-    border: "rgba(248,113,113,0.5)",
-    color: "#fca5a5",
-  },
-] as const;
-
-function getAvatarVariant(name: string) {
-  let h = 0;
-  for (const c of name) h = (h << 5) - h + c.charCodeAt(0);
-  return AVATAR_VARIANTS[Math.abs(h) % AVATAR_VARIANTS.length]!;
-}
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -118,7 +80,6 @@ function UpcomingSessionsTable({
           <tbody>
             {upcoming.map((session) => {
               const name = session.client_name ?? "—";
-              const av = getAvatarVariant(name);
               const initials = name
                 .split(" ")
                 .map((w) => w[0])
@@ -136,25 +97,7 @@ function UpcomingSessionsTable({
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      {/* Avatar circle */}
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: av.bg,
-                          border: `1px solid ${av.border}`,
-                          color: av.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {initials}
-                      </div>
+                      <div className="avatar avatar-sm">{initials}</div>
                       <span
                         style={{
                           fontWeight: 600,
@@ -174,7 +117,7 @@ function UpcomingSessionsTable({
                   </td>
 
                   <td>
-                    <span className={STATUS_BADGE[session.status]}>
+                    <span className={`badge ${STATUS_BADGE[session.status]}`}>
                       {STATUS_LABELS[session.status]}
                     </span>
                   </td>
@@ -317,7 +260,7 @@ export function AgendaPage() {
               display: "flex",
               gap: 2,
               padding: 3,
-              background: "rgba(255,255,255,0.05)",
+              background: "var(--bg-surface)",
               borderRadius: 8,
               border: "1px solid var(--border-default)",
             }}
@@ -332,8 +275,8 @@ export function AgendaPage() {
                 cursor: "pointer",
                 border: "none",
                 background:
-                  viewMode === "week" ? "rgba(139,92,246,0.25)" : "transparent",
-                color: viewMode === "week" ? "#c4b5fd" : "var(--text-muted)",
+                  viewMode === "week" ? "var(--bg-selected)" : "transparent",
+                color: viewMode === "week" ? "var(--purple-500)" : "var(--text-muted)",
                 transition: "all 0.15s",
               }}
             >
@@ -349,8 +292,8 @@ export function AgendaPage() {
                 cursor: "pointer",
                 border: "none",
                 background:
-                  viewMode === "day" ? "rgba(139,92,246,0.25)" : "transparent",
-                color: viewMode === "day" ? "#c4b5fd" : "var(--text-muted)",
+                  viewMode === "day" ? "var(--bg-selected)" : "transparent",
+                color: viewMode === "day" ? "var(--purple-500)" : "var(--text-muted)",
                 transition: "all 0.15s",
               }}
             >
