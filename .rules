@@ -173,7 +173,19 @@ Módulos: auth / professionals / clients / agenda / reports / whatsapp / ai / co
 - agenda/models.py → BlockedPeriod (CreatedAtMixin) | RLS ativo
 - whatsapp/models.py → WhatsAppConversation (TimestampMixin) | RLS ativo
 - whatsapp/models.py → WhatsAppMessage (sem mixin — usa sent_at)
+- whatsapp/models.py → WhatsAppAccount (TimestampMixin) — professional_id unique, provider_type (meta/twilio_shared), access_token_encrypted (BYTEA/Fernet), routing_tag unique | RLS ativo
+- whatsapp/models.py → WhatsAppPhoneBinding (CreatedAtMixin) — uq(phone_number, professional_id), bound_via (tag/qr/manual) | RLS ativo
+- whatsapp/models.py → WhatsAppProviderMessage (CreatedAtMixin) — uq(professional_id, provider_message_id), idempotência de webhook | RLS ativo
 - Migration: 56f1e41b5d4c_initial_schema.py aplicada com RLS em 6 tabelas
+- Migration: b2c3d4e5f6a7_whatsapp_providers.py — adiciona whatsapp_accounts, whatsapp_phone_bindings, whatsapp_provider_messages + RLS
+
+## whatsapp/providers/ — implementado
+- base.py → `WhatsAppProvider` (ABC): send_text, send_template, parse_webhook, verify_webhook_challenge; `ProviderError(provider, message, status_code)`; `InvalidSignatureError(provider)`
+- crypto.py → `encrypt_credentials(plaintext) → bytes`, `decrypt_credentials(ciphertext) → str` (Fernet AES-128-CBC + HMAC-SHA256)
+- terminal.py → `TerminalProvider`: guarda RuntimeError em produção; imprime no stdout; parse_webhook aceita payload CLI interno
+- twilio_shared.py → `TwilioSharedAccountProvider(session)`: roteamento por binding → tag DRANA-{slug} → help; HMAC-SHA1 via `twilio.request_validator.RequestValidator`; `TWILIO_WEBHOOK_VALIDATION=False` desativa em testes; `PhoneBindingRepository` e `WhatsAppAccountRepository` importados no topo (patchável nos testes)
+- meta.py → `MetaCloudProvider(session)`: credenciais por profissional via `_get_access_token`; HMAC-SHA256; fallbacks legados `_get_app_secret()` / `_get_verify_token()`; `_resolve_professional(phone_number_id)` via query direta
+- factory.py → `get_provider_for_professional(*, professional_id, session)`: FORCE_TERMINAL → Terminal; provider_type='meta' → Meta; default → Twilio; `WhatsAppAccountRepository` importado no topo
 
 ## TDD — estado atual
 Red → Green → Refactor. Sempre mostrar o teste antes da implementação.
@@ -204,14 +216,25 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 | tests/reports/test_repository.py | 13 | ✅ Green |
 | tests/reports/test_service.py | 14 | ✅ Green |
 | tests/reports/test_router.py | 13 | ✅ Green |
-| tests/whatsapp/test_model.py | 4 | ✅ Green |
-| tests/whatsapp/test_repository.py | 13 | ✅ Green |
-| tests/whatsapp/test_service.py | 13 | ✅ Green |
+| tests/whatsapp/test_model.py | 11 | ✅ Green |
+| tests/whatsapp/test_repository.py | 22 | ✅ Green |
+| tests/whatsapp/test_service.py | 17 | ✅ Green |
 | tests/whatsapp/test_router.py | 14 | ✅ Green |
+| tests/whatsapp/test_schemas.py | 10 | ✅ Green |
+| tests/whatsapp/providers/test_base.py | 5 | ✅ Green |
+| tests/whatsapp/providers/test_crypto.py | 6 | ✅ Green |
+| tests/whatsapp/providers/test_terminal.py | 8 | ✅ Green |
+| tests/whatsapp/providers/test_twilio_shared.py | 13 | ✅ Green |
+| tests/whatsapp/providers/test_meta.py | 9 | ✅ Green |
+| tests/whatsapp/providers/test_factory.py | 5 | ✅ Green |
+| tests/whatsapp/providers/test_idempotency.py | 4 | ✅ Green |
+| tests/whatsapp/webhooks/test_meta_webhook.py | 4 | ✅ Green |
+| tests/whatsapp/webhooks/test_twilio_webhook.py | 2 | ✅ Green |
+| tests/whatsapp/devtools/test_terminal_chat.py | 2 | ✅ Green |
 | tests/jobs/test_cleanup.py | 8 | ✅ Green |
 | tests/jobs/test_recurrences.py | 11 | ✅ Green |
 | tests/jobs/test_whatsapp.py | 7 | ✅ Green |
-| **Total** | **563** | **563 passando** |
+| **Total** | **658** | **658 passando** |
 
 ## Gotchas de implementação (registrar para não repetir)
 - **BYPASSRLS vs FORCE ROW LEVEL SECURITY:** o usuário `postgres` tem o privilege `BYPASSRLS` nativo. A documentação do PostgreSQL diz explicitamente que `FORCE ROW LEVEL SECURITY` NÃO afeta usuários com `BYPASSRLS`. Solução: criar role `test_rls_user` (NOLOGIN, sem BYPASSRLS) e usar `SET LOCAL ROLE test_rls_user` nos testes de isolamento antes de `SET LOCAL app.current_tenant`. O `SET LOCAL` é transação-scoped — revertido no rollback automático do `db_session`. Ver ADR-021.
@@ -233,10 +256,12 @@ Testes em api/tests/{modulo}/test_router, test_service, test_repository.
 - **find_today/upcoming_with_clients retornam list[Row] não list[Session]:** usar `result.all()` sem `.scalars()` para preservar a Row com todas as colunas nomeadas. `SessionResponse.model_validate(row)` funciona via `from_attributes=True` — `getattr(row, 'client_name')` funciona em Row objects do SQLAlchemy. Para ORM objects sem o atributo, cai no default `None` (campo declarado como `str | None = None`).
 - **BackgroundTasks + sessão própria:** background task do webhook cria `async_session_maker()` próprio; nunca reusar sessão da request.
 - **mypy no-untyped-def em service:** parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test.
+- **Importações locais em providers — patch não funciona:** `unittest.mock.patch('whatsapp.providers.twilio_shared.SomeRepo', ...)` só funciona se `SomeRepo` for importado no nível do módulo (`from whatsapp.repository import SomeRepo` no topo do arquivo). Se a importação for local dentro da função (`from whatsapp.repository import SomeRepo` dentro de `parse_webhook`), o `patch` não encontra o atributo no `__dict__` do módulo e levanta `AttributeError`. Mover repositórios para o topo do módulo é seguro (sem circular imports) e necessário para testabilidade.
+- **Factory: importar repository no topo, providers localmente:** em `whatsapp/providers/factory.py`, `WhatsAppAccountRepository` é importado no topo (patchável nos testes), mas os providers concretos (`TerminalProvider`, `MetaCloudProvider`, `TwilioSharedAccountProvider`) permanecem como importações locais dentro da função (evita circular imports; não precisam ser patchados no factory).
 
 ## Estado atual do backend — 100% completo para MVP
 
-Todos os módulos backend estão implementados e testados (563 testes, CI verde):
+Todos os módulos backend estão implementados e testados (658 testes Python, CI verde):
 - core, auth, professionals, clients, agenda, reports, whatsapp, ai, jobs ✅
 - GET /reports/summary — endpoint leve para KPI cards do dashboard ✅
 - GET /agenda/sessions/today e /upcoming — incluem client_name via JOIN ✅

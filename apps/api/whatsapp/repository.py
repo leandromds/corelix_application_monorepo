@@ -322,3 +322,171 @@ class WhatsAppRepository:
             )
         )
         return result.scalar_one_or_none()
+
+
+# ============================================================================
+# Provider architecture repositories (ADR-028)
+# ============================================================================
+
+
+class WhatsAppAccountRepository:
+    """Repositório de contas WhatsApp vinculadas por profissional."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(
+        self,
+        *,
+        professional_id: UUID,
+        provider_type: str,
+        phone_number: str,
+        phone_number_id: str,
+        access_token_encrypted: bytes,
+        routing_tag: str | None = None,
+    ) -> "WhatsAppAccount":  # type: ignore[name-defined]  # noqa: F821
+        from whatsapp.models import WhatsAppAccount
+
+        account = WhatsAppAccount(
+            professional_id=professional_id,
+            provider_type=provider_type,
+            phone_number=phone_number,
+            phone_number_id=phone_number_id,
+            access_token_encrypted=access_token_encrypted,
+            routing_tag=routing_tag,
+        )
+        self.session.add(account)
+        await self.session.flush()
+        await self.session.refresh(account)
+        return account
+
+    async def find_by_professional_id(self, professional_id: UUID) -> "WhatsAppAccount | None":  # type: ignore[name-defined]  # noqa: F821
+        """Retorna a conta ativa do profissional, ou None se não existir."""
+        from whatsapp.models import WhatsAppAccount
+
+        result = await self.session.execute(
+            select(WhatsAppAccount).where(
+                WhatsAppAccount.professional_id == professional_id,
+                WhatsAppAccount.is_active.is_(True),
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def find_by_routing_tag(self, routing_tag: str) -> "WhatsAppAccount | None":  # type: ignore[name-defined]  # noqa: F821
+        """Busca conta ativa pelo routing_tag (usado no roteamento Twilio Shared)."""
+        from whatsapp.models import WhatsAppAccount
+
+        result = await self.session.execute(
+            select(WhatsAppAccount).where(
+                WhatsAppAccount.routing_tag == routing_tag,
+                WhatsAppAccount.is_active.is_(True),
+            )
+        )
+        return result.scalar_one_or_none()
+
+
+class PhoneBindingRepository:
+    """Repositório de vínculos phone→professional (modo Twilio Shared)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(
+        self,
+        *,
+        professional_id: UUID,
+        phone_number: str,
+        bound_via: str,
+    ) -> "WhatsAppPhoneBinding":  # type: ignore[name-defined]  # noqa: F821
+        from whatsapp.models import WhatsAppPhoneBinding
+
+        binding = WhatsAppPhoneBinding(
+            professional_id=professional_id,
+            phone_number=phone_number,
+            bound_via=bound_via,
+            bound_at=datetime.now(UTC),
+        )
+        self.session.add(binding)
+        await self.session.flush()
+        await self.session.refresh(binding)
+        return binding
+
+    async def find_by_phone(self, phone_number: str) -> "WhatsAppPhoneBinding | None":  # type: ignore[name-defined]  # noqa: F821
+        """Busca vínculo para o número de telefone (sem filtro RLS — cross-tenant).
+
+        Chamado no processamento de webhook Twilio antes de conhecermos o tenant.
+        A policy null-permissive permite a leitura quando current_tenant não está set.
+        """
+        from whatsapp.models import WhatsAppPhoneBinding
+
+        result = await self.session.execute(
+            select(WhatsAppPhoneBinding).where(
+                WhatsAppPhoneBinding.phone_number == phone_number,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_by_professional(self, professional_id: UUID) -> "list[WhatsAppPhoneBinding]":  # type: ignore[name-defined]  # noqa: F821
+        from whatsapp.models import WhatsAppPhoneBinding
+
+        result = await self.session.execute(
+            select(WhatsAppPhoneBinding)
+            .where(WhatsAppPhoneBinding.professional_id == professional_id)
+            .order_by(WhatsAppPhoneBinding.bound_at.desc())
+        )
+        return list(result.scalars().all())
+
+
+class ProviderMessageRepository:
+    """Repositório de log de idempotência de mensagens por provider."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(
+        self,
+        *,
+        professional_id: UUID,
+        provider_message_id: str,
+        direction: str,
+        from_phone: str,
+        to_phone: str,
+        body: str,
+        provider_type: str,
+    ) -> "WhatsAppProviderMessage":  # type: ignore[name-defined]  # noqa: F821
+        from whatsapp.models import WhatsAppProviderMessage
+
+        msg = WhatsAppProviderMessage(
+            professional_id=professional_id,
+            provider_message_id=provider_message_id,
+            direction=direction,
+            from_phone=from_phone,
+            to_phone=to_phone,
+            body=body,
+            provider_type=provider_type,
+        )
+        self.session.add(msg)
+        await self.session.flush()
+        await self.session.refresh(msg)
+        return msg
+
+    async def exists(self, *, professional_id: UUID, provider_message_id: str) -> bool:
+        """Verifica se a mensagem já foi processada (idempotência).
+
+        Chamado no início do processamento de cada webhook antes de qualquer
+        efeito colateral (criar conversa, disparar IA). Se retornar True, o
+        webhook é ignorado silenciosamente.
+        """
+        from sqlalchemy import func
+
+        from whatsapp.models import WhatsAppProviderMessage
+
+        count = await self.session.scalar(
+            select(func.count())
+            .select_from(WhatsAppProviderMessage)
+            .where(
+                WhatsAppProviderMessage.professional_id == professional_id,
+                WhatsAppProviderMessage.provider_message_id == provider_message_id,
+            )
+        )
+        return (count or 0) > 0

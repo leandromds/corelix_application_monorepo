@@ -6,13 +6,23 @@ Tables: whatsapp_conversations, whatsapp_messages.
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, Text, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.types import UUID as SQLUUID
 
 from core.database import Base
-from core.mixins import TimestampMixin
+from core.mixins import CreatedAtMixin, TimestampMixin
 
 
 class WhatsAppConversation(TimestampMixin, Base):
@@ -121,3 +131,119 @@ class WhatsAppMessage(Base):
         server_default=text("NOW()"),
         nullable=False,
     )
+
+
+# ============================================================================
+# Provider architecture models (ADR-028)
+# ============================================================================
+
+
+class WhatsAppAccount(TimestampMixin, Base):
+    """
+    Vincula um profissional a um provider WhatsApp com número dedicado.
+
+    provider_type='meta': número próprio via Embedded Signup
+    provider_type='twilio_shared': número Corelix compartilhado
+
+    access_token_encrypted é cifrado com Fernet (providers/crypto.py).
+    Descriptografar apenas no momento de uso — não manter plaintext em memória.
+    routing_tag: slug curto único para roteamento Twilio (ex: 'CMcm6').
+    """
+
+    __tablename__ = "whatsapp_accounts"
+    __table_args__ = (
+        CheckConstraint(
+            "provider_type IN ('meta', 'twilio_shared')",
+            name="chk_wa_account_provider_type",
+        ),
+    )
+
+    professional_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("professionals.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    provider_type: Mapped[str] = mapped_column(Text, nullable=False)
+    phone_number: Mapped[str] = mapped_column(Text, nullable=False)  # E.164
+    phone_number_id: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # Meta phone_number_id ou Twilio MSGSVC SID
+    access_token_encrypted: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    routing_tag: Mapped[str | None] = mapped_column(
+        Text, unique=True
+    )  # usado no modo Twilio Shared
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
+
+
+class WhatsAppPhoneBinding(CreatedAtMixin, Base):
+    """
+    Mapeia número de telefone do cliente final para um profissional.
+
+    Usado exclusivamente pelo TwilioSharedAccountProvider para resolver
+    de qual profissional é cada mensagem entrante no número compartilhado.
+
+    bound_via:
+      'tag'    — cliente enviou mensagem com tag DRANA-{slug} na primeira mensagem
+      'qr'     — cliente escaneou QR code único do profissional
+      'manual' — profissional iniciou conversa pelo dashboard (template outbound)
+
+    Índice em phone_number para lookup rápido em cada webhook entrante.
+    """
+
+    __tablename__ = "whatsapp_phone_bindings"
+    __table_args__ = (
+        UniqueConstraint("phone_number", "professional_id", name="uq_phone_binding"),
+        Index("ix_phone_bindings_phone", "phone_number"),
+        CheckConstraint("bound_via IN ('tag', 'qr', 'manual')", name="chk_bound_via"),
+    )
+
+    professional_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("professionals.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    phone_number: Mapped[str] = mapped_column(Text, nullable=False)  # E.164
+    bound_via: Mapped[str] = mapped_column(Text, nullable=False)
+    bound_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        server_default=text("NOW()"),
+        nullable=False,
+    )
+
+
+class WhatsAppProviderMessage(CreatedAtMixin, Base):
+    """
+    Log de idempotência para mensagens processadas por providers.
+
+    Garante que cada mensagem (identificada por professional_id + provider_message_id)
+    seja processada exatamente uma vez, mesmo que o provider reenvie o webhook.
+
+    Twilio e Meta têm semântica at-least-once — sem este log, um lembrete de
+    consulta pode ser disparado em duplicidade para o cliente final.
+
+    Separada da WhatsAppMessage (conversation-based) por ser uma preocupação
+    transversal do provider layer, não da lógica de conversa.
+    """
+
+    __tablename__ = "whatsapp_provider_messages"
+    __table_args__ = (
+        UniqueConstraint("professional_id", "provider_message_id", name="uq_provider_msg"),
+        CheckConstraint("direction IN ('inbound', 'outbound')", name="chk_provider_msg_direction"),
+    )
+
+    professional_id: Mapped[UUID] = mapped_column(
+        SQLUUID(as_uuid=True),
+        ForeignKey("professionals.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    provider_message_id: Mapped[str] = mapped_column(Text, nullable=False)
+    direction: Mapped[str] = mapped_column(Text, nullable=False)
+    from_phone: Mapped[str] = mapped_column(Text, nullable=False)  # E.164
+    to_phone: Mapped[str] = mapped_column(Text, nullable=False)  # E.164
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_type: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # 'meta', 'twilio_shared', 'terminal'

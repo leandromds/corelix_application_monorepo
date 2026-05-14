@@ -4,7 +4,7 @@ Tests for WhatsAppService — business logic layer for WhatsApp integration.
 All repository and AI calls are mocked via AsyncMock so no database or
 external API is needed. This follows the same pattern as tests/reports/test_service.py.
 
-Coverage (12 tests):
+Coverage (17 tests):
 1.  process_incoming_message is idempotent (duplicate whatsapp_msg_id skipped)
 2.  process_incoming_message creates conversation on first contact
 3.  process_incoming_message reuses an existing active conversation
@@ -19,13 +19,15 @@ Coverage (12 tests):
 12. get_conversation_detail raises NotFoundError for unknown conversation_id
 """
 
+from datetime import UTC, datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 
 from core.exceptions import ExternalServiceError, NotFoundError
+from whatsapp.schemas import InboundMessage
 from whatsapp.service import WhatsAppService
 
 # ===========================================================================
@@ -458,3 +460,144 @@ class TestGetConversationDetail:
 
         with pytest.raises(NotFoundError):
             await service.get_conversation_detail(uuid4())
+
+
+# ===========================================================================
+# Tests for handle_inbound_message (ADR-028)
+# ===========================================================================
+
+
+class TestHandleInboundMessage:
+    @pytest.fixture
+    def service_with_mocks(self) -> WhatsAppService:
+        mock_db = AsyncMock()
+        svc = WhatsAppService(mock_db)
+        svc.repository = AsyncMock()
+        svc.provider_message_repo = AsyncMock()
+        svc.ai = AsyncMock()
+        return svc
+
+    async def test_skips_processing_when_already_processed(
+        self, service_with_mocks: WhatsAppService
+    ) -> None:
+        """Se provider_message_id já existe, retorna sem processar."""
+        service_with_mocks.provider_message_repo.exists = AsyncMock(return_value=True)
+
+        inbound = InboundMessage(
+            professional_id=uuid4(),
+            from_phone="+5511999999999",
+            body="oi",
+            provider_message_id="SM_DUP",
+            received_at=datetime.now(UTC),
+        )
+        await service_with_mocks.handle_inbound_message(inbound)
+
+        # Não deve chamar create no provider_message_repo
+        service_with_mocks.provider_message_repo.create.assert_not_awaited()
+
+    async def test_registers_message_in_idempotency_log(
+        self, service_with_mocks: WhatsAppService
+    ) -> None:
+        """Mensagem nova deve ser registrada em WhatsAppProviderMessage."""
+        from professionals.models import Professional
+
+        service_with_mocks.provider_message_repo.exists = AsyncMock(return_value=False)
+        service_with_mocks.provider_message_repo.create = AsyncMock()
+
+        mock_prof = MagicMock(spec=Professional)
+        mock_prof.id = uuid4()
+        mock_prof.full_name = "Dr. Ana"
+        mock_prof.specialty = "Psicologia"
+        mock_prof.session_duration = 50
+        mock_prof.session_price = None
+        mock_prof.whatsapp_access_token = None
+        mock_prof.whatsapp_phone_id = None
+
+        with patch("whatsapp.service.ProfessionalsRepository") as MockRepo:
+            mock_repo_instance = AsyncMock()
+            mock_repo_instance.find_by_id = AsyncMock(return_value=mock_prof)
+            MockRepo.return_value = mock_repo_instance
+
+            # Mock conversation flow
+            service_with_mocks.repository.find_message_by_whatsapp_id = AsyncMock(
+                return_value=None
+            )
+            service_with_mocks.repository.find_active_conversation_by_phone = AsyncMock(
+                return_value=None
+            )
+            mock_conv = MagicMock()
+            mock_conv.id = uuid4()
+            mock_conv.mode = "handoff"  # handoff → não chama AI
+            service_with_mocks.repository.create_conversation = AsyncMock(
+                return_value=mock_conv
+            )
+            service_with_mocks.repository.create_message = AsyncMock()
+            service_with_mocks.repository.update_conversation = AsyncMock(
+                return_value=mock_conv
+            )
+
+            inbound = InboundMessage(
+                professional_id=mock_prof.id,
+                from_phone="+5511999999999",
+                body="oi",
+                provider_message_id="SM_NEW",
+                received_at=datetime.now(UTC),
+            )
+            await service_with_mocks.handle_inbound_message(inbound)
+
+        service_with_mocks.provider_message_repo.create.assert_awaited_once()
+
+
+# ===========================================================================
+# Tests for send_appointment_reminder (ADR-028)
+# ===========================================================================
+
+
+class TestSendAppointmentReminder:
+    async def test_sends_via_provider(self) -> None:
+        """Lembrete deve ser enviado via provider correto (factory resolvido)."""
+        mock_db = AsyncMock()
+        svc = WhatsAppService(mock_db)
+        svc.provider_message_repo = AsyncMock()
+
+        mock_provider = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.provider_message_id = "SM_REMINDER_01"
+        mock_provider.send_text = AsyncMock(return_value=mock_result)
+
+        with patch(
+            "whatsapp.service.get_provider_for_professional",
+            return_value=mock_provider,
+        ) as mock_factory:
+            await svc.send_appointment_reminder(
+                professional_id=uuid4(),
+                to_phone="+5511999999999",
+                client_name="João",
+                appointment_datetime="sexta, 10/05 às 14h",
+            )
+            mock_factory.assert_awaited_once()
+            mock_provider.send_text.assert_awaited_once()
+
+    async def test_graceful_degradation_on_provider_error(self) -> None:
+        """Falha no provider não deve propagar exceção (best-effort)."""
+        from whatsapp.providers.base import ProviderError
+
+        mock_db = AsyncMock()
+        svc = WhatsAppService(mock_db)
+
+        mock_provider = AsyncMock()
+        mock_provider.send_text = AsyncMock(
+            side_effect=ProviderError(provider="twilio", message="timeout")
+        )
+
+        with patch(
+            "whatsapp.service.get_provider_for_professional",
+            return_value=mock_provider,
+        ):
+            # Não deve levantar exceção
+            await svc.send_appointment_reminder(
+                professional_id=uuid4(),
+                to_phone="+5511999999999",
+                client_name="Ana",
+                appointment_datetime="segunda, 12/05 às 10h",
+            )

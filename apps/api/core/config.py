@@ -170,6 +170,48 @@ class Settings(BaseSettings):
         description="Glitchtip/Sentry DSN for error tracking (optional — skip in dev)",
     )
 
+    # WhatsApp Provider Strategy (ADR-028)
+    WHATSAPP_FORCE_TERMINAL: bool = Field(
+        default=False,
+        description="Force TerminalProvider for all professionals (dev/test/demo override)",
+    )
+
+    # Twilio Shared Account (piloto — 1 número Corelix → N profissionais)
+    TWILIO_ACCOUNT_SID: str | None = Field(
+        default=None,
+        description="Twilio Account SID for shared WhatsApp number",
+    )
+    TWILIO_AUTH_TOKEN: str | None = Field(
+        default=None,
+        description="Twilio Auth Token (used for webhook signature validation)",
+    )
+    TWILIO_MESSAGING_SERVICE_SID: str | None = Field(
+        default=None,
+        description="Twilio Messaging Service SID for outbound messages",
+    )
+    TWILIO_SHARED_PHONE_NUMBER: str | None = Field(
+        default=None,
+        description="Corelix shared WhatsApp number in E.164 format (e.g. +5511...)",
+    )
+    TWILIO_WEBHOOK_VALIDATION: bool = Field(
+        default=True,
+        description="Enable Twilio HMAC-SHA1 webhook signature validation (disable only in tests)",
+    )
+
+    # Meta Cloud API — provider dedicado por profissional (requer Tech Provider aprovado)
+    META_APP_ID: str | None = Field(
+        default=None,
+        description="Meta App ID for WhatsApp Cloud API (optional until Tech Provider approved)",
+    )
+    META_APP_SECRET: str | None = Field(
+        default=None,
+        description="Meta App Secret for webhook HMAC validation (optional — falls back to WHATSAPP_APP_SECRET)",
+    )
+    META_WEBHOOK_VERIFY_TOKEN: str | None = Field(
+        default=None,
+        description="Meta webhook verify token (optional — falls back to WHATSAPP_VERIFY_TOKEN)",
+    )
+
     # Encryption (for sensitive data at rest)
     ENCRYPTION_KEY: str = Field(
         ...,

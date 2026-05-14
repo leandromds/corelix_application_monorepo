@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "API backend para Secretária Digital - SaaS B2B de secretária inteligente com IA"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}, {include = "jobs"}]
+packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}, {include = "jobs"}, {include = "devtools"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -23,6 +23,7 @@ httpx = "^0.26.0"
 openai = ">=1.0.0,<3.0.0"
 pgqueuer = "^0.10.0"
 cryptography = "^42.0.0"
+twilio = ">=9.0.0"
 python-dotenv = "^1.0.0"
 python-dateutil = ">=2.8"
 sentry-sdk = "^2.0"
@@ -100,6 +101,7 @@ module = [
     "passlib.*",
     "jose.*",
     "dateutil.*",
+    "twilio.*",
 ]
 ignore_missing_imports = true
 

@@ -21,7 +21,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from professionals.models import Professional
-from whatsapp.models import WhatsAppConversation, WhatsAppMessage
+from whatsapp.models import (
+    WhatsAppAccount,
+    WhatsAppConversation,
+    WhatsAppMessage,
+    WhatsAppPhoneBinding,
+    WhatsAppProviderMessage,
+)
+from whatsapp.providers.crypto import encrypt_credentials
 
 # ---------------------------------------------------------------------------
 # Helper factories
@@ -199,6 +206,243 @@ class TestWhatsAppMessageModel:
             sent_at=now,
         )
         db_session.add(msg2)
+
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+
+# ===========================================================================
+# Helpers — provider models
+# ===========================================================================
+
+
+async def _make_account(
+    session: AsyncSession,
+    professional_id,
+    routing_tag: str | None = None,
+) -> WhatsAppAccount:
+    """Create and flush a minimal WhatsAppAccount."""
+    account = WhatsAppAccount(
+        professional_id=professional_id,
+        provider_type="twilio_shared",
+        phone_number="+5511000000000",
+        phone_number_id="MSGSVC_SID",
+        access_token_encrypted=encrypt_credentials("fake_token"),
+        routing_tag=routing_tag,
+    )
+    session.add(account)
+    await session.flush()
+    await session.refresh(account)
+    return account
+
+
+async def _make_binding(
+    session: AsyncSession,
+    professional_id,
+    phone_number: str = "+5511999111111",
+    bound_via: str = "tag",
+) -> WhatsAppPhoneBinding:
+    """Create and flush a minimal WhatsAppPhoneBinding."""
+    from datetime import UTC, datetime
+
+    binding = WhatsAppPhoneBinding(
+        professional_id=professional_id,
+        phone_number=phone_number,
+        bound_via=bound_via,
+        bound_at=datetime.now(UTC),
+    )
+    session.add(binding)
+    await session.flush()
+    await session.refresh(binding)
+    return binding
+
+
+async def _make_provider_message(
+    session: AsyncSession,
+    professional_id,
+    provider_message_id: str = "msg_id_001",
+) -> WhatsAppProviderMessage:
+    """Create and flush a minimal WhatsAppProviderMessage."""
+    msg = WhatsAppProviderMessage(
+        professional_id=professional_id,
+        provider_message_id=provider_message_id,
+        direction="inbound",
+        from_phone="+5511999000000",
+        to_phone="+5511000000000",
+        body="Hello",
+        provider_type="twilio_shared",
+    )
+    session.add(msg)
+    await session.flush()
+    await session.refresh(msg)
+    return msg
+
+
+# ===========================================================================
+# TestWhatsAppAccountModel
+# ===========================================================================
+
+
+class TestWhatsAppAccountModel:
+    async def test_create_account_defaults_is_active_true(self, db_session: AsyncSession) -> None:
+        """
+        WhatsAppAccount criada sem especificar is_active deve ter is_active=True.
+
+        O default garante que toda conta nova está ativa imediatamente,
+        sem precisar de uma etapa de ativação separada.
+        """
+        prof = await _make_prof(db_session, "acct_defaults@example.com")
+        account = await _make_account(db_session, prof.id)
+
+        assert account.id is not None
+        assert account.is_active is True
+        assert account.professional_id == prof.id
+        assert account.provider_type == "twilio_shared"
+        assert account.phone_number == "+5511000000000"
+        assert account.routing_tag is None
+
+    async def test_account_professional_id_is_unique(self, db_session: AsyncSession) -> None:
+        """
+        Não deve ser possível criar dois WhatsAppAccount para o mesmo profissional.
+
+        Um profissional tem exatamente um provider ativo por vez.
+        A constraint UNIQUE em professional_id enforce isso no banco.
+        """
+        prof = await _make_prof(db_session, "acct_unique_prof@example.com")
+        await _make_account(db_session, prof.id, routing_tag="tag_first")
+
+        second = WhatsAppAccount(
+            professional_id=prof.id,  # mesmo professional_id
+            provider_type="meta",
+            phone_number="+5511000000001",
+            phone_number_id="PHONE_ID_2",
+            access_token_encrypted=encrypt_credentials("another_token"),
+            routing_tag="tag_second",
+        )
+        db_session.add(second)
+
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+    async def test_routing_tag_is_unique(self, db_session: AsyncSession) -> None:
+        """
+        Não deve ser possível criar dois WhatsAppAccount com o mesmo routing_tag.
+
+        routing_tag é o slug usado para identificar o profissional em mensagens
+        Twilio Shared. Duplicidade causaria ambiguidade no roteamento.
+        """
+        prof1 = await _make_prof(db_session, "acct_tag1@example.com")
+        prof2 = await _make_prof(db_session, "acct_tag2@example.com")
+        await _make_account(db_session, prof1.id, routing_tag="shared_slug")
+
+        second = WhatsAppAccount(
+            professional_id=prof2.id,
+            provider_type="twilio_shared",
+            phone_number="+5511000000002",
+            phone_number_id="MSGSVC_SID_2",
+            access_token_encrypted=encrypt_credentials("token2"),
+            routing_tag="shared_slug",  # mesmo tag
+        )
+        db_session.add(second)
+
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+
+# ===========================================================================
+# TestWhatsAppPhoneBindingModel
+# ===========================================================================
+
+
+class TestWhatsAppPhoneBindingModel:
+    async def test_create_binding_with_required_fields(self, db_session: AsyncSession) -> None:
+        """
+        WhatsAppPhoneBinding deve persistir com os campos obrigatórios
+        e receber um UUID gerado pelo banco.
+        """
+        prof = await _make_prof(db_session, "binding_create@example.com")
+        binding = await _make_binding(db_session, prof.id)
+
+        assert binding.id is not None
+        assert binding.phone_number == "+5511999111111"
+        assert binding.bound_via == "tag"
+        assert binding.professional_id == prof.id
+        assert binding.bound_at is not None
+
+    async def test_binding_unique_per_phone_and_professional(
+        self, db_session: AsyncSession
+    ) -> None:
+        """
+        Não deve ser possível criar dois vínculos com o mesmo phone_number
+        e professional_id.
+
+        A constraint (phone_number, professional_id) evita duplicatas:
+        um cliente só precisa ser vinculado uma vez por profissional.
+        """
+        from datetime import UTC, datetime
+
+        prof = await _make_prof(db_session, "binding_unique@example.com")
+        await _make_binding(db_session, prof.id, phone_number="+5511000000003")
+
+        dup = WhatsAppPhoneBinding(
+            professional_id=prof.id,
+            phone_number="+5511000000003",  # mesmo phone + mesmo profissional
+            bound_via="qr",
+            bound_at=datetime.now(UTC),
+        )
+        db_session.add(dup)
+
+        with pytest.raises(IntegrityError):
+            await db_session.flush()
+
+
+# ===========================================================================
+# TestWhatsAppProviderMessageModel
+# ===========================================================================
+
+
+class TestWhatsAppProviderMessageModel:
+    async def test_create_provider_message_with_required_fields(
+        self, db_session: AsyncSession
+    ) -> None:
+        """
+        WhatsAppProviderMessage deve persistir com todos os campos obrigatórios
+        e receber um UUID gerado pelo banco.
+        """
+        prof = await _make_prof(db_session, "prov_msg_create@example.com")
+        msg = await _make_provider_message(db_session, prof.id)
+
+        assert msg.id is not None
+        assert msg.direction == "inbound"
+        assert msg.from_phone == "+5511999000000"
+        assert msg.to_phone == "+5511000000000"
+        assert msg.body == "Hello"
+        assert msg.provider_type == "twilio_shared"
+        assert msg.professional_id == prof.id
+        assert msg.created_at is not None
+
+    async def test_provider_message_idempotency_constraint(self, db_session: AsyncSession) -> None:
+        """
+        Não deve ser possível inserir duas linhas com o mesmo professional_id
+        e provider_message_id.
+
+        Esta constraint é a garantia de idempotência de mensagens: se o provider
+        reenviar o mesmo webhook, o banco rejeitá a segunda inserção,
+        evitando processamento duplicado.
+        """
+        prof = await _make_prof(db_session, "prov_msg_idem@example.com")
+        await _make_provider_message(db_session, prof.id, provider_message_id="idem_msg_001")
+
+        dup = WhatsAppProviderMessage(
+            professional_id=prof.id,
+            provider_message_id="idem_msg_001",  # mesmo ID
+            direction="inbound",
+            from_phone="+5511999000000",
+            to_phone="+5511000000000",
+            body="Re-delivery",
+            provider_type="twilio_shared",
+        )
+        db_session.add(dup)
 
         with pytest.raises(IntegrityError):
             await db_session.flush()
