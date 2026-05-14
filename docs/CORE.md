@@ -33,7 +33,7 @@ gera insights e se comunica de forma humanizada. IA não é módulo isolado — 
 | Testes      | pytest + pytest-asyncio + httpx + factory-boy       |
 | WhatsApp    | Meta Cloud API — Embedded Signup (Tech Provider)    |
 | IA          | Anthropic API (Claude Sonnet)                       |
-| Hospedagem  | Hostinger VPS KVM2 + Coolify self-hosted                    |
+| Hospedagem  | Hostinger VPS KVM2 + Coolify self-hosted            |
 | Deps Python | Poetry (pyproject.toml)                             |
 
 ---
@@ -91,6 +91,7 @@ Módulos: `auth` / `professionals` / `clients` / `agenda` / `reports` / `whatsap
 | 25 | Infra: Hostinger KVM 2 + Coolify self-hosted | ADR-025 |
 | 26 | Observabilidade: Uptime Kuma + Glitchtip + PostHog Cloud | ADR-026 |
 | 27 | Containerização: Docker Compose (API + worker separados) | ADR-027 |
+| 28 | WhatsApp: provider abstraído (Terminal, Twilio Shared, Meta) | ADR-028 |
 
 ---
 
