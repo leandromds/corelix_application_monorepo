@@ -22,7 +22,6 @@ from sqlalchemy.types import UUID as SQLUUID
 
 from core.config import settings
 
-
 # ============================================================================
 # Base Model — somente a PK
 # ============================================================================

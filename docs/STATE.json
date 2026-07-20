@@ -1,0 +1,595 @@
+{
+  "last_updated": "2026-05-05",
+  "current_feature": {
+    "module": "infra",
+    "branch": "feature/infra-docker-observability",
+    "status": "done",
+    "completed": [
+      "✅ feature/frontend-reports merged (PR #12)",
+      "✅ feature/frontend-settings merged (PR #13)",
+      "✅ feature/frontend-whatsapp-conversations merged (PR #14)",
+      "✅ feature/frontend-quality-gate merged (PR #15): jest-axe, FormControl Slot fix, ClientList header fix, 8 testes a11y, 0 violations",
+      "✅ feature/infra-docker-observability: Dockerfile + Dockerfile.worker, docker-compose.yml (prod Coolify), docker-compose.dev.yml (dev postgres), .dockerignore, core/logging.py (JSON structured), GLITCHTIP_DSN em Settings, sentry-sdk init em main.py; @sentry/react + posthog-js no frontend, ErrorBoundary global, posthog.capture em 4 pages; ADR-025/026/027; 24 novos testes (709→726)"
+    ],
+    "next_candidates": [
+      "deploy — Coolify: provisionar VPS Hostinger KVM 2, instalar Coolify, configurar serviços API + worker + PostgreSQL, Uptime Kuma, Glitchtip, variáveis de ambiente de produção",
+      "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional"
+    ]
+  },
+  "modules": {
+    "core": {
+      "status": "done",
+      "files": [
+        "core/config.py",
+        "core/database.py",
+        "core/mixins.py",
+        "core/security.py",
+        "core/exceptions.py",
+        "core/deps.py",
+        "core/models.py",
+        "core/logging.py"
+      ]
+    },
+    "auth": {
+      "status": "done",
+      "files": [
+        "auth/router.py",
+        "auth/service.py",
+        "auth/repository.py",
+        "auth/schemas.py"
+      ]
+    },
+    "professionals": {
+      "status": "done",
+      "files": [
+        "professionals/router.py",
+        "professionals/service.py",
+        "professionals/repository.py",
+        "professionals/schemas.py",
+        "professionals/models.py"
+      ]
+    },
+    "clients": {
+      "status": "done",
+      "files": [
+        "clients/router.py",
+        "clients/service.py",
+        "clients/repository.py",
+        "clients/schemas.py",
+        "clients/models.py"
+      ]
+    },
+    "agenda": {
+      "status": "done",
+      "files": [
+        "agenda/models.py",
+        "agenda/schemas.py",
+        "agenda/repository.py",
+        "agenda/service.py",
+        "agenda/router.py"
+      ]
+    },
+    "reports": {
+      "status": "done",
+      "files": [
+        "reports/schemas.py",
+        "reports/repository.py",
+        "reports/service.py",
+        "reports/router.py"
+      ]
+    },
+    "whatsapp": {
+      "status": "done",
+      "files": [
+        "whatsapp/models.py",
+        "whatsapp/schemas.py",
+        "whatsapp/repository.py",
+        "whatsapp/service.py",
+        "whatsapp/router.py"
+      ]
+    },
+    "ai": {
+      "status": "done",
+      "files": ["ai/service.py", "ai/prompts.py"]
+    },
+    "jobs": {
+      "status": "done",
+      "files": [
+        "jobs/runner.py",
+        "jobs/tasks/cleanup.py",
+        "jobs/tasks/recurrences.py",
+        "jobs/tasks/whatsapp.py"
+      ]
+    },
+    "infra": {
+      "status": "done",
+      "files": [
+        "apps/api/Dockerfile",
+        "apps/api/Dockerfile.worker",
+        "apps/api/.dockerignore",
+        "docker-compose.yml",
+        "docker-compose.dev.yml",
+        "apps/api/core/logging.py"
+      ]
+    },
+    "frontend": {
+      "status": "done",
+      "notes": "Todas as paginas concluidas + quality gate a11y (jest-axe, 0 violations) + observabilidade: @sentry/react ErrorBoundary global, posthog-js com eventos customizados em 4 pages. FormControl corrigido (Slot). Embedded Signup pendente.",
+      "files": [
+        "src/index.css",
+        "src/lib/utils.ts",
+        "src/contexts/ThemeContext.tsx",
+        "src/contexts/AuthContext.tsx",
+        "src/hooks/useAuth.ts",
+        "src/components/ui/button.tsx",
+        "src/components/ui/input.tsx",
+        "src/components/ui/label.tsx",
+        "src/components/ui/checkbox.tsx",
+        "src/components/ui/textarea.tsx",
+        "src/components/ui/select.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/alert-dialog.tsx",
+        "src/components/ui/badge.tsx",
+        "src/components/ui/form.tsx",
+        "src/components/shared/Avatar.tsx",
+        "src/components/shared/StatusBadge.tsx",
+        "src/components/layout/AppShell.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/Topbar.tsx",
+        "src/components/ProtectedRoute.tsx",
+        "src/components/PublicRoute.tsx",
+        "src/features/clients/types/index.ts",
+        "src/features/clients/schemas/clientSchema.ts",
+        "src/features/clients/hooks/useClients.ts",
+        "src/features/clients/hooks/useCreateClient.ts",
+        "src/features/clients/hooks/useUpdateClient.ts",
+        "src/features/clients/hooks/useDeleteClient.ts",
+        "src/features/clients/components/ClientForm.tsx",
+        "src/features/clients/components/ClientList.tsx",
+        "src/features/clients/ClientsPage.tsx",
+        "src/features/agenda/types/index.ts",
+        "src/features/agenda/schemas/sessionSchema.ts",
+        "src/features/agenda/hooks/useSessions.ts",
+        "src/features/agenda/hooks/useTodaySessions.ts",
+        "src/features/agenda/hooks/useUpcomingSessions.ts",
+        "src/features/agenda/hooks/useCreateSession.ts",
+        "src/features/agenda/hooks/useUpdateSession.ts",
+        "src/features/agenda/components/SessionForm.tsx",
+        "src/features/agenda/components/WeekView.tsx",
+        "src/features/agenda/components/DayList.tsx",
+        "src/features/agenda/AgendaPage.tsx",
+        "src/features/reports/types/index.ts",
+        "src/features/reports/hooks/useReportSummary.ts",
+        "src/features/reports/hooks/useBillingReport.ts",
+        "src/features/reports/components/KpiCard.tsx",
+        "src/features/reports/components/PeriodFilter.tsx",
+        "src/features/reports/components/BillingTable.tsx",
+        "src/features/settings/schemas/settingsSchema.ts",
+        "src/features/settings/hooks/useUpdateProfile.ts",
+        "src/features/settings/SettingsPage.tsx",
+        "src/features/whatsapp/types/index.ts",
+        "src/features/whatsapp/hooks/useConversations.ts",
+        "src/features/whatsapp/hooks/useMessages.ts",
+        "src/features/whatsapp/hooks/useHandoff.ts",
+        "src/features/whatsapp/components/ConversationList.tsx",
+        "src/features/whatsapp/components/MessageThread.tsx",
+        "src/features/whatsapp/WhatsAppPage.tsx",
+        "src/pages/LoginPage.a11y.test.tsx",
+        "src/pages/DashboardPage.a11y.test.tsx",
+        "src/features/clients/ClientsPage.a11y.test.tsx",
+        "src/features/agenda/AgendaPage.a11y.test.tsx",
+        "src/features/reports/ReportsPage.a11y.test.tsx",
+        "src/features/settings/SettingsPage.a11y.test.tsx",
+        "src/features/whatsapp/WhatsAppPage.a11y.test.tsx",
+        "src/test/observability.test.ts",
+        "src/features/agenda/AgendaPage.posthog.test.tsx",
+        "src/features/clients/ClientsPage.posthog.test.tsx",
+        "src/pages/DashboardPage.tsx",
+        "src/pages/LoginPage.tsx",
+        "src/pages/RegisterPage.tsx",
+        "src/services/api.ts",
+        "src/types/auth.ts",
+        "src/App.tsx",
+        "src/main.tsx"
+      ]
+    }
+  },
+  "tests": {
+    "total": 726,
+    "passing": 726,
+    "failing": 0,
+    "suite": [
+      { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
+      { "file": "tests/core/test_deps.py", "count": 6, "status": "green" },
+      { "file": "tests/core/test_health.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/core/test_observability.py",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "tests/professionals/test_model.py",
+        "count": 5,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_model.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/professionals/test_repository.py",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "tests/auth/test_repository.py",
+        "count": 9,
+        "status": "green"
+      },
+      {
+        "file": "tests/professionals/test_service.py",
+        "count": 10,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_service.py", "count": 14, "status": "green" },
+      {
+        "file": "tests/professionals/test_router.py",
+        "count": 9,
+        "status": "green"
+      },
+      { "file": "tests/auth/test_router.py", "count": 16, "status": "green" },
+      { "file": "tests/clients/test_model.py", "count": 3, "status": "green" },
+      {
+        "file": "tests/clients/test_repository.py",
+        "count": 19,
+        "status": "green"
+      },
+      {
+        "file": "tests/clients/test_service.py",
+        "count": 22,
+        "status": "green"
+      },
+      {
+        "file": "tests/clients/test_router.py",
+        "count": 32,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_schemas.py",
+        "count": 40,
+        "status": "green"
+      },
+      { "file": "tests/agenda/test_model.py", "count": 28, "status": "green" },
+      {
+        "file": "tests/agenda/test_repository.py",
+        "count": 77,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_service.py",
+        "count": 47,
+        "status": "green"
+      },
+      { "file": "tests/agenda/test_router.py", "count": 71, "status": "green" },
+      {
+        "file": "tests/reports/test_schemas.py",
+        "count": 11,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_repository.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_service.py",
+        "count": 9,
+        "status": "green"
+      },
+      { "file": "tests/reports/test_router.py", "count": 7, "status": "green" },
+      { "file": "tests/whatsapp/test_model.py", "count": 4, "status": "green" },
+      {
+        "file": "tests/whatsapp/test_repository.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/whatsapp/test_service.py",
+        "count": 13,
+        "status": "green"
+      },
+      {
+        "file": "tests/whatsapp/test_router.py",
+        "count": 14,
+        "status": "green"
+      },
+      { "file": "tests/jobs/test_cleanup.py", "count": 8, "status": "green" },
+      {
+        "file": "tests/jobs/test_recurrences.py",
+        "count": 11,
+        "status": "green"
+      },
+      { "file": "tests/jobs/test_whatsapp.py", "count": 7, "status": "green" },
+      {
+        "file": "tests/reports/test_service.py — TestGetPeriodSummary",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "tests/reports/test_router.py — TestGetPeriodSummary",
+        "count": 6,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_repository.py — TestSessionsRepositoryWithClients",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "tests/agenda/test_router.py — client_name assertions",
+        "count": 2,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/schemas/clientSchema.test.ts",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useClients.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useCreateClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useUpdateClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/hooks/useDeleteClient.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/components/ClientList.test.tsx",
+        "count": 8,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/components/ClientForm.test.tsx",
+        "count": 7,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/ClientsPage.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/schemas/sessionSchema.test.ts",
+        "count": 10,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useSessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useTodaySessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useUpcomingSessions.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useCreateSession.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/hooks/useUpdateSession.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/DayList.test.tsx",
+        "count": 6,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/WeekView.test.tsx",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/components/SessionForm.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/settings/SettingsPage.test.tsx",
+        "count": 9,
+        "status": "green"
+      },
+      {
+        "file": "src/features/reports/ReportsPage.test.tsx",
+        "count": 12,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/hooks/useConversations.test.ts",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/hooks/useMessages.test.ts",
+        "count": 3,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/components/ConversationList.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/components/MessageThread.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/WhatsAppPage.test.tsx",
+        "count": 5,
+        "status": "green"
+      },
+      {
+        "file": "src/pages/LoginPage.a11y.test.tsx",
+        "count": 2,
+        "status": "green"
+      },
+      {
+        "file": "src/pages/DashboardPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/ClientsPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/AgendaPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/features/reports/ReportsPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/features/settings/SettingsPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/features/whatsapp/WhatsAppPage.a11y.test.tsx",
+        "count": 1,
+        "status": "green"
+      },
+      {
+        "file": "src/test/observability.test.ts",
+        "count": 9,
+        "status": "green"
+      },
+      {
+        "file": "src/features/agenda/AgendaPage.posthog.test.tsx",
+        "count": 4,
+        "status": "green"
+      },
+      {
+        "file": "src/features/clients/ClientsPage.posthog.test.tsx",
+        "count": 4,
+        "status": "green"
+      }
+    ]
+  },
+  "infrastructure": {
+    "database": {
+      "engine": "PostgreSQL 16",
+      "migration_applied": "56f1e41b5d4c_initial_schema",
+      "rls_tables": [
+        "clients",
+        "availability_slots",
+        "blocked_periods",
+        "sessions",
+        "recurrences",
+        "whatsapp_conversations"
+      ]
+    },
+    "docker_compose": "done — docker-compose.yml (prod Coolify), docker-compose.dev.yml (dev postgres)",
+    "dockerfile": "done — apps/api/Dockerfile (api) + apps/api/Dockerfile.worker (worker)",
+    "dockerignore": "done — apps/api/.dockerignore",
+    "observability": "done — sentry-sdk, GLITCHTIP_DSN em Settings, core/logging.py (JSON structured)",
+    "env_example": "done",
+    "alembic": "configured"
+  },
+  "pending_tasks": [
+    "deploy — Coolify: provisionar VPS Hostinger KVM 2, instalar Coolify, configurar serviços API + worker + PostgreSQL, Uptime Kuma, Glitchtip, variáveis de ambiente de produção",
+    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional"
+  ],
+  "known_issues": [],
+  "api_gaps_resolved": [
+    {
+      "gap": "GET /reports/summary inexistente — dashboard precisava de endpoint leve para KPI cards",
+      "solution": "Exposto GET /reports/summary reutilizando ReportsRepository.get_period_summary() (COUNT+SUM, sem JOIN clientes, sem IA). Validação de range via BillingReportRequest.",
+      "files": ["reports/schemas.py", "reports/service.py", "reports/router.py"]
+    },
+    {
+      "gap": "SessionResponse sem client_name — /sessions/today e /upcoming retornavam só client_id, obrigando join no frontend",
+      "solution": "client_name: str | None = None adicionado ao SessionResponse (non-breaking via from_attributes). Novos métodos find_today_with_clients() e find_upcoming_with_clients() no repository fazem JOIN com clients. Apenas os dois endpoints de dashboard usam os novos métodos; os demais continuam retornando ORM objects com client_name=None.",
+      "files": [
+        "agenda/schemas.py",
+        "agenda/repository.py",
+        "agenda/service.py"
+      ]
+    }
+  ],
+  "gotchas_resolved": [
+    "BYPASSRLS vs FORCE ROW LEVEL SECURITY — solução: test_rls_user role sem BYPASSRLS",
+    "Policy null-permissive — current_setting('app.current_tenant', TRUE) com flag TRUE",
+    "Pydantic v2 model_validator + JSONResponse — usar jsonable_encoder(exc.errors())",
+    "SET LOCAL sem bind params — f-string com UUID validado",
+    "Cookie Secure em testes — base_url https://testserver",
+    "bcrypt<4 — passlib 1.7.4 incompatível com bcrypt 4.x+",
+    "Token frontend em variável de módulo — interceptors precisam de binding estável",
+    "isLoading flash de redirect — isLoading começa true",
+    "StrictMode double-invocation — useRef guard no AuthContext",
+    "Cookie secure em desenvolvimento — secure=settings.is_production",
+    "exclude_unset=True vs exclude_none=True em PATCH — campos nullable exigem exclude_unset",
+    "Decimal em response schemas — asyncpg retorna NUMERIC como Decimal Python; usar Decimal nos schemas",
+    "WebhookMessage.from_ — 'from' é keyword Python; usar Field(alias='from') + populate_by_name=True",
+    "BackgroundTasks + sessão própria — background task do webhook cria async_session_maker() próprio; nunca reusar sessão da request",
+    "mypy no-untyped-def em service — parâmetros sem tipo (session, professional) devem ser anotados mesmo em arquivos não-test",
+    "dateutil stubs — python-dateutil não distribui stubs; adicionar dateutil.* ao ignore_missing_imports no pyproject.toml (mesmo padrão de passlib.* e jose.*)",
+    "func-returns-value em testes — padrão lambda: list.append(...) or valor é rejeitado pelo mypy; substituir por função interna com return type explícito",
+    "CI env vars — toda nova variável obrigatória no Settings deve ser adicionada nos dois steps do ci.yml (Run tests e Type check) como placeholder",
+    "find_today/upcoming_with_clients retornam list[Row] não list[Session] — usar result.all() sem .scalars() para preservar Row com colunas nomeadas; SessionResponse.model_validate() funciona via from_attributes=True em ambos os tipos",
+    "z.coerce.number() em zodResolver — input type unknown, incompatível com useForm<TFieldValues>. Fix: cast explícito `zodResolver(schema) as Resolver<TFieldValues>`",
+    "z.boolean().default(false) em zodResolver — torna campo opcional no input type. Fix: remover .default() do schema, colocar default em useForm defaultValues",
+    "RHF v7 FormField TTransformedValues — Control<TFieldValues, any, TFieldValues> vs Control<TFieldValues, any, undefined>. Fix: adicionar terceiro generic TTransformedValues na assinatura do FormField",
+    "vi.useFakeTimers() + userEvent.setup() timeout — userEvent.click() hangs when fake timers are active even with advanceTimers callback. Fix: use fireEvent.click() for synchronous DOM interactions inside fake-timer tests",
+    "MSW v2 Node handlers require full URLs — in jsdom environment (url: 'http://localhost'), axios resolves '/api/v1' to 'http://localhost/api/v1'. MSW handlers must use BASE_URL = 'http://localhost/api/v1' prefix",
+    "fireEvent.change + type='number' + RHF em JSDOM nao atualiza o campo do form — Fix: usar schema.safeParse() direto no teste.",
+    "axe-core em JSDOM: color-contrast e focus-visible nao sao testaveis headless. Desabilitar: rules: { color-contrast: { enabled: false }, region: { enabled: false } }. Lighthouse CLI necessario para validacao visual completa.",
+    "FormControl shadcn como div: FormLabel.htmlFor aponta para div nao-labelable — violacao WCAG. Fix: usar Slot do @radix-ui/react-slot para clonar id para o filho (input).",
+    "jest-axe + Vitest: toHaveNoViolations deve ser registrado em setup.ts via expect.extend(). Timeout padrao 5s pode ser insuficiente para forms shadcn/RHF — usar it('...', async () => {...}, 15000).",
+    "Glitchtip/Sentry init guard: sempre checar if (dsn) antes de chamar sentry_sdk.init() / Sentry.init() — None ou undefined em dev não deve lançar erro.",
+    "PostHog posthog.capture em componentes (não pages): mutation onSuccess vive em SessionForm/ClientForm, não em AgendaPage/ClientsPage. Colocar o capture no componente onde a mutação é chamada, não na page.",
+    "posthog-js session_recording.maskAllInputs: propriedade direta de SessionRecordingOptions (não aninhada). Verificar tipos após instalar a versão específica.",
+    "Poetry não disponível no shell de CI sem carregar ~/.zshrc: instalar sentry-sdk via pip3 no pyenv Python ativo e adicionar manualmente ao pyproject.toml — equivalente a poetry add para o runtime."
+  ],
+  "lighthouse_scores": {
+    "_note": "Requer servidor rodando. Executar: npx lighthouse http://localhost:5173/[rota] --only-categories=accessibility",
+    "_meta": "axe-core cobre WCAG 2.1 AA estrutural. color-contrast e focus-visible requerem browser real.",
+    "/login": "pendente",
+    "/register": "pendente",
+    "/dashboard": "pendente",
+    "/clients": "pendente",
+    "/agenda": "pendente",
+    "/reports": "pendente",
+    "/settings": "pendente",
+    "/whatsapp": "pendente"
+  },
+  "post_mvp": [
+    "Disparo automático de documentos fiscais",
+    "Emissão de NFS-e",
+    "Gateway de pagamento (Pix e cartão)",
+    "App mobile"
+  ]
+}

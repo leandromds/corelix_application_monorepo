@@ -5,7 +5,7 @@ These exceptions are caught by the FastAPI exception handler
 and converted to appropriate HTTP responses.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class AppException(Exception):
@@ -20,7 +20,7 @@ class AppException(Exception):
         self,
         message: str,
         status_code: int = 500,
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         self.message = message
         self.status_code = status_code
@@ -41,7 +41,7 @@ class AuthenticationError(AppException):
     def __init__(
         self,
         message: str = "Authentication failed",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=401, detail=detail)
 
@@ -58,7 +58,7 @@ class AuthorizationError(AppException):
     def __init__(
         self,
         message: str = "Not authorized to perform this action",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=403, detail=detail)
 
@@ -76,7 +76,7 @@ class NotFoundError(AppException):
     def __init__(
         self,
         message: str = "Resource not found",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=404, detail=detail)
 
@@ -98,7 +98,7 @@ class ValidationError(AppException):
     def __init__(
         self,
         message: str = "Validation failed",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=422, detail=detail)
 
@@ -116,7 +116,7 @@ class ConflictError(AppException):
     def __init__(
         self,
         message: str = "Resource already exists",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=409, detail=detail)
 
@@ -134,8 +134,8 @@ class ExternalServiceError(AppException):
     def __init__(
         self,
         message: str = "External service error",
-        service_name: Optional[str] = None,
-        detail: Optional[Dict[str, Any]] = None,
+        service_name: str | None = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         detail = detail or {}
         if service_name:
@@ -155,8 +155,8 @@ class RateLimitError(AppException):
     def __init__(
         self,
         message: str = "Rate limit exceeded",
-        retry_after: Optional[int] = None,
-        detail: Optional[Dict[str, Any]] = None,
+        retry_after: int | None = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         detail = detail or {}
         if retry_after:
@@ -177,6 +177,6 @@ class DatabaseError(AppException):
     def __init__(
         self,
         message: str = "Database error",
-        detail: Optional[Dict[str, Any]] = None,
+        detail: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message=message, status_code=500, detail=detail)

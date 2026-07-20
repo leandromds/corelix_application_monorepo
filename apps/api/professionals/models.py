@@ -2,11 +2,10 @@
 
 from datetime import datetime
 from decimal import Decimal
-from uuid import UUID
 
 from sqlalchemy import Boolean, Integer, Numeric, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.types import TIMESTAMP, UUID as SQLUUID
+from sqlalchemy.types import TIMESTAMP
 
 from core.database import Base
 from core.mixins import TimestampMixin

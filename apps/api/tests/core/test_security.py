@@ -5,8 +5,9 @@ These tests define the contract for all security utilities.
 Run these first — they will all FAIL until security.py is implemented.
 """
 
-import pytest
 from datetime import timedelta
+
+import pytest
 
 
 class TestPasswordHashing:
@@ -92,16 +93,20 @@ class TestAccessToken:
 
     def test_invalid_token_raises(self):
         """Malformed token must raise JWTError, not return None."""
-        from core.security import decode_access_token
         from jose import JWTError
+
+        from core.security import decode_access_token
         with pytest.raises(JWTError):
             decode_access_token("not.a.valid.token")
 
     def test_tampered_token_raises(self):
         """Token with modified payload must fail signature verification."""
-        import base64, json
-        from core.security import create_access_token, decode_access_token
+        import base64
+        import json
+
         from jose import JWTError
+
+        from core.security import create_access_token, decode_access_token
         token = create_access_token(subject="original-uuid")
         header, payload, signature = token.split(".")
         tampered = base64.urlsafe_b64encode(

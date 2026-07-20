@@ -1,12 +1,12 @@
 """Tests for ProfessionalsRepository — TDD Red phase."""
 
-import pytest
 from uuid import uuid4
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from professionals.repository import ProfessionalsRepository
 from core.exceptions import NotFoundError
+from professionals.repository import ProfessionalsRepository
 
 
 class TestProfessionalsRepository:

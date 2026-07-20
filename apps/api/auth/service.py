@@ -14,7 +14,7 @@ Token lifecycle:
   logout_all()         → revokes all tokens for professional
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -78,7 +78,7 @@ class AuthService:
         access_token = create_access_token(str(professional.id))
         raw_refresh, hashed_refresh = generate_refresh_token()
 
-        expires_at = datetime.now(tz=timezone.utc) + timedelta(
+        expires_at = datetime.now(tz=UTC) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
 
@@ -115,7 +115,7 @@ class AuthService:
         if (
             token is None
             or token.revoked
-            or token.expires_at < datetime.now(tz=timezone.utc)
+            or token.expires_at < datetime.now(tz=UTC)
         ):
             raise AuthenticationError("Invalid or expired refresh token")
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "API backend para Secretária Digital - SaaS B2B de secretária inteligente com IA"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}]
+packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}, {include = "jobs"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -20,10 +20,12 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 bcrypt = ">=3.2,<4"
 python-multipart = "^0.0.6"
 httpx = "^0.26.0"
-anthropic = "^0.25.0"
+openai = ">=1.0.0,<3.0.0"
 pgqueuer = "^0.10.0"
 cryptography = "^42.0.0"
 python-dotenv = "^1.0.0"
+python-dateutil = ">=2.8"
+sentry-sdk = "^2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.4"
@@ -35,6 +37,7 @@ faker = "^22.0.0"
 black = "^24.1.1"
 ruff = "^0.1.14"
 mypy = "^1.8.0"
+respx = "^0.21.0"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -58,6 +61,8 @@ include = '\.pyi?$'
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -73,7 +78,7 @@ ignore = [
     "C901",  # too complex
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 
 [tool.mypy]
@@ -94,10 +99,20 @@ plugins = ["pydantic.mypy"]
 module = [
     "passlib.*",
     "jose.*",
-    "factory.*",
-    "pytest_postgresql.*",
+    "dateutil.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Test files use pytest conventions: fixtures and test functions intentionally
+# omit return type annotations (-> None is implicit), and helpers may return Any.
+# The remaining arg-type, name-defined, and func-returns-value errors in specific
+# test files are suppressed with inline # type: ignore comments.
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
+disable_error_code = ["attr-defined"]
 
 [build-system]
 requires = ["poetry-core"]

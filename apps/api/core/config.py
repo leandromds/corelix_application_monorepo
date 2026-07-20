@@ -3,10 +3,65 @@ Core configuration module using Pydantic Settings.
 Loads environment variables and provides type-safe access to configuration.
 """
 
-from typing import List
+import json
+from typing import Any, get_origin
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic.fields import FieldInfo
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+
+class _FlexibleEnvSource(EnvSettingsSource):
+    """
+    Custom EnvSettingsSource that supports both comma-separated strings and JSON
+    arrays for List[str] fields.
+
+    Problem: pydantic-settings 2.x marks List[str] as "complex" and tries to
+    JSON-parse the raw env var string inside prepare_field_value() — before any
+    field_validator runs. A value like 'http://a.com,http://b.com' is not valid
+    JSON, so it raises SettingsError and the validator never executes.
+
+    Fix: for list fields, catch the JSON parse failure and fall back to
+    comma-splitting. All other complex types keep the original behavior.
+
+    Accepted formats for List[str] fields:
+        CORS_ORIGINS=http://localhost:5173                          # single value
+        CORS_ORIGINS=http://localhost:5173,http://localhost:3000    # comma-separated
+        CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]  # JSON array
+    """
+
+    def prepare_field_value(
+        self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
+    ) -> Any:
+        # Note: do NOT gate on value_is_complex — pydantic-settings 2.14 reports
+        # False for list[str] fields, but the parent's prepare_field_value still
+        # calls decode_complex_value (which JSON-parses) for list annotations.
+        # We intercept here based solely on the field annotation.
+        if isinstance(value, str) and get_origin(field.annotation) is list:
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, ValueError):
+                # Fallback: comma-separated string → list
+                return [v.strip() for v in value.split(",") if v.strip()]
+        return super().prepare_field_value(field_name, field, value, value_is_complex)
+
+
+class _FlexibleDotEnvSource(_FlexibleEnvSource, DotEnvSettingsSource):
+    """
+    Same fix applied to the .env file source.
+
+    MRO: _FlexibleDotEnvSource → _FlexibleEnvSource → DotEnvSettingsSource
+         → EnvSettingsSource → PydanticBaseSettingsSource
+
+    __init__ resolves to DotEnvSettingsSource (handles file loading).
+    prepare_field_value resolves to _FlexibleEnvSource (handles comma-split).
+    """
 
 
 class Settings(BaseSettings):
@@ -51,10 +106,18 @@ class Settings(BaseSettings):
         description="Refresh token expiration time in days",
     )
 
-    # Anthropic API (Claude)
-    ANTHROPIC_API_KEY: str = Field(
+    # AI Provider (OpenAI-compatible API)
+    AI_API_KEY: str = Field(
         ...,
-        description="Anthropic API key for Claude integration",
+        description="API key for the AI provider (OpenAI, OpenRouter, LiteLLM, etc.)",
+    )
+    AI_BASE_URL: str = Field(
+        default="https://api.openai.com/v1",
+        description="Base URL for the OpenAI-compatible API endpoint",
+    )
+    AI_MODEL: str = Field(
+        default="gpt-4o-mini",
+        description="Model identifier to use for AI completions",
     )
 
     # WhatsApp Business API (Meta Cloud API)
@@ -65,6 +128,10 @@ class Settings(BaseSettings):
     WHATSAPP_APP_SECRET: str = Field(
         ...,
         description="App secret for WhatsApp webhook validation",
+    )
+    WHATSAPP_APP_ID: str = Field(
+        ...,
+        description="Meta App ID for WhatsApp token exchange (long-lived token renewal)",
     )
 
     # Application
@@ -88,9 +155,19 @@ class Settings(BaseSettings):
     )
 
     # CORS
-    CORS_ORIGINS: List[str] = Field(
+    # Accepted formats (all handled by _FlexibleEnvSource):
+    #   single:          CORS_ORIGINS=http://localhost:5173
+    #   comma-separated: CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    #   JSON array:      CORS_ORIGINS=["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = Field(
         default=["http://localhost:5173", "http://localhost:3000"],
-        description="Allowed CORS origins (comma-separated in .env)",
+        description="Allowed CORS origins",
+    )
+
+    # Observability
+    GLITCHTIP_DSN: str | None = Field(
+        default=None,
+        description="Glitchtip/Sentry DSN for error tracking (optional — skip in dev)",
     )
 
     # Encryption (for sensitive data at rest)
@@ -98,14 +175,6 @@ class Settings(BaseSettings):
         ...,
         description="Fernet encryption key for sensitive data (use cryptography.fernet.Fernet.generate_key())",
     )
-
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v: str | List[str]) -> List[str]:
-        """Parse CORS_ORIGINS from comma-separated string or list."""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
 
     @field_validator("ENVIRONMENT")
     @classmethod
@@ -130,6 +199,35 @@ class Settings(BaseSettings):
     def database_url_sync(self) -> str:
         """Get synchronous database URL (for Alembic migrations)."""
         return self.DATABASE_URL.replace("+asyncpg", "")
+
+    @classmethod
+    def settings_customise_sources(  # type: ignore[override]
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        **kwargs: Any,  # absorbs secrets_settings (2.1–2.3) or file_secret_settings (2.4+)
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """
+        Replace the default env and dotenv sources with flexible versions that
+        accept comma-separated strings for List[str] fields in addition to the
+        JSON array format required by pydantic-settings 2.x out of the box.
+
+        Priority (highest → lowest): init → env vars → .env file → secrets
+
+        Note: pydantic-settings renamed secrets_settings → file_secret_settings in 2.4.
+        Using **kwargs keeps this override compatible across the full 2.x range.
+        """
+        sources: list[PydanticBaseSettingsSource] = [
+            init_settings,
+            _FlexibleEnvSource(settings_cls),
+            _FlexibleDotEnvSource(settings_cls),
+        ]
+        # Re-include the secrets source regardless of its parameter name
+        if kwargs:
+            sources.append(next(iter(kwargs.values())))
+        return tuple(sources)
 
 
 # Global settings instance

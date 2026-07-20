@@ -1,7 +1,8 @@
 """Tests for RefreshToken model — TDD Red phase. Requer banco."""
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, timezone
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ class TestRefreshTokenModel:
         token = RefreshToken(
             professional_id=prof.id,
             token_hash="abc123hash",
-            expires_at=datetime.now(tz=timezone.utc) + timedelta(days=30),
+            expires_at=datetime.now(tz=UTC) + timedelta(days=30),
         )
         db_session.add(token)
         await db_session.flush()
@@ -34,7 +35,7 @@ class TestRefreshTokenModel:
     async def test_token_hash_must_be_unique(self, db_session: AsyncSession) -> None:
         """Hash duplicado deve falhar com IntegrityError."""
         prof = await _make_prof(db_session, "uniq_hash@example.com")
-        expires = datetime.now(tz=timezone.utc) + timedelta(days=30)
+        expires = datetime.now(tz=UTC) + timedelta(days=30)
         db_session.add(RefreshToken(professional_id=prof.id, token_hash="dup", expires_at=expires))
         db_session.add(RefreshToken(professional_id=prof.id, token_hash="dup", expires_at=expires))
         with pytest.raises(IntegrityError):
