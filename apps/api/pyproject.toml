@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "API backend para Secretária Digital - SaaS B2B de secretária inteligente com IA"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}, {include = "jobs"}, {include = "devtools"}]
+packages = [{include = "auth"}, {include = "professionals"}, {include = "clients"}, {include = "agenda"}, {include = "reports"}, {include = "whatsapp"}, {include = "ai"}, {include = "core"}, {include = "jobs"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
