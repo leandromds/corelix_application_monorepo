@@ -481,7 +481,7 @@ class TestHandleInboundMessage:
         self, service_with_mocks: WhatsAppService
     ) -> None:
         """Se provider_message_id já existe, retorna sem processar."""
-        service_with_mocks.provider_message_repo.exists = AsyncMock(return_value=True)
+        service_with_mocks.provider_message_repo.exists.return_value = True
 
         inbound = InboundMessage(
             professional_id=uuid4(),
@@ -501,8 +501,7 @@ class TestHandleInboundMessage:
         """Mensagem nova deve ser registrada em WhatsAppProviderMessage."""
         from professionals.models import Professional
 
-        service_with_mocks.provider_message_repo.exists = AsyncMock(return_value=False)
-        service_with_mocks.provider_message_repo.create = AsyncMock()
+        service_with_mocks.provider_message_repo.exists.return_value = False
 
         mock_prof = MagicMock(spec=Professional)
         mock_prof.id = uuid4()
@@ -519,22 +518,13 @@ class TestHandleInboundMessage:
             MockRepo.return_value = mock_repo_instance
 
             # Mock conversation flow
-            service_with_mocks.repository.find_message_by_whatsapp_id = AsyncMock(
-                return_value=None
-            )
-            service_with_mocks.repository.find_active_conversation_by_phone = AsyncMock(
-                return_value=None
-            )
+            service_with_mocks.repository.find_message_by_whatsapp_id.return_value = None
+            service_with_mocks.repository.find_active_conversation_by_phone.return_value = None
             mock_conv = MagicMock()
             mock_conv.id = uuid4()
             mock_conv.mode = "handoff"  # handoff → não chama AI
-            service_with_mocks.repository.create_conversation = AsyncMock(
-                return_value=mock_conv
-            )
-            service_with_mocks.repository.create_message = AsyncMock()
-            service_with_mocks.repository.update_conversation = AsyncMock(
-                return_value=mock_conv
-            )
+            service_with_mocks.repository.create_conversation.return_value = mock_conv
+            service_with_mocks.repository.update_conversation.return_value = mock_conv
 
             inbound = InboundMessage(
                 professional_id=mock_prof.id,
