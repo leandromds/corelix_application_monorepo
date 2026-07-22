@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-05-16",
+  "last_updated": "2026-07-21"
   "current_feature": {
     "module": "whatsapp",
     "branch": "feature/whatsapp-providers",
@@ -652,7 +652,9 @@
     "posthog-js session_recording.maskAllInputs: propriedade direta de SessionRecordingOptions (não aninhada). Verificar tipos após instalar a versão específica.",
     "Poetry não disponível no shell de CI sem carregar ~/.zshrc: instalar sentry-sdk via pip3 no pyenv Python ativo e adicionar manualmente ao pyproject.toml — equivalente a poetry add para o runtime.",
     "patch(\"whatsapp.service.X\") requer import de nível de módulo em service.py: patch() só encontra atributos que já estão no __dict__ do módulo. Funções importadas localmente dentro de métodos não são patcheáveis via \"modulo.atributo\". Mover imports para o topo do módulo quando o patch for necessário (sem circular imports).",
-    "Docstring edit fuzzy match: substituir \"Coverage (N tests)\" via edit_file com contexto de múlti-linha pode duplicar a marcação de abertura de docstring (\"\"\"\\n\"\"\"). Usar python script direto para patches de linha única ou ler o arquivo primeiro para confirmar o conteúdo exato."
+    "Docstring edit fuzzy match: substituir \"Coverage (N tests)\" via edit_file com contexto de múlti-linha pode duplicar a marcação de abertura de docstring (\"\"\"\n\"\"\"). Usar python script direto para patches de linha única ou ler o arquivo primeiro para confirmar o conteúdo exato.",
+    "packages include inexistente — {include = 'devtools'} apontava para diretório apps/api/devtools/ que não existe no topo do projeto; o devtools real é whatsapp/devtools/, já coberto pelo {include = 'whatsapp'}. Poetry falha com 'does not contain any element' na instalação do pacote raiz. Fix: remover a entrada {include = 'devtools'} do pyproject.toml.",
+    "Squash merge quebra ancestralidade — develop → main via squash faz o git não reconhecer develop como ancestral de main mesmo com conteúdo idêntico. Usar merge commit em develop → main; squash só em feature → develop."
   ],
   "lighthouse_scores": {
     "_note": "Requer servidor rodando. Executar: npx lighthouse http://localhost:5173/[rota] --only-categories=accessibility",
