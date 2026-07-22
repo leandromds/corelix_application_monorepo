@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-07-21"
+  "last_updated": "2026-07-22",
   "current_feature": {
     "module": "whatsapp",
     "branch": "feature/whatsapp-providers",
@@ -216,8 +216,8 @@
     }
   },
   "tests": {
-    "total": 858,
-    "passing": 858,
+    "total": 814,
+    "passing": 814,
     "failing": 0,
     "suite": [
       { "file": "tests/core/test_security.py", "count": 17, "status": "green" },
