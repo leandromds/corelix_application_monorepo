@@ -1,6 +1,7 @@
 """WhatsApp schemas — Pydantic models for webhook and messaging endpoints."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -194,3 +195,35 @@ class HandoffResponse(BaseModel):
     status: str  # will be 'waiting_professional'
 
     model_config = {"from_attributes": True}
+
+
+# ============================================================================
+# Provider-agnostic canonical types (ADR-028)
+# ============================================================================
+
+
+class InboundMessage(BaseModel):
+    """Mensagem recebida, normalizada — independente do provider."""
+
+    professional_id: UUID
+    from_phone: str = Field(pattern=r"^\+\d{10,15}$")  # E.164
+    body: str
+    provider_message_id: str
+    received_at: datetime
+    provider_type: str = "unknown"  # 'meta', 'twilio_shared', 'terminal'
+
+
+class TemplateMessage(BaseModel):
+    """Template aprovado a ser enviado."""
+
+    name: str
+    language_code: str = "pt_BR"
+    params: dict[str, str] = Field(default_factory=dict)
+
+
+class SendResult(BaseModel):
+    """Resultado de envio de mensagem por um provider."""
+
+    provider_message_id: str
+    status: Literal["sent", "queued", "failed"]
+    error: str | None = None
