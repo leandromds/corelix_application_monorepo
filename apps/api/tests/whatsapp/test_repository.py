@@ -22,12 +22,20 @@ RLS isolation pattern (same as tests/agenda/test_repository.py):
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from professionals.models import Professional
 from whatsapp.models import WhatsAppConversation, WhatsAppMessage
-from whatsapp.repository import WhatsAppRepository
+from whatsapp.providers.crypto import encrypt_credentials
+from whatsapp.repository import (
+    PhoneBindingRepository,
+    ProviderMessageRepository,
+    WhatsAppAccountRepository,
+    WhatsAppRepository,
+)
 
 # ---------------------------------------------------------------------------
 # Module-level helpers (avoid repetition across test classes)
@@ -400,3 +408,235 @@ class TestGetMessagesForConversation:
         assert messages[0].content == "Primeira mensagem"
         assert messages[1].content == "Segunda mensagem"
         assert messages[0].sent_at < messages[1].sent_at
+
+
+# ===========================================================================
+# TestWhatsAppAccountRepository
+# ===========================================================================
+
+
+class TestWhatsAppAccountRepository:
+    async def test_create_and_find_by_professional_id(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        create() deve retornar WhatsAppAccount com id gerado e is_active=True.
+        find_by_professional_id() deve retornar a conta recém-criada.
+        """
+        repo = WhatsAppAccountRepository(tenant_session)
+        account = await repo.create(
+            professional_id=test_professional.id,
+            provider_type="twilio_shared",
+            phone_number="+5511000001111",
+            phone_number_id="MSGSVC_001",
+            access_token_encrypted=encrypt_credentials("access_token_1"),
+            routing_tag="tag001",
+        )
+
+        assert account.id is not None
+        assert account.is_active is True
+        assert account.routing_tag == "tag001"
+
+        found = await repo.find_by_professional_id(test_professional.id)
+        assert found is not None
+        assert found.id == account.id
+        assert found.routing_tag == "tag001"
+
+    async def test_find_returns_none_for_unknown_professional(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        find_by_professional_id() deve retornar None quando não há conta
+        para o UUID fornecido.
+        """
+        repo = WhatsAppAccountRepository(tenant_session)
+        found = await repo.find_by_professional_id(uuid4())
+        assert found is None
+
+    async def test_find_by_routing_tag(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        find_by_routing_tag() deve retornar a conta com o tag fornecido
+        e None para um tag inexistente.
+        """
+        repo = WhatsAppAccountRepository(tenant_session)
+        account = await repo.create(
+            professional_id=test_professional.id,
+            provider_type="twilio_shared",
+            phone_number="+5511000002222",
+            phone_number_id="MSGSVC_002",
+            access_token_encrypted=encrypt_credentials("access_token_2"),
+            routing_tag="unique_slug",
+        )
+
+        found = await repo.find_by_routing_tag("unique_slug")
+        assert found is not None
+        assert found.id == account.id
+
+        not_found = await repo.find_by_routing_tag("nonexistent_slug")
+        assert not_found is None
+
+
+# ===========================================================================
+# TestPhoneBindingRepository
+# ===========================================================================
+
+
+class TestPhoneBindingRepository:
+    async def test_create_and_find_by_phone(
+        self,
+        db_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        create() deve retornar WhatsAppPhoneBinding com id e phone_number corretos.
+        find_by_phone() deve encontrar o vínculo pelo número (cross-tenant).
+        """
+        repo = PhoneBindingRepository(db_session)
+        binding = await repo.create(
+            professional_id=test_professional.id,
+            phone_number="+5511888000001",
+            bound_via="tag",
+        )
+
+        assert binding.id is not None
+        assert binding.phone_number == "+5511888000001"
+        assert binding.bound_via == "tag"
+
+        found = await repo.find_by_phone("+5511888000001")
+        assert found is not None
+        assert found.id == binding.id
+
+    async def test_find_by_phone_returns_none_if_not_exists(
+        self,
+        db_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        find_by_phone() deve retornar None quando não há vínculo para o número.
+        """
+        repo = PhoneBindingRepository(db_session)
+        found = await repo.find_by_phone("+5500000000000")
+        assert found is None
+
+    async def test_list_by_professional(
+        self,
+        db_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        list_by_professional() deve retornar todos os vínculos do profissional,
+        ordenados por bound_at DESC.
+        """
+        repo = PhoneBindingRepository(db_session)
+        b1 = await repo.create(
+            professional_id=test_professional.id,
+            phone_number="+5511777000001",
+            bound_via="tag",
+        )
+        b2 = await repo.create(
+            professional_id=test_professional.id,
+            phone_number="+5511777000002",
+            bound_via="qr",
+        )
+
+        bindings = await repo.list_by_professional(test_professional.id)
+        assert len(bindings) == 2
+        ids = {b.id for b in bindings}
+        assert b1.id in ids
+        assert b2.id in ids
+
+
+# ===========================================================================
+# TestProviderMessageRepository
+# ===========================================================================
+
+
+class TestProviderMessageRepository:
+    async def test_create_and_exists_returns_true(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        create() deve persistir a mensagem.
+        exists() deve retornar True após a inserção.
+
+        Este é o fluxo normal: criar o registro e depois consultar
+        se já existe antes de processar um novo webhook.
+        """
+        repo = ProviderMessageRepository(tenant_session)
+        msg = await repo.create(
+            professional_id=test_professional.id,
+            provider_message_id="SM_test_001",
+            direction="inbound",
+            from_phone="+5511999888001",
+            to_phone="+5511000000000",
+            body="Ola, quero agendar",
+            provider_type="twilio_shared",
+        )
+
+        assert msg.id is not None
+
+        already_processed = await repo.exists(
+            professional_id=test_professional.id,
+            provider_message_id="SM_test_001",
+        )
+        assert already_processed is True
+
+    async def test_exists_returns_false_for_unknown_id(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        exists() deve retornar False quando o provider_message_id não existe
+        para o profissional.
+        """
+        repo = ProviderMessageRepository(tenant_session)
+        result = await repo.exists(
+            professional_id=test_professional.id,
+            provider_message_id="SM_nonexistent_999",
+        )
+        assert result is False
+
+    async def test_duplicate_raises_integrity_error(
+        self,
+        tenant_session: AsyncSession,
+        test_professional,
+    ) -> None:
+        """
+        Tentar criar dois registros com o mesmo professional_id +
+        provider_message_id deve levantar IntegrityError.
+
+        Garante que a constraint uq_provider_msg funciona como guard de
+        idempotência no banco, além da verificação do método exists().
+        """
+        repo = ProviderMessageRepository(tenant_session)
+        await repo.create(
+            professional_id=test_professional.id,
+            provider_message_id="SM_dup_001",
+            direction="inbound",
+            from_phone="+5511999888002",
+            to_phone="+5511000000000",
+            body="First delivery",
+            provider_type="twilio_shared",
+        )
+
+        with pytest.raises(IntegrityError):
+            await repo.create(
+                professional_id=test_professional.id,
+                provider_message_id="SM_dup_001",  # mesmo ID
+                direction="inbound",
+                from_phone="+5511999888002",
+                to_phone="+5511000000000",
+                body="Re-delivery (duplicate)",
+                provider_type="twilio_shared",
+            )

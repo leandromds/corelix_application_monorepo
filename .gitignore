@@ -121,3 +121,4 @@ docker-compose.override.yml
 *.bak
 *.backup
 .github/*.dmg
+.serena/

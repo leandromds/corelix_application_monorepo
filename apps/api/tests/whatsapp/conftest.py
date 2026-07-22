@@ -2,11 +2,30 @@
 
 from datetime import UTC, datetime
 
+import pytest
 import pytest_asyncio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from whatsapp.models import WhatsAppConversation, WhatsAppMessage
+
+# Chave Fernet válida e estática exclusiva para o ambiente de testes.
+# O ENCRYPTION_KEY do .env usa um placeholder inválido para Fernet;
+# todos os testes que exercitam encrypt/decrypt precisam desta substituição.
+# Gerada com: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+_TEST_ENCRYPTION_KEY = "o_sPNdu4sF1ucdijSxpHXg1aQVx3VxsYzhPqmf4RWMo="
+
+
+@pytest.fixture(autouse=True)
+def patch_encryption_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Substitui ENCRYPTION_KEY por uma Fernet key válida para todos os testes
+    do módulo whatsapp/. Sem isso, encrypt_credentials levanta ValueError
+    porque o placeholder no .env não é base64 url-safe de 32 bytes.
+    """
+    from core.config import settings
+
+    monkeypatch.setattr(settings, "ENCRYPTION_KEY", _TEST_ENCRYPTION_KEY)
 
 
 @pytest_asyncio.fixture
