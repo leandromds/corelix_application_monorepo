@@ -31,8 +31,8 @@ gera insights e se comunica de forma humanizada. IA não é módulo isolado — 
 | Auth        | JWT (15min) + Refresh Token no banco (30 dias)      |
 | Jobs        | pgqueuer (sem Redis)                                |
 | Testes      | pytest + pytest-asyncio + httpx + factory-boy       |
-| WhatsApp    | Meta Cloud API — Embedded Signup (Tech Provider)    |
-| IA          | Anthropic API (Claude Sonnet)                       |
+| WhatsApp    | Provider abstraído: Terminal (dev), Twilio Shared (piloto), Meta Cloud (prod) — ver ADR-028 |
+| IA          | OpenAI SDK com `base_url` configurável (`AI_BASE_URL`) — agnóstico de provider |
 | Hospedagem  | Hostinger VPS KVM2 + Coolify self-hosted            |
 | Deps Python | Poetry (pyproject.toml)                             |
 
