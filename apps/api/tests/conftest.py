@@ -121,6 +121,9 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
             "sessions",
             "recurrences",
             "whatsapp_conversations",
+            "whatsapp_accounts",
+            "whatsapp_phone_bindings",
+            "whatsapp_provider_messages",
         ]:
             await conn.execute(text(f"ALTER TABLE {agenda_table} ENABLE ROW LEVEL SECURITY"))
             await conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation ON {agenda_table}"))

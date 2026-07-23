@@ -31,6 +31,8 @@ from core.logging import configure_logging
 from professionals.router import router as professionals_router
 from reports.router import router as reports_router
 from whatsapp.router import router as whatsapp_router
+from whatsapp.webhooks.meta import router as meta_webhook_router
+from whatsapp.webhooks.twilio import router as twilio_webhook_router
 
 # ============================================================================
 # Logging & Observability — initialized at module load time
@@ -194,6 +196,13 @@ app.include_router(agenda_router, prefix="/api/v1/agenda", tags=["Agenda"])
 app.include_router(reports_router, prefix="/api/v1")
 
 app.include_router(whatsapp_router, prefix="/api/v1/whatsapp", tags=["WhatsApp"])
+
+app.include_router(
+    meta_webhook_router, prefix="/api/v1/webhooks/whatsapp/meta", tags=["WhatsApp Webhooks"]
+)
+app.include_router(
+    twilio_webhook_router, prefix="/api/v1/webhooks/whatsapp/twilio", tags=["WhatsApp Webhooks"]
+)
 
 
 # ============================================================================

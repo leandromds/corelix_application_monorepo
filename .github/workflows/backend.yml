@@ -4,13 +4,13 @@ on:
   pull_request:
     branches: [develop, main]
     paths:
-      - 'apps/api/**'
-      - '.github/workflows/backend.yml'
+      - "apps/api/**"
+      - ".github/workflows/backend.yml"
   push:
     branches: [develop]
     paths:
-      - 'apps/api/**'
-      - '.github/workflows/backend.yml'
+      - "apps/api/**"
+      - ".github/workflows/backend.yml"
 
 jobs:
   test:
@@ -115,6 +115,15 @@ jobs:
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
           WHATSAPP_APP_ID: ci-app-id-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==
+          WHATSAPP_FORCE_TERMINAL: "true"
+          TWILIO_ACCOUNT_SID: ci-twilio-sid-placeholder
+          TWILIO_AUTH_TOKEN: ci-twilio-token-placeholder
+          TWILIO_MESSAGING_SERVICE_SID: ci-twilio-msgsvc-placeholder
+          TWILIO_SHARED_PHONE_NUMBER: "+5511000000000"
+          TWILIO_WEBHOOK_VALIDATION: "false"
+          META_APP_ID: ci-meta-app-id-placeholder
+          META_APP_SECRET: ci-meta-app-secret-placeholder
+          META_WEBHOOK_VERIFY_TOKEN: ci-meta-verify-token-placeholder
         run: poetry run pytest tests/ -v --tb=short --no-cov
 
       - name: Type check (mypy)
@@ -134,6 +143,15 @@ jobs:
           WHATSAPP_APP_SECRET: ci-app-secret-placeholder-not-real
           WHATSAPP_APP_ID: ci-app-id-placeholder-not-real
           ENCRYPTION_KEY: ci-encryption-key-placeholder-32chars==
+          WHATSAPP_FORCE_TERMINAL: "true"
+          TWILIO_ACCOUNT_SID: ci-twilio-sid-placeholder
+          TWILIO_AUTH_TOKEN: ci-twilio-token-placeholder
+          TWILIO_MESSAGING_SERVICE_SID: ci-twilio-msgsvc-placeholder
+          TWILIO_SHARED_PHONE_NUMBER: "+5511000000000"
+          TWILIO_WEBHOOK_VALIDATION: "false"
+          META_APP_ID: ci-meta-app-id-placeholder
+          META_APP_SECRET: ci-meta-app-secret-placeholder
+          META_WEBHOOK_VERIFY_TOKEN: ci-meta-verify-token-placeholder
         run: poetry run mypy .
 
       - name: Lint (ruff)
