@@ -16,40 +16,61 @@ Pontual, intencional, nunca decorativo.
 
 ### `ai/service.py`
 
+O serviço é **agnóstico de provider**: usa o OpenAI SDK com `base_url` configurável,
+o que o torna compatível com qualquer endpoint OpenAI-compatible (OpenAI, OpenRouter,
+DeepSeek, Groq, LiteLLM, Ollama, etc.) sem alterar código.
+
 ```python
 class AIService:
     def __init__(self) -> None:
-        self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = "claude-sonnet-4-5"
-
-    async def complete(self, system: str, message: str) -> str:
-        """Single-turn completion — para respostas pontuais (relatório, insights)."""
-        response = await asyncio.to_thread(
-            self.client.messages.create,
-            model=self.model,
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": message}],
+        self.client = openai.AsyncOpenAI(
+            api_key=settings.AI_API_KEY,
+            base_url=settings.AI_BASE_URL,
         )
-        return response.content[0].text
+        self.default_model = settings.AI_MODEL
+
+    async def complete(
+        self,
+        system_prompt: str,
+        user_message: str,
+        max_tokens: int = 1024,
+        model: str | None = None,
+    ) -> str:
+        """Single-turn completion — para respostas pontuais (relatório, insights)."""
+        response = await self.client.chat.completions.create(
+            model=model or self.default_model,
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        content = response.choices[0].message.content
+        return content if content is not None else ""
 
     async def complete_with_history(
         self,
-        system: str,
+        system_prompt: str,
         messages: list[dict[str, str]],
+        max_tokens: int = 1024,
     ) -> str:
         """Multi-turn completion — para conversas WhatsApp com histórico."""
-        response = await asyncio.to_thread(
-            self.client.messages.create,
-            model=self.model,
-            max_tokens=1024,
-            system=system,
-            messages=messages,  # [{"role": "user"|"assistant", "content": "..."}]
+        all_messages: list[dict[str, str]] = [
+            {"role": "system", "content": system_prompt},
+            *messages,
+        ]
+        response = await self.client.chat.completions.create(
+            model=self.default_model,
+            max_tokens=max_tokens,
+            messages=all_messages,
         )
-        return response.content[0].text
+        content = response.choices[0].message.content
+        return content if content is not None else ""
 ```
 
-**Nota sobre `asyncio.to_thread`:** o cliente Python da Anthropic é síncrono. O `asyncio.to_thread` executa a chamada bloqueante em uma thread separada, sem bloquear o event loop do FastAPI.
+**Nota sobre async:** o cliente `openai.AsyncOpenAI` é nativamente assíncrono — `await` direto,
+sem `asyncio.to_thread`. Ao contrário do SDK Anthropic (síncrono), o OpenAI SDK suporta
+`async/await` nativo e não bloqueia o event loop do FastAPI.
 
 ---
 
@@ -138,9 +159,9 @@ class WhatsAppService:
             session_price=professional.session_price or "a consultar",
         )
 
-        # 3. Montar histórico no formato Anthropic
+        # 3. Montar histórico no formato OpenAI chat completions
         messages = [
-            {"role": msg.direction == "inbound" and "user" or "assistant",
+            {"role": "user" if msg.direction == "inbound" else "assistant",
              "content": msg.content}
             for msg in history
         ]
@@ -169,20 +190,20 @@ Princípio: cada chamada deve ter propósito claro e escopo limitado.
 
 ## Tratamento de Erros
 
-Chamadas à API da Anthropic podem falhar por:
-- Timeout de rede
-- Rate limit da API
-- Erro interno da Anthropic
-
-Todos esses casos devem lançar `ExternalServiceError` (de `core/exceptions.py`), que é mapeado para HTTP 502 em `main.py`. O sistema não deve travar por falha da IA — degradação graceful é preferível.
+Chamadas à API podem falhar por timeout, rate limit ou erro do provider.
+Todos os casos levantam `ExternalServiceError` (de `core/exceptions.py`), mapeado para HTTP 502 em `main.py`.
+O sistema não trava por falha da IA — degradação graceful é preferível.
 
 ```python
-async def complete(self, system: str, message: str) -> str:
+async def complete(self, system_prompt: str, user_message: str, ...) -> str:
     try:
-        response = await asyncio.to_thread(...)
-        return response.content[0].text
-    except anthropic.APIError as e:
-        raise ExternalServiceError(f"Anthropic API error: {e}") from e
+        response = await self.client.chat.completions.create(...)
+        return response.choices[0].message.content or ""
+    except openai.APIError as e:
+        raise ExternalServiceError(
+            message=f"AI API error: {e}",
+            service_name="ai",
+        ) from e
 ```
 
 ---
@@ -192,8 +213,9 @@ async def complete(self, system: str, message: str) -> str:
 - **IA sem router próprio** — não há endpoints de IA expostos diretamente. Todo acesso é indireto via outros módulos
 - **Prompts centralizados em `ai/prompts.py`** — nunca inline nos services. Facilita revisão, versionamento e auditoria do comportamento da IA
 - **Toda saída da IA é sugestão** — o sistema nunca executa ações automaticamente com base apenas na IA sem confirmação do profissional (exceto respostas WhatsApp no modo `ai`)
-- **Sem streaming no MVP** — `create()` síncrono + `asyncio.to_thread`. Streaming pode ser adicionado para o chat do dashboard no pós-MVP
-- **Modelo fixo no código** — `claude-sonnet-4-5` hardcoded. Tornável configurável via `Settings` se necessário no futuro
+- **Sem streaming no MVP** — `chat.completions.create()` síncrono (resultado completo). Streaming pode ser adicionado para o chat do dashboard no pós-MVP
+- **Modelo configurável via Settings** — `AI_MODEL` em `.env`. Padrão: `gpt-4o-mini`. Pode ser sobrescrito por chamada via parâmetro `model=` no `complete()`
+- **Provider configurável via `AI_BASE_URL`** — nenhuma dependência de provider específico no código. Trocar de OpenAI para OpenRouter é apenas mudar duas variáveis de ambiente
 
 ---
 
@@ -202,6 +224,6 @@ async def complete(self, system: str, message: str) -> str:
 - `ai/service.py` — `AIService.complete()`, `AIService.complete_with_history()`
 - `ai/prompts.py` — `PROMPTS` registry
 - `core/exceptions.py` — `ExternalServiceError` para falhas da API
-- `core/config.py` — `Settings.ANTHROPIC_API_KEY`
+- `core/config.py` — `Settings.AI_API_KEY`, `Settings.AI_BASE_URL`, `Settings.AI_MODEL`
 - `domains/whatsapp.md` — uso primário de `complete_with_history()`
 - ADR-011 — modelo de integração WhatsApp (contexto do uso de IA no WhatsApp)

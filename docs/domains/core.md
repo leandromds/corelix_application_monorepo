@@ -39,11 +39,13 @@ class Settings(BaseSettings):
     # CORS (aceita string CSV ou lista)
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    # Criptografia (para dados sensíveis em repouso — ex: whatsapp_access_token)
+    # Criptografia (dados sensíveis em repouso)
     ENCRYPTION_KEY: str    # Fernet key — obrigatório
 
-    # IA
-    ANTHROPIC_API_KEY: str
+    # AI Provider (OpenAI-compatible — agnóstico de provider)
+    AI_API_KEY: str          # obrigatório — chave do provider (OpenAI, OpenRouter, etc.)
+    AI_BASE_URL: str = "https://api.openai.com/v1"  # qualquer endpoint OpenAI-compatible
+    AI_MODEL: str = "gpt-4o-mini"                    # modelo configurável via .env
 
     @property
     def is_production(self) -> bool:
