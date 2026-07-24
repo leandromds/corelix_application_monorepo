@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-07-22",
+  "last_updated": "2026-07-23",
   "current_feature": {
     "module": "whatsapp",
     "branch": "feature/whatsapp-providers",
@@ -599,9 +599,15 @@
   },
   "pending_tasks": [
     "deploy — Coolify: provisionar VPS Hostinger KVM 2, instalar Coolify, configurar serviços API + worker + PostgreSQL, Uptime Kuma, Glitchtip, variáveis de ambiente de produção",
-    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional (depende de aprovação Meta Tech Provider)"
+    "segurança — endpoint Embedded Signup para onboarding do número WhatsApp do profissional (depende de aprovação Meta Tech Provider)",
+    "implementar Dialog360Provider (ADR-029) — onboarding do número do profissional via 360dialog BSP; implementar WhatsAppProvider contract + testes",
+    "mudar padrão do factory.py de TwilioSharedAccountProvider para Dialog360Provider após implementação e testes verdes",
+    "remover TwilioSharedAccountProvider, testes e dependência twilio do pyproject.toml após Dialog360Provider em produção",
+    "injetar variáveis WHATSAPP_FORCE_TERMINAL, TWILIO_*, META_APP_SECRET e META_WEBHOOK_VERIFY_TOKEN no docker-compose.yml"
   ],
-  "known_issues": [],
+  "known_issues": [
+    "META_APP_ID declarada em Settings (core/config.py) com zero ocorrências de uso no código — decidir entre remover do Settings ou implementar o mesmo mecanismo de fallback que META_APP_SECRET e META_WEBHOOK_VERIFY_TOKEN possuem em whatsapp/providers/meta.py"
+  ],
   "api_gaps_resolved": [
     {
       "gap": "GET /reports/summary inexistente — dashboard precisava de endpoint leve para KPI cards",
