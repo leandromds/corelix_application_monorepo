@@ -49,6 +49,7 @@ async def run_chat(*, professional_id: uuid.UUID, client_phone: str) -> None:
     Usa TerminalProvider para envio e recebimento — não faz chamadas de rede.
     Cria sessão de banco real para persistir conversa e histórico de IA.
     """
+    from clients.models import Client  # noqa: F401 — registers FK target in SQLAlchemy mapper
     from core.database import async_session_maker, set_tenant_context
     from whatsapp.providers.terminal import TerminalProvider
     from whatsapp.service import WhatsAppService

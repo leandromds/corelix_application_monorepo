@@ -175,7 +175,9 @@ ENVIRONMENT=development
 ALLOWED_ORIGINS=http://localhost:5173
 
 # IA
-ANTHROPIC_API_KEY=<chave da Anthropic API>
+AI_API_KEY=<chave do provider OpenAI-compatible: OpenAI, OpenRouter, DeepSeek, Groq, etc.>
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
 
 # WhatsApp
 WHATSAPP_VERIFY_TOKEN=<token arbitrário para verificação do webhook>
