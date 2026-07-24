@@ -31,7 +31,7 @@ gera insights e se comunica de forma humanizada. IA não é módulo isolado — 
 | Auth        | JWT (15min) + Refresh Token no banco (30 dias)      |
 | Jobs        | pgqueuer (sem Redis)                                |
 | Testes      | pytest + pytest-asyncio + httpx + factory-boy       |
-| WhatsApp    | Provider abstraído: Terminal (dev), Twilio Shared (piloto), Meta Cloud (prod) — ver ADR-028 |
+| WhatsApp    | Provider abstraído: Terminal (dev), 360dialog/BSP (piloto, número próprio), Meta Cloud (prod); Twilio Shared deprecated — ver ADR-028, ADR-029 |
 | IA          | OpenAI SDK com `base_url` configurável (`AI_BASE_URL`) — agnóstico de provider |
 | Hospedagem  | Hostinger VPS KVM2 + Coolify self-hosted            |
 | Deps Python | Poetry (pyproject.toml)                             |
@@ -92,6 +92,7 @@ Módulos: `auth` / `professionals` / `clients` / `agenda` / `reports` / `whatsap
 | 26 | Observabilidade: Uptime Kuma + Glitchtip + PostHog Cloud | ADR-026 |
 | 27 | Containerização: Docker Compose (API + worker separados) | ADR-027 |
 | 28 | WhatsApp: provider abstraído (Terminal, Twilio Shared, Meta) | ADR-028 |
+| 29 | WhatsApp piloto via 360dialog (BSP) — número próprio do profissional; Twilio Shared deprecated | ADR-029 |
 
 ---
 
