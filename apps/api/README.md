@@ -9,7 +9,7 @@ API backend para Corelix — uma secretária inteligente com IA para profissiona
 - **ORM:** SQLAlchemy 2.0 (async) + Alembic
 - **Database:** PostgreSQL 16
 - **Authentication:** JWT + Refresh Tokens
-- **AI:** Anthropic Claude API
+- **AI:** OpenAI-compatible API (provider configurável via `AI_BASE_URL` — OpenAI, OpenRouter, DeepSeek, Groq, LiteLLM, etc.)
 - **WhatsApp:** Meta Cloud API (Embedded Signup)
 - **Job Queue:** pgqueuer (PostgreSQL-based)
 - **Tests:** pytest + pytest-asyncio + httpx + factory-boy
@@ -39,19 +39,31 @@ poetry install
 ### 3. Configurar variáveis de ambiente
 
 ```bash
-# Na raiz do monorepo (application/)
-cp .env.example .env
+# A partir de apps/api/ — copia .env.example (raiz do monorepo) para apps/api/.env
+# O Pydantic Settings lê apps/api/.env quando uvicorn/pytest é iniciado de apps/api/
+cp ../../.env.example .env
 ```
 
-Edite `.env` e preencha os valores necessários:
+Edite `apps/api/.env` e preencha os obrigatórios:
 
 ```env
-# Obrigatórios para desenvolvimento local
+# Banco
 DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/secretaria_digital_dev
-SECRET_KEY=<gere com: openssl rand -hex 32>
-ANTHROPIC_API_KEY=<sua chave da Anthropic>
-ENCRYPTION_KEY=<gere com Python: from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())>
+
+# JWT — gerar: openssl rand -hex 32
+SECRET_KEY=<string aleatória min. 32 chars>
+
+# IA (OpenAI-compatible) — OpenAI, OpenRouter, DeepSeek, Groq, LiteLLM, etc.
+AI_API_KEY=<chave do provider escolhido>
+
+# Criptografia — gerar: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY=<chave Fernet>
 ```
+
+> O arquivo `.env.example` vive na raiz do monorepo (não em `apps/api/`).
+> O Docker Compose lê `.env` da raiz; o Pydantic lê `apps/api/.env`.
+> Os dois arquivos devem ter o mesmo `SECRET_KEY` e `ENCRYPTION_KEY`,
+> mas `DATABASE_URL` diferente (`localhost` vs `db:5432`).
 
 ### 4. Iniciar PostgreSQL (Docker)
 

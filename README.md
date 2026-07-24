@@ -44,10 +44,13 @@ cd apps/api
 **Configurar variáveis de ambiente:**
 
 ```bash
-cp .env.example .env
+cp ../../.env.example .env
 ```
 
-Edite `.env` e preencha obrigatoriamente:
+> O `.env.example` está na raiz do monorepo. O comando acima copia para `apps/api/.env`,
+> que é o arquivo lido pelo Pydantic Settings quando `uvicorn` é iniciado a partir de `apps/api/`.
+
+Edite `apps/api/.env` e preencha obrigatoriamente:
 
 ```env
 SECRET_KEY=<string aleatória longa>
@@ -101,10 +104,16 @@ Acesse **http://localhost:5173** — o Vite proxeia `/api` automaticamente para 
 
 ---
 
-### 4. Terminal Chat (testar o fluxo de IA sem WhatsApp real)
+### 4. Terminal Chat (testar o processamento de mensagens sem WhatsApp real)
 
-O `TerminalProvider` permite simular uma conversa de cliente via WhatsApp diretamente
-no terminal — sem credenciais Meta/Twilio, sem rede externa.
+O `TerminalProvider` permite enviar mensagens ao pipeline de IA diretamente pelo
+terminal — sem credenciais Meta/Twilio, sem rede externa.
+
+> **Estado atual:** a mensagem enviada é processada pela IA e a resposta é
+> **persistida no banco**, mas **não é exibida no terminal** (bug conhecido —
+> `process_incoming_message` não despacha a resposta pelo provider; fix em andamento).
+> Para inspecionar a resposta gerada, use `GET /api/v1/whatsapp/conversations/{id}`
+> via Swagger (`http://localhost:8000/docs`) após enviar a mensagem.
 
 **Pré-requisitos:**
 - Postgres no ar e migrações aplicadas (`alembic upgrade head`)
@@ -232,6 +241,20 @@ corelix_application_monorepo/
 | `WHATSAPP_APP_SECRET` | — | App secret da Meta |
 | `WHATSAPP_FORCE_TERMINAL` | — | `true` para usar TerminalProvider (dev/demo) — nunca `true` em produção |
 | `GLITCHTIP_DSN` | — | DSN Glitchtip (deixe vazio em dev) |
+| `AI_MODEL` | — | Padrão: `gpt-4o-mini` (qualquer modelo do provider configurado) |
+| `WHATSAPP_APP_ID` | ✅ | Meta App ID para renovação de access token de longa duração |
+| `META_APP_SECRET` | — | Sobrescreve `WHATSAPP_APP_SECRET` para validação HMAC do Meta provider |
+| `META_WEBHOOK_VERIFY_TOKEN` | — | Sobrescreve `WHATSAPP_VERIFY_TOKEN` para challenge do Meta provider |
+| `TWILIO_ACCOUNT_SID` | — | **Deprecated (ADR-029)** — Twilio Shared Account SID |
+| `TWILIO_AUTH_TOKEN` | — | **Deprecated (ADR-029)** — Twilio Auth Token para validação HMAC-SHA1 |
+| `TWILIO_MESSAGING_SERVICE_SID` | — | **Deprecated (ADR-029)** — Messaging Service SID |
+| `TWILIO_SHARED_PHONE_NUMBER` | — | **Deprecated (ADR-029)** — número compartilhado Corelix (E.164) |
+| `TWILIO_WEBHOOK_VALIDATION` | — | Padrão: `true` — valida assinatura HMAC-SHA1 Twilio |
+| `ENVIRONMENT` | — | Padrão: `development` (`development`/`staging`/`production`) |
+| `DEBUG` | — | Padrão: `false` |
+| `API_HOST` | — | Padrão: `0.0.0.0` |
+| `API_PORT` | — | Padrão: `8000` |
+| `CORS_ORIGINS` | — | CSV ou JSON array de origens CORS — Padrão: `http://localhost:5173,http://localhost:3000` |
 
 ### Frontend (`apps/web/.env`)
 
@@ -240,3 +263,11 @@ corelix_application_monorepo/
 | `VITE_API_URL` | — | Padrão: `/api/v1` (proxy Vite em dev) |
 | `VITE_GLITCHTIP_DSN` | — | DSN Glitchtip (deixe vazio em dev) |
 | `VITE_POSTHOG_KEY` | — | Chave PostHog (deixe vazio em dev) |
+
+### Qual `.env` cada ferramenta lê
+
+| `.env` | Lido por | Quando |
+|---|---|---|
+| `apps/api/.env` | Pydantic Settings (`env_file=".env"` relativo ao CWD) | `poetry run uvicorn`, `poetry run pytest` |
+| `.env` (raiz) | Docker Compose | `docker compose up` — substitui `${VAR}` no `docker-compose.yml` |
+| `apps/web/.env` | Vite (`import.meta.env.VITE_*`) | `npm run dev`, `npm run build` |
